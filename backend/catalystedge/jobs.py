@@ -291,10 +291,15 @@ def job_signals(ctx: Context) -> dict:
         from catalystedge.signals.engine import generate_signals  # type: ignore[import-not-found]
     except ImportError:
         return {"status": "signal engine not available yet"}
+    def ensure_prices(symbols: list[str]) -> None:
+        job_prices(ctx, symbols=list(dict.fromkeys([*BENCHMARKS, *symbols]))[:MAX_PRICE_SYMBOLS_PER_RUN])
+
     with _session(ctx) as s:
-        signals = generate_signals(s, ctx.clock.now())
-        queued = sum(queue_high_confidence(s, sig) for sig in signals)
-    return {"signals": len(signals), "displayed": sum(1 for x in signals if x.displayed), "alerts_queued": queued}
+        result = generate_signals(s, ctx.clock.now(), ensure_prices=ensure_prices)
+        shown = [c.signal for c in result.displayed if c.signal is not None]
+        queued = sum(queue_high_confidence(s, sig) for sig in shown)
+    return {"as_of": result.as_of_date.isoformat(), "candidates": len(result.candidates), "displayed": len(shown),
+            "alerts_queued": queued, "warnings": result.warnings}
 
 
 # ----------------------------------------------------------------------------- paper trading
