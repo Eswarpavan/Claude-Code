@@ -91,7 +91,7 @@ To avoid both of us writing them, 01Ny adds, in NEW files where possible:
 - `backend/catalystedge/api/brain.py`: APIRouter with `GET/PUT /api/timesfm` (state, status,
   change log, license + leakage notes; PUT queues `timesfm_refresh`), `GET /api/catalysts`
   (hit rate + avg return by catalyst, live + backtest), `GET /api/evidence`,
-  `GET /api/backtest/latest`, `GET /api/signals/filtered-by-timesfm`. One `include_router`
+  `GET /api/backtest/latest`, `GET /api/timesfm/filtered`. One `include_router`
   line in `api/main.py`.
 - `frontend/components/timesfm-settings.tsx`, `timesfm-indicator.tsx`, `catalyst-table.tsx`,
   `timesfm-evidence.tsx`, plus one-line inserts in `app/settings/page.tsx`, the header

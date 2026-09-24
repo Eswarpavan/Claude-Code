@@ -193,3 +193,53 @@ def test_refresh_start_cooldown_and_sse(clean, monkeypatch):
     assert events[-1]["refresh"]["status"] == "done" and events[-1]["refresh"]["progress_pct"] == 100.0
     assert {x["key"] for x in events[-1]["sources"]} >= {"finnhub_news", "benzinga_news"}
     api.state.ctx = None
+
+
+# ----------------------------------------------------------------------------- TimesFM + evidence endpoints (01Ny)
+
+
+def _login(c):
+    """A valid token without going through /api/login (its per-IP rate limit spans tests)."""
+    from catalystedge.api.auth import issue_token
+
+    return {"Authorization": f"Bearer {issue_token(api.state.settings)}"}
+
+
+def test_timesfm_toggle_endpoint_persists_and_logs(clean, monkeypatch):
+    from catalystedge.api import brain
+
+    monkeypatch.setattr(brain, "_queue_timesfm_refresh", lambda: "queued")
+    monkeypatch.setattr(brain, "_rescore_in_background", lambda: "started")
+    c = client(clean, APP_PASSWORD="pw")
+    h = _login(c)
+    assert c.get("/api/timesfm").status_code == 401
+    assert c.get("/api/timesfm", headers=h).json()["enabled"] is False
+    r = c.put("/api/timesfm", json={"enabled": True, "mode": "filter"}, headers=h).json()
+    assert (r["enabled"], r["mode"], r["refresh"]) == (True, "filter", "queued")
+    again = c.get("/api/timesfm", headers=h).json()
+    assert again["enabled"] is True and again["changes"][0]["mode"] == "filter" and again["license_note"]
+    assert c.put("/api/timesfm", json={"enabled": True, "mode": "bogus"}, headers=h).status_code == 422
+    assert c.put("/api/timesfm", json={"enabled": False}, headers=h).json()["refresh"] == "started"
+
+
+def test_filtered_by_timesfm_endpoint(clean):
+    sid = seed(clean, "FLT", conf=70, displayed=False)
+    with sessionmaker(clean)() as s:
+        sig = s.get(Signal, sid)
+        sig.features = {"skip_reason": "filtered_by_timesfm",
+                        "timesfm": {"note": "TimesFM forecasts -1.00% over 10 days (not positive)",
+                                    "forecast": {"expected_return_pct": -1.0}}}
+        s.commit()
+    c = client(clean, APP_PASSWORD="pw")
+    out = c.get("/api/timesfm/filtered", headers=_login(c)).json()
+    assert [x["symbol"] for x in out["signals"]] == ["FLT"] and "not positive" in out["signals"][0]["reason"]
+
+
+def test_evidence_catalysts_and_backtest_endpoints(clean):
+    seed(clean, "EVD")
+    c = client(clean, APP_PASSWORD="pw")
+    h = _login(c)
+    ev = c.get("/api/evidence", headers=h).json()
+    assert ev["label"] == "UNCALIBRATED" and "UNCALIBRATED" in ev["plain"]
+    assert "live" in c.get("/api/catalysts", headers=h).json()
+    assert c.get("/api/backtest/latest", headers=h).json()["run"] is None

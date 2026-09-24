@@ -82,6 +82,9 @@ def create_app(settings: Settings | None = None, session_factory: sessionmaker |
     app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in state.settings.cors_origins.split(",")],
                        allow_methods=["GET", "POST", "PUT"], allow_headers=["Authorization", "Content-Type"])
     app.include_router(_router())
+    from catalystedge.api import brain
+
+    app.include_router(brain.router(db, auth))
     return app
 
 
@@ -137,6 +140,9 @@ def signal_json(s: Session, sig: Signal, now: dt.datetime, detail: bool = False)
         if senti else None,
         "sentiment_model": senti[0].get("model") if senti else None,
         "model_disagrees": bool((sig.features or {}).get("model_disagrees")),
+        "timesfm": (sig.features or {}).get("timesfm"),
+        "reaction_since_news_pct": ((sig.features or {}).get("price") or {}).get("reaction_pct"),
+        "rule_components": (sig.features or {}).get("rule_components"),
     }
     if detail:
         out["features"] = sig.features
