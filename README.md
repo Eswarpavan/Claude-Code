@@ -16,7 +16,7 @@ Run this before anything else. It uses only the Python standard library and make
 20 requests in total: at most 3 of Alpha Vantage's 25/day, 2 of Marketaux's 100/day, and
 it never sends email.
 ```bash
-cp .env.example .env        # or create .env with just the keys below
+# create a .env file in the repo root containing the keys listed below (one KEY=value per line)
 python3 scripts/verify_sources.py            # writes reports/source_check_<time>.md/.json
 python3 scripts/test_verify_sources.py       # offline tests for the checker itself
 ```
