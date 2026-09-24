@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/* Dark mode is class-based so the theme toggle wins over the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #f9f9f7;
+  --card: #fcfcfb;
+  --foreground: #0b0b0b;
+  --muted: #52514e;
+  --subtle: #898781;
+  --border: rgba(11, 11, 11, 0.1);
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --accent: #2a78d6;
+  --good: #006300;
+  --critical: #d03b3b;
+  --warning-bg: #fff4d6;
+  --warning-fg: #6b4a00;
+  /* Chart series (validated reference palette, light steps): slot 1 blue, slot 2 orange */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+}
+
+.dark {
+  --background: #0d0d0d;
+  --card: #1a1a19;
+  --foreground: #ffffff;
+  --muted: #c3c2b7;
+  --subtle: #898781;
+  --border: rgba(255, 255, 255, 0.1);
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --accent: #3987e5;
+  --good: #0ca30c;
+  --critical: #e66767;
+  --warning-bg: #3a2c05;
+  --warning-fg: #fab219;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-good: var(--good);
+  --color-critical: var(--critical);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-fg: var(--warning-fg);
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

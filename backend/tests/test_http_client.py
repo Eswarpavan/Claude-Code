@@ -135,3 +135,18 @@ def test_spacing_between_calls():
     client.get_json("t", "https://api.example/a")
     client.get_json("t", "https://api.example/b")
     assert sleeps and 0 < sleeps[-1] <= 2.0
+
+
+def test_hourly_quota_429_stops_immediately_and_blocks_the_rest_of_the_hour():
+    spec = SourceSpec("t", "price", True, False, 1.0, 0.0, 900, 0, 60, hourly_budget=45)
+    client, calls, sleeps = make(lambda req, n: httpx.Response(429), spec=spec)
+    with pytest.raises(BudgetExhausted, match="hourly limit"):
+        client.get_json("t", "https://api.example/x")
+    assert len(calls) == 1 and sleeps == []                    # no retries burning quota
+    with pytest.raises(BudgetExhausted, match="hourly budget"):
+        client.get_json("t", "https://api.example/y")
+    assert len(calls) == 1                                      # nothing else sent this hour
+    client.clock.advance(hours=1)
+    with pytest.raises(BudgetExhausted):
+        client.get_json("t", "https://api.example/z")           # a new hour is tried again (still 429 here)
+    assert len(calls) == 2

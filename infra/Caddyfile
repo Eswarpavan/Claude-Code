@@ -1,0 +1,13 @@
+# HTTPS reverse proxy for the CatalystEdge API on the Oracle VM. Caddy obtains the certificate itself.
+{$PUBLIC_HOSTNAME} {
+	encode gzip
+	reverse_proxy api:8000 {
+		flush_interval -1   # stream server-sent events (refresh progress) immediately
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+}

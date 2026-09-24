@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     database_url: str = Field(
         "postgresql+psycopg://catalystedge:catalystedge@localhost:5432/catalystedge", alias="DATABASE_URL"
     )
-    redis_url: str | None = Field(None, alias="REDIS_URL")
+    redis_url: str | None = Field(None, alias="REDIS_URL")               # cache, budgets, locks (Upstash in cloud)
+    celery_broker_url: str | None = Field(None, alias="CELERY_BROKER_URL")  # task queue; defaults to REDIS_URL
 
     # Provider keys (all optional; a missing key disables that adapter).
     finnhub_api_key: str | None = Field(None, alias="FINNHUB_API_KEY")
@@ -30,6 +31,11 @@ class Settings(BaseSettings):
     sec_user_agent: str | None = Field(None, alias="SEC_USER_AGENT")
 
     tiingo_news_enabled: bool = Field(False, alias="TIINGO_NEWS_ENABLED")
+    # Company-news queries on every poll, in addition to holdings and tickers with fresh positive events.
+    # Market-wide headlines rarely carry company catalysts, so this list sets the discovery breadth.
+    news_watchlist: str = Field(
+        "AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,AMD,AVGO,NFLX,JPM,LLY,UNH,XOM,COST,CRM,ORCL,PLTR,UBER,INTC",
+        alias="NEWS_WATCHLIST")
     # Alpha Vantage does not document the zone of NEWS_SENTIMENT.time_published.
     # UTC is the conservative reading (items can only look older, never newer).
     alphavantage_news_tz: str = Field("UTC", alias="ALPHAVANTAGE_NEWS_TZ")

@@ -522,7 +522,7 @@ def _ctx():
 
 def _dispatch_refresh(rid) -> None:
     """Run in the Celery worker when one is configured, otherwise in a background thread."""
-    if state.settings.redis_url:
+    if state.settings.celery_broker_url or state.settings.redis_url:
         try:
             from catalystedge.worker.celery_app import refresh as refresh_task
 

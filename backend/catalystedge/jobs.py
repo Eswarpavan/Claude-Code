@@ -58,6 +58,7 @@ log = logging.getLogger("catalystedge.jobs")
 PRICE_HISTORY_SESSIONS = 260        # about a year: enough for momentum/volatility features
 MAX_PRICE_SYMBOLS_PER_RUN = 40      # Tiingo free: 45/h budget
 BENCHMARKS = ("SPY",)
+WATCHLIST_MAX = 30                  # Finnhub company-news calls per poll (60/min limit, ~1.2 s spacing)
 
 
 @dataclass
@@ -198,7 +199,8 @@ def _watchlist(ctx: Context) -> list[str]:
         since = ctx.clock.now() - NEWS_WINDOW
         recent = list(s.scalars(select(Event.symbol).where(Event.polarity == "positive", Event.event_type != "other",
                                                            Event.available_at >= since).distinct().limit(12)))
-    return sorted(held | pending) + [x for x in recent if x not in held | pending]
+    base = [x.strip().upper() for x in ctx.settings.news_watchlist.split(",") if x.strip()]
+    return list(dict.fromkeys([*sorted(held | pending), *recent, *base]))[:WATCHLIST_MAX]
 
 
 # ----------------------------------------------------------------------------- SEC / FDA / earnings events (hook)
@@ -212,7 +214,8 @@ def job_events(ctx: Context, refresh_id: Any = None) -> dict:
     except ImportError:
         return {"status": "not available yet"}
     with _session(ctx) as s:
-        return poll_events(s, ctx.http, ctx.settings, ctx.clock.now())
+        return poll_events(s, ctx.http, ctx.settings, ctx.clock.now(), universe=ctx.universe(),
+                           model=ctx.sentiment_model())
 
 
 # ----------------------------------------------------------------------------- prices

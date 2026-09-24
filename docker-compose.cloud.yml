@@ -1,0 +1,76 @@
+# CatalystEdge, cloud profile ($0): runs on the Oracle Always Free VM. Database = Neon, shared cache =
+# Upstash, UI = Vercel. Only the API, worker, beat, a local Redis (task queue only) and Caddy (HTTPS) run here.
+#   cp .env.cloud.example .env   # fill in, then:
+#   docker compose -f docker-compose.cloud.yml up -d --build
+# See docs/DEPLOY_FREE.md for the full walk-through.
+
+x-backend: &backend
+  build:
+    context: ./backend
+    args:
+      INSTALL_ML: ${INSTALL_ML:-true}
+  image: catalystedge-backend:cloud
+  env_file: .env                      # must exist: DATABASE_URL (Neon), REDIS_URL (Upstash), APP_PASSWORD, keys
+  environment:
+    CATALYSTEDGE_PROFILE: cloud
+    CELERY_BROKER_URL: redis://redis:6379/0
+    MODELS_DIR: /models
+  volumes:
+    - models:/models
+  restart: unless-stopped
+
+services:
+  redis:                              # Celery queue only (Upstash's free command quota is kept for shared state)
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 10
+    restart: unless-stopped
+
+  migrate:
+    <<: *backend
+    command: ["sh", "-c", "DATABASE_URL=$${DATABASE_URL_DIRECT:-$$DATABASE_URL} alembic upgrade head"]
+    restart: "no"
+
+  api:
+    <<: *backend
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    <<: *backend
+    command: ["celery", "-A", "catalystedge.worker.celery_app", "worker", "-l", "info", "--concurrency", "1"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  beat:
+    <<: *backend
+    command: ["celery", "-A", "catalystedge.worker.celery_app", "beat", "-l", "info", "-s", "/tmp/celerybeat-schedule"]
+    healthcheck:
+      disable: true
+    depends_on:
+      - worker
+
+  caddy:                              # automatic HTTPS (Let's Encrypt) for PUBLIC_HOSTNAME
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?set PUBLIC_HOSTNAME in .env}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  models:
+  caddydata:
