@@ -275,3 +275,33 @@ def test_non_events_are_filtered(headline, reason):
 )
 def test_real_events_are_kept(headline):
     assert non_event_reason(headline) is None
+
+
+# ----------------------------------------------------------------------------- third live run (FinBERT)
+
+
+@pytest.mark.parametrize("headline", [
+    "NN, Inc.: Repeated Guidance Raises Are Hard To Ignore (Ratings Upgrade)",
+    "AMD: Welcome To The $1 Trillion Club; $740 Could Be Next (Rating Upgrade)",
+])
+def test_contributor_rating_labels_are_opinion_not_broker_actions(headline):
+    from catalystedge.pipeline.noise import non_event_reason
+
+    verdict = non_event_reason(headline)
+    assert verdict is not None and verdict.reason == "stock_picking_advice"
+
+
+@pytest.mark.parametrize(("headline", "symbol", "strength"), [
+    ("Stifel Upgrades Microsoft to Buy, Raises Price Target to $575", "MSFT", "normal"),
+    ("Microsoft Stock Wins Upgrade. Why This Analyst Sees 15% Upside.", "MSFT", "normal"),
+    ("Keybanc Maintains Overweight on Meta Platforms, Raises Price Target to $900", "META", "weak"),
+    ("Oppenheimer Maintains Outperform on Microsoft, Raises Price Target to $570", "MSFT", "weak"),
+    ("Meta Stock Scores Price Target Hike. Analyst Says Muse 'Flips The Narrative' On AI Concerns.", "META", "weak"),
+])
+def test_price_target_raise_is_a_weak_upgrade(headline, symbol, strength):
+    from catalystedge.pipeline.classify import classify
+    from catalystedge.pipeline.ticker_link import Mention
+
+    mention = Mention(symbol, "name", 0.9, headline.find(headline.split()[0]), 1, is_primary=True)
+    events = {e.symbol: e for e in classify(headline, [mention], None)}
+    assert events[symbol].event_type == "upgrade" and events[symbol].strength == strength

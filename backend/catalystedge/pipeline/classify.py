@@ -111,7 +111,24 @@ ACQ_PASSIVE = re.compile(r"\b(?:to\s+be|agrees?\s+to\s+be)\s+(?:acquired|bought|
 MONEY = re.compile(r"\$\s?(\d+(?:\.\d+)?)\s*(billion|bn|million|mln|m|b)\b", re.I)
 PREMIUM = re.compile(r"(\d+(?:\.\d+)?)\s*%\s*premium", re.I)
 # Strong negative model score on a rule-positive headline means "mixed".
+# Price-target-only actions (rating unchanged) are weaker news than a rating upgrade.
+PRICE_TARGET_ONLY = re.compile(
+    r"\braises?\s+(?:its\s+)?price\s+target\b|\b(?:lifts?|boosts?|hikes?|raises?|ups)\s+(?:its\s+)?(?:price\s+)?"
+    r"target\s+(?:to|on)\s|\bprice[- ]target\s+(?:hike|raise|increase)\b", re.I)
+RATING_UPGRADE = re.compile("|".join(POSITIVE_PATTERNS_UPGRADE_RATING := [
+    r"\bupgraded\s+(?:to|by|at)\b|^[^,:;]{1,40}\bupgraded\b(?:\s*[,:;.]|$)",
+    r"\bupgrades\s+(?:[\w.&'’-]+\s+){1,4}to\s+(?:buy|strong\s+buy|outperform|overweight|positive|accumulate|add|"
+    r"market\s+outperform|sector\s+outperform)\b",
+    r"\b(?:wins?|gets?|receives?|earns?|scores?)\s+(?:another\s+|an?\s+)?(?:analyst\s+)?upgrade\b",
+    r"\b(?:analysts?|ratings?)\s+upgrades?\b|\bupgrades?\s+to\s+['‘’\"]?(?:buy|outperform|overweight)\b",
+    r"\b(?:initiated|initiates)\s+(?:at|with)\s+(?:buy|outperform|overweight)\b",
+]), re.I)
+
 MODEL_VETO_NEG = 0.60
+# Analyst upgrades are identified by explicit rating-action wording; on the first live
+# FinBERT run the model scored two genuine Meta upgrades as strongly negative, so the
+# veto is not applied to them. Revisit once outcome data can measure the veto.
+MODEL_VETO_EXEMPT = frozenset({"upgrade"})
 
 
 @dataclass(frozen=True)
@@ -271,6 +288,9 @@ def classify(headline: str, mentions: Sequence[Mention], sentiment: SentimentSco
         if kinds:
             event_type = kinds[0]
             polarity, strength = "positive", ("strong" if len(kinds) >= 2 else "normal")
+            if event_type == "upgrade" and not RATING_UPGRADE.search(headline):
+                strength = "weak"
+                reasons.append("price-target raise without a rating change")
             reasons.append("catalyst: " + ", ".join(kinds))
             conflict = None
             if "guidance_cut" in scan.negatives:
@@ -287,7 +307,8 @@ def classify(headline: str, mentions: Sequence[Mention], sentiment: SentimentSco
                 polarity, strength = "mixed", None
                 mixed = {"conflict": conflict, "positive": kinds, "negative": negatives,
                          "clauses": [c.strip() for c in CONTRAST.split(headline) if c and c.strip()]}
-            elif sentiment is not None and sentiment.negative >= MODEL_VETO_NEG:
+            elif (sentiment is not None and sentiment.negative >= MODEL_VETO_NEG
+                  and event_type not in MODEL_VETO_EXEMPT):
                 polarity, strength = "mixed", None
                 mixed = {"conflict": f"sentiment model strongly negative ({sentiment.negative:.2f})",
                          "positive": kinds, "negative": ["model"]}
