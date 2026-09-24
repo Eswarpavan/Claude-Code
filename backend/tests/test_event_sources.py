@@ -233,3 +233,57 @@ def test_trials_blocked_is_reported_not_raised(db):
     http = HttpClient(transport=httpx.MockTransport(handler), kv=InMemoryKV(clock), clock=clock, sleep=lambda s: None)
     r = ingest_trials(db, http, U, NOW)
     assert r.status in ("blocked", "failed") and r.errors
+
+
+def _buy(db, name, role="director", value=150_000, acc="0000000000-26-000100", hours=3):
+    from catalystedge.events.common import ensure_ticker
+
+    ensure_ticker(db, "WIDG", U)
+    if db.get(Filing, acc) is None:
+        db.add(Filing(accession=acc, cik="0003333333", symbol="WIDG", form_type="4", items=[],
+                      accepted_at=NOW - dt.timedelta(hours=hours), url="u"))
+        db.flush()
+    db.add(InsiderTransaction(accession=acc, symbol="WIDG", insider_name=name, insider_role=role, txn_code="P",
+                              acquired_disposed="A", shares=Decimal("1000"), price=Decimal(str(value / 1000)),
+                              value_usd=Decimal(str(value)), txn_date=DAY, available_at=NOW - dt.timedelta(hours=hours)))
+    db.flush()
+
+
+@pytest.mark.db
+def test_funds_and_ten_percent_owners_are_not_insider_buyers(db):
+    _buy(db, "ORBIMED ADVISORS LLC", role="director, 10% owner", value=5_000_000)
+    _buy(db, "Big Holder", role="10% owner", value=5_000_000)
+    assert insider_cluster_event(db, "WIDG", NOW, U) is None
+
+
+@pytest.mark.db
+def test_private_placement_week_is_not_an_insider_signal(db):
+    _buy(db, "Jane Director", value=200_000)
+    db.add(Filing(accession="0003333333-26-000001", cik="0003333333", symbol="WIDG", form_type="8-K",
+                  items=["3.02", "9.01"], accepted_at=NOW - dt.timedelta(days=2), url="u"))
+    db.flush()
+    assert insider_cluster_event(db, "WIDG", NOW, U) is None
+
+
+@pytest.mark.db
+def test_single_insider_cluster_is_weak(db):
+    _buy(db, "Jane Director", value=200_000)
+    ev = insider_cluster_event(db, "WIDG", NOW, U)
+    assert ev is not None and ev.strength == "weak"
+
+
+
+@pytest.mark.db
+def test_older_private_placement_found_via_submissions_is_excluded(db):
+    _buy(db, "Jane Director", value=200_000)
+    assert insider_cluster_event(db, "WIDG", NOW, U, had_private_placement=lambda s: True) is None
+    assert insider_cluster_event(db, "WIDG", NOW, U, had_private_placement=lambda s: False) is not None
+
+
+def test_recent_offering_or_ipo_counts_as_financing():
+    subs = {"filings": {"recent": {"form": ["4", "S-1MEF", "S-1"], "filingDate": ["2026-09-22", "2026-09-17",
+            "2026-08-28"], "items": ["", "", ""], "accessionNumber": ["a-1", "b-2", "c-3"]}, "files": []}}
+    assert sec.had_recent_financing(client({"submissions": subs}), UA, "3333333", dt.date(2026, 9, 10))
+    quiet = {"filings": {"recent": {"form": ["4", "10-Q"], "filingDate": ["2026-09-22", "2026-08-01"],
+             "items": ["", ""], "accessionNumber": ["a-1", "b-2"]}, "files": []}}
+    assert not sec.had_recent_financing(client({"submissions": quiet}), UA, "3333333", dt.date(2026, 9, 10))

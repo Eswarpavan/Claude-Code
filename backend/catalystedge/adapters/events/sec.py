@@ -121,9 +121,10 @@ def documents(index_html: str) -> list[tuple[str, str]]:
     out = []
     for row, hrefs in zip(p.rows, p.hrefs, strict=True):
         if len(row) >= 4 and hrefs:
-            href = hrefs[0].split("?")[0]
+            href = hrefs[0]
             if href.startswith("/ix?doc="):
                 href = href[len("/ix?doc="):]
+            href = href.split("?")[0]
             url = href if href.startswith("http") else "https://www.sec.gov" + href
             out.append((row[3], url))
     return out
@@ -266,3 +267,46 @@ def fetch_form4(http: HttpClient, ua: str, entry: FeedEntry) -> Form4 | None:
         if "<ownershipDocument" in text and (f := parse_form4(text)) is not None:
             return f
     return None
+
+
+OFFERING_FORMS = ("S-1", "S-1/A", "S-1MEF", "F-1", "F-1/A", "F-1MEF", "424B1", "424B2", "424B3", "424B4", "424B5",
+                  "424B7", "S-3ASR", "F-3ASR")
+
+
+def recent_filings(http: HttpClient, ua: str, cik: str, since: dt.date
+                   ) -> list[tuple[dt.date, str, tuple[str, ...], str]]:
+    """(filing date, form, 8-K items, index URL) filed on or after `since` (SEC submissions API)."""
+    data = http.get_json("sec_edgar", f"https://data.sec.gov/submissions/CIK{cik.zfill(10)}.json",
+                         headers={"User-Agent": ua})
+    r = data.get("filings", {}).get("recent", {})
+    out = []
+    for form, date, items, acc in zip(r.get("form", []), r.get("filingDate", []), r.get("items", []),
+                                      r.get("accessionNumber", []), strict=False):
+        d = dt.date.fromisoformat(date)
+        if d < since:
+            break
+        url = f"{ARCHIVES}/{int(cik)}/{acc.replace('-', '')}/{acc}-index.htm"
+        out.append((d, form, tuple(x.strip() for x in (items or "").split(",") if x.strip()), url))
+    return out
+
+
+FINANCING = re.compile(r"\b(?:offering|private\s+placement|registered\s+direct|pricing\s+of|priced|"
+                       r"securities\s+purchase\s+agreement|pipe\s+financing|at-the-market)\b", re.I)
+
+
+def had_recent_financing(http: HttpClient, ua: str, cik: str, since: dt.date) -> bool:
+    """True if the issuer sold stock recently: an IPO/offering registration or prospectus, an 8-K
+    Item 3.02, or an 8-K press release announcing an offering or placement. Insiders often buy
+    in those at the deal price, which is financing, not open-market conviction."""
+    for _, form, items, index_url in recent_filings(http, ua, cik, since):
+        if form in OFFERING_FORMS or "3.02" in items:
+            return True
+        if form.startswith("8-K") and set(items) & {"8.01", "7.01", "1.01"}:
+            docs = documents(http.get_text("sec_edgar", index_url, headers={"User-Agent": ua}))
+            for kind, url in docs:
+                if kind.upper().startswith("EX-99"):
+                    h = headline_from_html(http.get_text("sec_edgar", url, headers={"User-Agent": ua})) or ""
+                    if FINANCING.search(h):
+                        return True
+                    break
+    return False

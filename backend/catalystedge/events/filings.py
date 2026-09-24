@@ -3,9 +3,12 @@
 8-K: items 1.01 (material agreement), 2.02 (results), 7.01 / 8.01 (press releases).
      The EX-99 press-release headline goes through the SAME classifier as news
      (classify.py), with the filer as the subject. Credibility 1.0 (primary source).
-Form 4: open-market purchases (code P, acquired) that are not 10b5-1 plan trades.
-     A cluster (>= 2 distinct insiders, or >= $100k, within 10 days) becomes an
-     `insider_buy_cluster` event (ARCHITECTURE §9.1.4).
+Form 4: open-market purchases (code P, acquired) that are not 10b5-1 plan trades, by
+     directors or officers (funds, holding companies and pure 10% owners excluded: their
+     buys are usually financings or portfolio moves). A cluster (>= 2 distinct insiders,
+     or >= $100k, within 10 days) becomes an `insider_buy_cluster` event (ARCHITECTURE
+     §9.1.4). Skipped when the issuer filed an 8-K Item 3.02 (unregistered sale of
+     equity, i.e. a private placement) in the same 10 days. One insider alone is "weak".
 Only filings accepted inside the 48-hour window are used for live signals.
 """
 
@@ -13,6 +16,8 @@ from __future__ import annotations
 
 import datetime as dt
 import math
+import re
+from collections.abc import Callable
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -33,6 +38,15 @@ CLUSTER_DAYS = 10
 CLUSTER_MIN_INSIDERS = 2
 CLUSTER_MIN_USD = 100_000.0
 MAX_FEED_PAGES = 12
+PLACEMENT_LOOKBACK_DAYS = 14
+ENTITY = re.compile(r"\b(?:llc|l\.?p\.?|lp|inc|corp|fund|funds|partners|advisors|advisers|capital|holdings?|trust|"
+                    r"management|ventures|group|ltd|limited|plc|foundation|investments?|company|co)\b\.?", re.I)
+
+
+def is_insider_person(name: str, role: str | None) -> bool:
+    """A director or officer who is a person (not a fund/company, not only a 10% owner)."""
+    r = (role or "").lower()
+    return not ENTITY.search(name) and bool(r) and r != "10% owner"
 
 
 def _feed_window(http: HttpClient, ua: str, form: str, now: dt.datetime, report: IngestReport) -> list[sec.FeedEntry]:
@@ -125,11 +139,24 @@ def ingest_form4(session: Session, http: HttpClient, ua: str, universe: Universe
                 touched.add(symbol)
     session.flush()
     for symbol in sorted(touched):
-        report.events += insider_cluster_event(session, symbol, now, universe) is not None
+        c = universe.by_symbol.get(symbol)
+
+        def placement_check(sym: str, cik: str | None = c.cik if c else None) -> bool:
+            if not cik:
+                return False
+            try:
+                since = (now - dt.timedelta(days=PLACEMENT_LOOKBACK_DAYS)).date()
+                return sec.had_recent_financing(http, ua, cik, since)
+            except SourceError as err:
+                report.errors.append(http.redact(str(err)))
+                return False
+
+        report.events += insider_cluster_event(session, symbol, now, universe, placement_check) is not None
     return report
 
 
-def insider_cluster_event(session: Session, symbol: str, now: dt.datetime, universe: Universe | None = None):
+def insider_cluster_event(session: Session, symbol: str, now: dt.datetime, universe: Universe | None = None,
+                          had_private_placement: Callable[[str], bool] | None = None):
     """Create an insider_buy_cluster event if open-market buys in the last 10 days qualify."""
     since = (now - dt.timedelta(days=CLUSTER_DAYS)).date()
     rows = session.execute(select(
@@ -138,8 +165,15 @@ def insider_cluster_event(session: Session, symbol: str, now: dt.datetime, unive
         InsiderTransaction.symbol == symbol, InsiderTransaction.txn_code == "P",
         InsiderTransaction.acquired_disposed == "A", InsiderTransaction.is_10b5_1.is_(False),
         InsiderTransaction.txn_date >= since, InsiderTransaction.available_at <= now)
-        .group_by(InsiderTransaction.insider_name)).all()
+        .group_by(InsiderTransaction.insider_name, InsiderTransaction.insider_role)
+        .add_columns(InsiderTransaction.insider_role)).all()
+    rows = [r for r in rows if is_insider_person(r[0], r[4])]
     if not rows:
+        return None
+    placement = session.scalar(select(Filing.accession).where(
+        Filing.symbol == symbol, Filing.form_type.in_(("8-K", "8-K/A")), Filing.items.any("3.02"),
+        Filing.accepted_at >= now - dt.timedelta(days=CLUSTER_DAYS), Filing.accepted_at <= now).limit(1))
+    if placement is not None or (had_private_placement is not None and had_private_placement(symbol)):
         return None
     n = len(rows)
     total = sum(float(r[1] or 0) for r in rows)
@@ -156,5 +190,6 @@ def insider_cluster_event(session: Session, symbol: str, now: dt.datetime, unive
         url=f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=4&CIK={symbol}",
         source_key="sec_edgar", available_at=latest_at, polarity="positive",
         reasons=[f"{n} insiders, ${total:,.0f}, excluding 10b5-1 plan trades"], materiality=round(max(0.5, mat), 3),
-        classifier_version="form4-cluster-v1", strength="strong" if n >= 3 else "normal", accession=latest_acc,
+        classifier_version="form4-cluster-v2", strength="strong" if n >= 3 else ("normal" if n == 2 else "weak"),
+        accession=latest_acc,
         universe=universe)
