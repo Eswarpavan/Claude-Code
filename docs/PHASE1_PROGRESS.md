@@ -16,11 +16,12 @@ Built and tested in the agreed order. The first six steps are done. The build is
 | 4 | Ticker linking + ambiguity log | done | 29 |
 | 5 | Sentiment models behind a registry (FinBERT default, word-list fallback) | done | 26 |
 | 6 | Event classification + mixed-headline rules + end-to-end pipeline + `sample-news` | done | 34 + 4 |
-| | **Checkpoint: the user sanity-checks real headlines** | **live sample run; waiting on user; 2 bugs found (below)** | |
+| 6b | Live fixes: ticker linking, M&A wording, analyst upgrades, non-event filter (`pipeline/noise.py`) | done | 78 |
+| | **Checkpoint: the user sanity-checks real headlines** | **2 bugs fixed + non-event filter added; clean sample shown; waiting on user** | |
 | 7 | Signal engine (rules, UNCALIBRATED confidence) | not started | |
 | 8 | Paper account (auto-buy OFF) | not started | |
 
-Total: **155 backend tests + 16 checker tests, all passing** against Postgres 16.
+Total: **249 backend tests + 16 checker tests, all passing** against Postgres 16.
 
 Unchanged commitments: auto-buy stays OFF (enforced server-side) and every
 confidence number is labelled UNCALIBRATED in Phase 1.
@@ -51,7 +52,46 @@ after dedupe. **Sentiment used the word-list fallback**: FinBERT's files are ser
 `cas-server.xethub.hf.co` (blocked); `HF_HUB_DISABLE_XET=1` falls back to
 `us.aws.cdn.hf.co`, also blocked.
 
-### Problems the live sample exposed (fix before step 7)
+### Fixes after the first live sample (done, same day)
+
+All wrong examples below are regression tests in `tests/test_live_regressions.py`.
+
+- **Ticker linking** (`pipeline/ticker_link.py`): one-word company names that are ordinary
+  English words never link by name (`data/common_word_names.txt`, 802 words, regenerate with
+  `scripts/build_common_word_names.py`; famous brands like Apple/Amazon/Intel are allowlisted).
+  Acronym names ("SU", "GPT") must match in capitals; every word of a multi-word name must be
+  capitalised; hand-picked aliases (Apple, Meta, Google) beat look-alike companies; share-class
+  tickers (GOOG) link as bare tickers. Finnhub `/company-news` tags are now a weak hint
+  (score 0.0 → 0.60) that only corroborates a headline mention.
+- **M&A** (`pipeline/classify.py`, now `rules-v2`): only deal wording ("to acquire", "agrees
+  to buy", "to be acquired", "takeover bid", "receives buyout offer"). Bare "buy" never counts.
+- **Other false catalysts found on the same run**: "upgrade" must be an analyst action (not
+  "Power Upgrade Agreement"); a listed broker (Stifel, Oppenheimer...) is never the upgraded
+  company; "Top Analyst Forecasts" is not a beat; a price target is not company guidance
+  ("Lifts Target To $900" is an upgrade).
+- **Non-event filter** (`pipeline/noise.py`): listicle, stock_picking_advice,
+  long_range_speculation (always), and price_move_only, market_commentary, opinion_or_question
+  (only when no catalyst phrase is present). Filtered headlines produce no events.
+- `sample-news` prints per-filter counts, `--show-filtered`, `--save-headlines`;
+  new `compare-sentiment` command (FinBERT vs word list on `fixtures/reference/live_sample_headlines.json`).
+
+Live rerun (Finnhub, 1,016 stories): filter removed 271 (listicle 35, advice 29, speculation 13,
+price move 51, market commentary 44, opinion/question 99). Signals: 13 with the word list,
+11 with FinBERT, all analyst upgrades / price-target raises.
+
+FinBERT became downloadable mid-session (the network change took effect). Results:
+same label as the word list on 36 of 57 live headlines; on the hand-labelled set
+word list 0.92, distilroberta 0.84, deberta 0.84, finbert 0.74 (that set was written with the
+word list, so it flatters it). **Open issue:** FinBERT scores some price-target-hike headlines
+strongly negative ("Meta Stock Scores Price Target Hike" 0.90), and the classifier's model veto
+(`MODEL_VETO_NEG = 0.60`) then turns them into "mixed", so they are not signals. Decide before
+step 7 whether the veto should apply to analyst actions.
+
+Known leftovers: "AI Era" still links AERA (AI Era Corp); "Chip Trillionaires Club: Only One
+Clear Buy Among NVDA, AVGO, MU, AMD" is not filtered; "Tesla wins lead role in 2,500-truck ...
+order" is not recognised as a contract win.
+
+### Problems the first live sample exposed (now fixed, kept for the record)
 
 1. **Ticker linking gives many false links.** Two causes:
    - `make_aliases` in `pipeline/ticker_link.py` turns the first word of a company name

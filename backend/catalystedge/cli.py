@@ -1,16 +1,19 @@
 """Command line: `catalystedge <command>` (or `python -m catalystedge <command>`).
 
-  sample-news      fetch headlines and print ticker, sentiment and event type (sanity check)
-  eval-sentiment   compare the sentiment models on the labelled headlines
+  sample-news        fetch headlines and print ticker, sentiment and event type (sanity check)
+  eval-sentiment     compare the sentiment models on the labelled headlines
+  compare-sentiment  FinBERT vs the word list, side by side on real headlines (downloads FinBERT)
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import statistics
 import sys
 import textwrap
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from catalystedge.adapters.news.registry import build_news_adapters
@@ -20,6 +23,7 @@ from catalystedge.core.http import HttpClient, SourceError
 from catalystedge.core.kv import InMemoryKV
 from catalystedge.ml.registry import SENTIMENT_MODELS, ModelRegistry
 from catalystedge.pipeline.dedupe import normalize_url
+from catalystedge.pipeline.noise import FILTERS
 from catalystedge.pipeline.run import Processed, process_news
 from catalystedge.reference import load_universe
 
@@ -109,7 +113,23 @@ def cmd_sample_news(args: argparse.Namespace) -> int:
     print(f"Ticker universe: {universe_desc}")
     print(f"Alpha Vantage timezone check: {_tz_check(processed)}\n")
 
+    noise = [p for p in processed if p.noise]
+    print(f"Non-event filter ({len(noise)} of {len(processed)} stories removed)")
+    for reason in FILTERS:
+        print(f"  {reason:<24} {sum(p.noise.reason == reason for p in noise):>4}")
+    print()
+
     rows = sorted(processed, key=lambda p: p.cluster.representative.published_at, reverse=True)
+    if args.save_headlines:
+        kept = [p.headline for p in rows if not p.noise and p.link.mentions]
+        Path(args.save_headlines).write_text(json.dumps({"collected_at": now.isoformat(), "headlines": kept},
+                                                        indent=1) + "\n")
+    if args.show_filtered:
+        print("Removed by the non-event filter")
+        for p in [p for p in rows if p.noise][: args.limit]:
+            print(f"  {p.noise.reason:<24} {p.headline}")
+        print()
+    rows = [p for p in rows if not p.noise]
     if not args.all:
         rows = [p for p in rows if p.link.mentions]
     rows = rows[: args.limit]
@@ -128,9 +148,13 @@ def cmd_sample_news(args: argparse.Namespace) -> int:
         mixed = next((e.mixed_resolution for e in p.events if e.mixed_resolution), None)
         if mixed:
             print(" " * 7 + f"mixed: {mixed['conflict']}")
-    hidden = len(processed) - len([p for p in processed if p.link.mentions])
+    events = [p for p in processed if not p.noise]
+    hidden = len(events) - len([p for p in events if p.link.mentions])
+    signals = sum(any(e.is_signal_eligible for e in p.events) for p in events)
     print(f"\n{len(processed)} stories after dedupe ({sum(r.kept for r in reports)} headlines in the 48h window);"
-          f" {hidden} had no confidently linked ticker" + ("" if args.all else " (use --all to show them)"))
+          f" {len(noise)} removed as non-events; {hidden} of the rest had no confidently linked ticker"
+          + ("" if args.all else " (use --all to show them)"))
+    print(f"Stories that would count as a signal: {signals} (auto-buy OFF; confidence UNCALIBRATED)")
     print(f"API calls used: {sum(r.http_calls for r in reports)}")
     return 0
 
@@ -158,6 +182,47 @@ def cmd_eval_sentiment(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_compare_sentiment(args: argparse.Namespace) -> int:
+    """FinBERT (or the configured model) vs the word list on the same headlines. No API keys needed."""
+    from catalystedge.fixtures import load_json
+    from catalystedge.ml.eval_sentiment import evaluate
+    from catalystedge.ml.sentiment import LexiconSentiment
+
+    settings = Settings(SENTIMENT_MODEL=args.model)
+    data = json.loads(Path(args.headlines).read_text()) if args.headlines else load_json(
+        "reference/live_sample_headlines.json")
+    headlines = data["headlines"][: args.limit]
+    print(f"Loading {args.model} (first run downloads it, about 0.5 GB; this can take a few minutes)...", flush=True)
+    registry = ModelRegistry(settings)
+    model = registry.sentiment()
+    lexicon = LexiconSentiment()
+    if model.name == lexicon.name:
+        st = registry.status(args.model)
+        print(f"\nCould not load {args.model}: {st.status}: {st.detail}")
+        print("Nothing to compare. Please send this output back as it is.")
+        return 1
+
+    print(f"\nCatalystEdge sentiment comparison · {model.name} vs {lexicon.name}")
+    print(f"Headlines: {len(headlines)} live headlines collected {data.get('collected_at', '?')[:16]} UTC\n")
+    fin, lex = model.predict(headlines), lexicon.predict(headlines)
+    print(f"{model.name + ' (pos/neu/neg)':<30} {'word list':<14} same?  headline")
+    print("-" * 120)
+    agree = 0
+    for h, f, w in zip(headlines, fin, lex, strict=True):
+        same = f.label == w.label
+        agree += same
+        probs = f"{f.label[:3]} {f.positive:.2f}/{f.neutral:.2f}/{f.negative:.2f}"
+        print(f"{probs:<30} {w.label[:3] + f' {w.margin:+.2f}':<14} {'yes' if same else 'NO':<6} {h[:110]}")
+    print(f"\nSame label on {agree} of {len(headlines)} headlines.")
+    print("\nAccuracy on the hand-labelled test headlines:")
+    for m in (model, lexicon):
+        r = evaluate(m)
+        print(f"  {m.name:<18} accuracy {r.accuracy:.2f}  macro-F1 {r.macro_f1:.2f}"
+              f"  {r.ms_per_headline:.1f} ms/headline")
+    print("\nSentiment is only one input; auto-buy stays OFF and confidence is UNCALIBRATED in Phase 1.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="catalystedge")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -166,7 +231,14 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--symbols", default=DEFAULT_WATCHLIST, help="watchlist for per-company news")
     s.add_argument("--limit", type=int, default=40)
     s.add_argument("--all", action="store_true", help="also show headlines with no linked ticker")
+    s.add_argument("--show-filtered", action="store_true", help="list headlines the non-event filter removed")
+    s.add_argument("--save-headlines", metavar="PATH", help="write the kept, linked headlines to a JSON file")
     s.set_defaults(func=cmd_sample_news)
+    c = sub.add_parser("compare-sentiment", help="FinBERT vs the word list on real headlines")
+    c.add_argument("--model", default="finbert", choices=sorted(SENTIMENT_MODELS))
+    c.add_argument("--headlines", metavar="PATH", help="JSON from sample-news --save-headlines (default: bundled)")
+    c.add_argument("--limit", type=int, default=60)
+    c.set_defaults(func=cmd_compare_sentiment)
     e = sub.add_parser("eval-sentiment", help="compare sentiment models")
     e.set_defaults(func=cmd_eval_sentiment)
     args = ap.parse_args(argv)

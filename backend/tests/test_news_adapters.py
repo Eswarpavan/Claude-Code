@@ -61,7 +61,8 @@ def test_rawnews_rejects_naive_timestamps():
 def test_finnhub_parses_general_and_company_news(http, transport):
     items = FinnhubNews(http, "k").fetch(since=SINCE, now=NOW, symbols=["AAPL"])
     by_id = {i.provider_item_id: i for i in items}
-    assert "9101" in by_id and by_id["9101"].provider_tickers == {"AAPL": 0.9}
+    # /company-news tags only the queried symbol: a weak hint that needs a headline mention to link.
+    assert "9101" in by_id and by_id["9101"].provider_tickers == {"AAPL": 0.0}
     assert by_id["9005"].provider_tickers.keys() == {"ABT", "HOLX"}
     assert by_id["9001"].published_at.tzinfo is not None
     assert "9008" not in by_id   # 60h old: filtered by `since`
