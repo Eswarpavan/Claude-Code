@@ -1,6 +1,40 @@
 # CatalystEdge Phase 1: progress and next steps
 
-*Last updated 2026-09-24 ~09:45 UTC. Read this first when continuing in a new session.*
+*Last updated 2026-09-24. Read this first when continuing in a new session.*
+
+## Current status (session 018K, app + infrastructure: finished)
+
+Everything in the spec is built and tested except the items listed under "Waiting on" below.
+Tests: **412 backend** (Postgres 16) + **9 frontend** passing; ruff, eslint and typecheck are clean; CI is green.
+
+| Part | Status |
+|---|---|
+| Prices: Tiingo EOD (45/h, 900/day budget), Finnhub quote at the open; Yahoo/Stooq fallbacks | done (Yahoo and Stooq are blocked by this sandbox's network) |
+| Paper account: $100, fractional shares, fills at the next open, no same-day sells (code + DB trigger + test), gap handling, costs by liquidity | done, 21 tests |
+| Auto-buy | **OFF** by default and locked until 30 closed trades or a validated backtest |
+| Outcomes tracker at 1/3/10 sessions, net of costs, vs SPY | done |
+| Email alerts (Resend / SendGrid / SMTP), daily cap, retries, digest | done; needs `RESEND_API_KEY` + `ALERT_EMAIL_TO` to send |
+| Scheduler (Celery beat, New York time), independent of the UI | done, verified in Docker Compose |
+| Refresh on open + SSE progress, cooldown, joins a running refresh | done |
+| API (FastAPI) + password login (required in cloud mode) | done, 13 tests |
+| Dashboard (Next.js, dark theme): Signals, Portfolio, History, News, Backtest, Sources, Settings | done; screenshots in `docs/screenshots/` |
+| Docker Compose (local) and cloud compose + Caddy | done, all services healthy |
+| Key safety | `.env` is gitignored; repo + history scanned, no keys found; errors and logs redact keys |
+
+Live check on real data (2026-09-24): 1,896 headlines → 841 events → 4 candidates → 2 shown
+(TSLA contract win 73, LLY FDA approval 71, both UNCALIBRATED); paper account logged both as
+"skipped: auto-buy off". Tiingo used 4 calls.
+
+### Waiting on
+- **Backtest on real data** (session 01Ny): code done, data download is resumable (commands below).
+  The ranking model stays disabled until it beats SPY and the rule baseline after costs.
+- **Network domains** the user can allow: `clinicaltrials.gov`, `api.fda.gov`,
+  `query1.finance.yahoo.com`, `query2.finance.yahoo.com`, `stooq.com` (optional).
+- **Optional keys:** `MARKETAUX_API_KEY`, `ALPHAVANTAGE_API_KEY`, `RESEND_API_KEY` + `ALERT_EMAIL_TO`.
+- **Stubs by design:** Benzinga, Investing.com (disabled); local LLM (Ollama) not implemented.
+
+### How to continue
+`docker compose up -d`, open http://localhost:3000. Developer commands are in `README.md`.
 
 ## Where we are (updated ~09:45 UTC, session 01Ny)
 
