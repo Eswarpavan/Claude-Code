@@ -39,6 +39,24 @@ class Settings(BaseSettings):
     sentiment_model: str = Field("finbert", alias="SENTIMENT_MODEL")
     model_auto_download: bool = Field(True, alias="MODEL_AUTO_DOWNLOAD")
 
+    # Email alerts (first configured provider wins: Resend, SendGrid, SMTP).
+    resend_api_key: str | None = Field(None, alias="RESEND_API_KEY")
+    sendgrid_api_key: str | None = Field(None, alias="SENDGRID_API_KEY")
+    smtp_host: str | None = Field(None, alias="SMTP_HOST")
+    smtp_port: int = Field(587, alias="SMTP_PORT")
+    smtp_user: str | None = Field(None, alias="SMTP_USER")
+    smtp_password: str | None = Field(None, alias="SMTP_PASSWORD")
+    email_from: str | None = Field(None, alias="EMAIL_FROM")
+    alert_email_to: str | None = Field(None, alias="ALERT_EMAIL_TO")
+    email_daily_cap: int = Field(50, alias="EMAIL_DAILY_CAP")
+    daily_digest: bool = Field(False, alias="DAILY_DIGEST")
+
+    # API / UI
+    app_password: str | None = Field(None, alias="APP_PASSWORD")
+    app_secret: str | None = Field(None, alias="APP_SECRET")      # signs login tokens; random if unset
+    cors_origins: str = Field("http://localhost:3000", alias="CORS_ORIGINS")
+    refresh_cooldown_s: int = Field(300, alias="REFRESH_COOLDOWN_S")
+
     # Paper trading safety: auto-buy is OFF by default and additionally gated
     # server-side by calibration (rule 6). This flag alone can never enable it.
     auto_buy_requested: bool = Field(False, alias="AUTO_BUY")

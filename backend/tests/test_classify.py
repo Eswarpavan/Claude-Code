@@ -163,3 +163,10 @@ def test_trial_failure_is_negative_not_positive_trial():
 )
 def test_materiality(headline, cap, expected):
     assert materiality(headline, cap) == expected
+
+
+def test_model_veto_does_not_apply_to_analyst_upgrades():
+    """Live FinBERT run: genuine upgrades were scored strongly negative; the rule wording wins."""
+    gloomy = SentimentScore(0.05, 0.15, 0.80, "finbert")
+    e = run("Apple upgraded to Buy at Example Securities on services growth", sentiment=gloomy)["AAPL"]
+    assert (e.event_type, e.polarity) == ("upgrade", "positive")

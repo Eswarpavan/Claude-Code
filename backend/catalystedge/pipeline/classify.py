@@ -118,6 +118,16 @@ ACQ_PASSIVE = re.compile(r"\b(?:to\s+be|agrees?\s+to\s+be)\s+(?:acquired|bought|
                          r"offer)\b|\breceives?\s+(?:a\s+)?(?:buyout|takeover)\b", re.I)
 MONEY = re.compile(r"\$\s?(\d+(?:\.\d+)?)\s*(billion|bn|million|mln|m|b)\b", re.I)
 PREMIUM = re.compile(r"(\d+(?:\.\d+)?)\s*%\s*premium", re.I)
+# Price-target-only actions (rating unchanged) are weaker news than a rating upgrade.
+RATING_UPGRADE = re.compile("|".join([
+    r"\bupgraded\s+(?:to|by|at)\b|^[^,:;]{1,40}\bupgraded\b(?:\s*[,:;.]|$)",
+    r"\bupgrades\s+(?:[\w.&'’-]+\s+){1,4}to\s+(?:buy|strong\s+buy|outperform|overweight|positive|accumulate|add|"
+    r"market\s+outperform|sector\s+outperform)\b",
+    r"\b(?:wins?|gets?|receives?|earns?|scores?)\s+(?:another\s+|an?\s+)?(?:analyst\s+)?upgrade\b",
+    r"\b(?:analysts?|ratings?)\s+upgrades?\b|\bupgrades?\s+to\s+['‘’\"]?(?:buy|outperform|overweight)\b",
+    r"\b(?:initiated|initiates)\s+(?:at|with)\s+(?:buy|outperform|overweight)\b",
+]), re.I)
+
 # Model negative score at which a rule-positive event is flagged "model disagrees" (no polarity change).
 MODEL_DISAGREE_NEG = 0.60
 # Model negative score at which a headline with NO rule-positive catalyst is marked negative.
@@ -283,6 +293,9 @@ def classify(headline: str, mentions: Sequence[Mention], sentiment: SentimentSco
         if kinds:
             event_type = kinds[0]
             polarity, strength = "positive", ("strong" if len(kinds) >= 2 else "normal")
+            if event_type == "upgrade" and not RATING_UPGRADE.search(headline):
+                strength = "weak"
+                reasons.append("price-target raise without a rating change")
             reasons.append("catalyst: " + ", ".join(kinds))
             conflict = None
             if "guidance_cut" in scan.negatives:

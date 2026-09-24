@@ -38,6 +38,8 @@ ALWAYS: dict[str, list[str]] = {
         r"\b(?:is|are)\s+(?:it|now|this|[\w.&'’-]+(?:\s+[\w.&'’-]+){0,2})\s+(?:a|still\s+a)\s+(?:buy|sell|hold)\b",
         r"\b(?:buy|sell)\s+(?:now|today|signal|rating\s+reiterated)\b|\bbuy\s+signal\b",
         r"\b(?:should\s+you|time\s+to|worth)\s+(?:buy|buying|sell|selling|own|owning)\b",
+        # A blog contributor's own rating, e.g. "... (Rating Upgrade)", is opinion, not a broker action.
+        r"\((?:rating|ratings)\s+(?:upgrade|downgrade|reiteration|reiterated|maintained)\)\s*$",
         r"\b(?:i'?d|i\s+would|would\s+i)\s+(?:still\s+)?(?:buy|sell|own)\b|\bstill\s+buy\b",
         r"\b(?:overpriced|overvalued|undervalued|fully\s+priced|cheap\s+stock|bargain)\b",
         r"\bbuy\s+the\s+dip\b|\bmillionaire[- ]maker\b|\bno[- ]brainer\b|\bset\s+for\s+life\b",
