@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalibrationChart } from "@/components/calibration-chart";
 import { CalibrationBanner } from "@/components/calibration-banner";
+import { BacktestSummary, CatalystTable } from "@/components/evidence";
 
 type Snapshot = { id: number; created_at: string | null; basis: string; event_family: string; model_version: string | null; n: number;
   buckets: Bucket[] | unknown; brier: number | null; ece: number | null; verdict: string };
@@ -46,6 +47,8 @@ export default function BacktestPage() {
         <p className="text-sm text-muted">Does a confidence of 80% really mean 80% of such signals went up? This page shows the evidence.</p>
       </div>
       <CalibrationBanner />
+      <BacktestSummary />
+      <CatalystTable />
       {error && <p className="text-sm text-critical">{error.message}</p>}
       {data && (
         <>

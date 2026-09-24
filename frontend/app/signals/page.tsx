@@ -3,6 +3,7 @@
 import * as React from "react";
 import useSWR from "swr";
 import { CalibrationBanner } from "@/components/calibration-banner";
+import { FilteredByTimesFM } from "@/components/timesfm";
 import { RefreshBar } from "@/components/refresh-bar";
 import { SignalCard } from "@/components/signal-card";
 import { Select } from "@/components/ui/input";
@@ -96,6 +97,7 @@ export default function SignalsPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {data?.signals.map((s, i) => <SignalCard key={s.id} signal={s} rank={i + 1} />)}
       </div>
+      <FilteredByTimesFM />
     </div>
   );
 }
