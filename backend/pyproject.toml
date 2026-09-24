@@ -60,3 +60,7 @@ ignore = ["SIM905"]
 [tool.ruff.lint.per-file-ignores]
 # recorded-format fixtures (Atom feeds, filing index HTML) are long by nature
 "tests/test_event_sources.py" = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection idiom puts Depends/Query calls in argument defaults.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]
