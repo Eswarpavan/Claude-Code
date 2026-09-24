@@ -37,6 +37,8 @@ SOURCES: dict[str, SourceSpec] = {
         SourceSpec("alphavantage_news", "news", True, False, 0.65, 15.0, 10, 7200, 7200),
         # Published (Power plan): 10,000/h. Off unless TIINGO_NEWS_ENABLED=true.
         SourceSpec("tiingo_news", "news", True, False, 0.7, 1.0, 1000, 600, 900, enabled_by_default=False),
+        # SEC fair-access policy: max 10 requests/s with a declared User-Agent. We use at most ~6/s.
+        SourceSpec("sec_edgar", "event", True, False, 1.0, 0.15, None, 86400, 600),
         SourceSpec("benzinga_news", "news", True, False, 0.75, 1.0, None, 600, 900, enabled_by_default=False,
                    note="disabled stub: revisit after Phase 1"),
         SourceSpec("investing_rss", "news", True, False, 0.5, 60.0, None, 1800, 1800, enabled_by_default=False,

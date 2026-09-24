@@ -26,6 +26,9 @@ class SentimentScore:
 
     @property
     def label(self) -> str:
+        # Equal positive and negative evidence is not a positive (or negative) headline.
+        if abs(self.positive - self.negative) < 1e-9:
+            return "neutral"
         return max((("positive", self.positive), ("neutral", self.neutral), ("negative", self.negative)),
                    key=lambda kv: kv[1])[0]
 
@@ -95,7 +98,8 @@ POSITIVE = frozenset(
     "beat beats tops topped exceeds exceeded surpasses raises raised raise record upgrade upgraded upgrades "
     "approval approves approved wins won awarded award surges surge jumps jump soars soar rallies rally climbs "
     "gains gain strong stronger growth outperform bullish boost boosts expands expansion higher profit "
-    "profitable breakthrough positive meet meets met approve accelerates accelerating robust upbeat optimistic buyback".split()
+    "profitable breakthrough positive meet meets met approve accelerates accelerating robust upbeat optimistic "
+    "buyback".split()
 )
 NEGATIVE = frozenset(
     "miss misses missed cuts cut lowers lowered downgrade downgraded downgrades falls fall slips slip drops drop "
@@ -133,6 +137,6 @@ class LexiconSentiment:
                 neg += 1
         if "complete response letter" in text.lower():
             neg += 2
-        weights = (pos, 1.0, neg)   # neutral prior weight 1
-        total = sum(weights)
-        return SentimentScore(pos / total, 1.0 / total, neg / total, self.name)
+        neutral_prior = 0.8   # below 1 so a single clear cue outweighs "no information"
+        total = pos + neutral_prior + neg
+        return SentimentScore(pos / total, neutral_prior / total, neg / total, self.name)
