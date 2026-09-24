@@ -35,7 +35,7 @@ open http://localhost:3000
 
 ## Status
 - Phase 0: design ✅ · source checker ✅ (awaiting a run with real keys)
-- Phase 1: MVP (news adapters, 48 h window, local sentiment, rule-based signals,
-  paper account, outcome tracking, email alerts, on-open refresh, dashboard): in progress
+- Phase 1: MVP, steps 1–6 done (see [progress](docs/PHASE1_PROGRESS.md)); paused for the real-data sanity check before the signal engine. Remaining: rule-based signals,
+  paper account, outcome tracking, email alerts, on-open refresh, dashboard
 - Phase 2: LightGBM, calibration, EDGAR backtest, SHAP
 - Phase 3: observability, hardening, optional TimesFM feature, cost review
