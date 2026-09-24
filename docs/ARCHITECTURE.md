@@ -189,21 +189,22 @@ Full steps are in [DEPLOY_FREE.md](DEPLOY_FREE.md).
 most provider sites (finnhub.io, marketaux.com, alphavantage.co, tiingo.com all returned
 `EGRESS_BLOCKED`). I verified through web search restricted to each provider's own domain
 where possible, and via provider GitHub issues and docs otherwise. The **Verified via**
-column shows the method for each row. Rows marked **⚠ re-check** could not be confirmed
+column shows the method for each row. Cells marked **⚠** could not be confirmed
 from the provider's own page. Phase 1 includes `make verify-sources`, a script that calls
 each API with your key and records the actual limits it sees (from response headers and
-error bodies). That becomes the source of truth.
+error bodies). That becomes the source of truth. It is available now as
+`scripts/verify_sources.py` (standard library only, ≈ 20 requests total). See the README.
 
 ### 3.1 News
 
 | Source | Used for | Free tier (current) | Cheapest paid | History depth | Official? | Status in CatalystEdge | Verified via |
 |---|---|---|---|---|---|---|---|
-| **Finnhub** company news | primary news feed; also earnings calendar, EPS surprises, `/quote` open | ~**60 calls/min**; company news included; **non-commercial use only** | "Premium" often cited ≈ $50/mo **⚠ re-check** (pricing page blocked) | company news ≈ **1 year** on free tier | Official API | **Enabled** (default) | finnhub.io search index + GitHub issues ([#546](https://github.com/finnhubio/Finnhub-API/issues/546)) |
-| **Marketaux** | secondary news; has entity/ticker tagging | **100 requests/day, 3 articles per request**, $0, no card | paid tiers exist; price **⚠ re-check** | not documented for free tier | Official API | **Enabled**, polled every 30 min (≈ 50 req/day budget) | marketaux.com pricing (search index) |
-| **Alpha Vantage NEWS_SENTIMENT** | tertiary news + their sentiment as one extra feature | **25 requests/day** (shared with every other AV call) | $49.99/mo (75 req/min) → $249.99/mo (1,200 req/min) | from **Mar 2022** | Official API | **Enabled**, budget 10 req/day for news | alphavantage.co (search index) + third-party price listings |
-| **Tiingo News** | optional news feed | not confirmed on free tier; treat as **Power plan only** | **Power $30/mo**: 10,000 req/h, 100,000 req/day, 40 GB/mo | **3 months** queryable + going forward | Official API | **Adapter built, OFF** (`TIINGO_NEWS_ENABLED=false`) | tiingo.com pricing (search index) |
-| **Benzinga** | optional news feed | Official **"Benzinga Basic News API" free tier** on AWS Marketplace: headline, teaser, link only | premium tiers via sales (quote only) | unknown **⚠** | Official API | **Disabled stub** until you subscribe (see Q2) | benzinga.com/apis + AWS Marketplace listing |
-| **Investing.com** | optional news feed | official **RSS feeds** at investing.com/webmaster-tools/rss; no public API | none | RSS = latest items only | RSS is official; ToS says data may not be "used, stored… without explicit prior written permission" | **Disabled stub** (see Q3). No scraping. | investing.com RSS page + quoted ToS clause |
+| **Finnhub** company news | primary news feed; also earnings calendar, EPS surprises, `/quote` open | ~**60 calls/min**; company news included; **non-commercial use only** | "Premium" often cited ≈ $50/mo **⚠ re-check** (pricing page blocked) | company news ≈ **1 year** on free tier **⚠** | Official API | **Enabled** (default) | finnhub.io search index + GitHub issues ([#546](https://github.com/finnhubio/Finnhub-API/issues/546)) |
+| **Marketaux** | secondary news; has entity/ticker tagging | **100 requests/day, 3 articles per request**, $0, no card | paid tiers exist; price **⚠ re-check** | not documented for free tier **⚠** | Official API | **Enabled**, polled every 30 min (≈ 50 req/day budget) | marketaux.com pricing (search index) |
+| **Alpha Vantage NEWS_SENTIMENT** | tertiary news + their sentiment as one extra feature | **25 requests/day** (shared with every other AV call) | $49.99/mo (75 req/min) → $249.99/mo (1,200 req/min) | from **Mar 2022** **⚠** | Official API | **Enabled**, budget 10 req/day for news | alphavantage.co (search index) + third-party price listings |
+| **Tiingo News** | optional news feed | not confirmed on free tier **⚠**; treat as **Power plan only** | **Power $30/mo**: 10,000 req/h, 100,000 req/day, 40 GB/mo | **3 months** queryable + going forward | Official API | **Adapter built, OFF** (`TIINGO_NEWS_ENABLED=false`) | tiingo.com pricing (search index) |
+| **Benzinga** | optional news feed | Official **"Benzinga Basic News API" free tier** on AWS Marketplace: headline, teaser, link only | premium tiers via sales (quote only) | unknown **⚠** | Official API | **Disabled stub** (your decision; revisit after Phase 1) | benzinga.com/apis + AWS Marketplace listing |
+| **Investing.com** | optional news feed | official **RSS feeds** at investing.com/webmaster-tools/rss; no public API | none | RSS = latest items only | RSS is official; ToS says data may not be "used, stored… without explicit prior written permission" | **Disabled stub** (your decision). No scraping. | investing.com RSS page + quoted ToS clause |
 
 What we store for any news source: `headline, source, published_at, tickers, url` only.
 We never store article bodies. Benzinga teasers are used in memory for classification and
@@ -215,7 +216,7 @@ then discarded.
 |---|---|---|---|---|---|---|
 | **SEC EDGAR** (submissions JSON, daily index, full-text search, Form 4 XML, 13F) | 8-K items (1.01 material agreement, 2.02 results, 7.01/8.01 PR), Form 4 insider **open-market buys (code P)**, 13F | **10 requests/s max** across all machines; **User-Agent must declare name + email**; over-limit IPs get a 10-min block | Free | 8-K / Form 4 back to early 2000s (Form 4 XML ≈ 2003+) | Official | sec.gov "Accessing EDGAR Data" (search index) |
 | **SEC companyfacts (XBRL)** | fundamentals (revenue growth, margins, shares, debt) | same 10 req/s | Free | ≈ 2009+ | Official | sec.gov developer resources |
-| **openFDA** (drugsfda, device PMA/510k) | FDA approval events | **240 req/min**; without a key also **1,000 req/day per IP**; key raises the daily cap | Free | decades | Official | open.fda.gov/apis/authentication |
+| **openFDA** (drugsfda, device PMA/510k) | FDA approval events | **240 req/min**; without a key also **1,000 req/day per IP**; key raises the daily cap (by how much: **⚠**) | Free | decades | Official | open.fda.gov/apis/authentication |
 | **ClinicalTrials.gov API v2** | trial status/results-posted changes (enrichment only) | no key; ≈ **50 req/min per IP** (third-party reported, **⚠ re-check**) | Free | full registry | Official | third-party API references |
 | **Earnings calendar & history** | upcoming dates; EPS/revenue surprise | Finnhub calendar (free, 60/min); Alpha Vantage `EARNINGS` (quarterly reported vs estimated EPS, long history) and `EARNINGS_CALENDAR`, both counting against 25/day | Free | AV `EARNINGS`: many years of quarters | Official APIs | as above |
 | **FRED** | macro regime (VIX, 10y yield, credit spreads) | free key; **≈ 2 req/s** before 429 | Free | decades | Official | fred.stlouisfed.org docs |
@@ -226,7 +227,7 @@ then discarded.
 |---|---|---|---|---|---|---|
 | **Tiingo EOD** (free "Starter") | **primary EOD** (adjusted OHLCV, includes delisted tickers, which avoids survivorship bias) | **50 req/h, 1,000 req/day, 500 unique symbols/month** | Official | Stable | Yahoo → Stooq | tiingo.com pricing (search index) |
 | **Yahoo Finance via `yfinance`** | EOD fallback, sector/industry, market cap | none published; aggressive **429 / `YFRateLimitError`** blocks | **Unofficial** (wraps undocumented endpoints) | **FRAGILE** | Tiingo → Stooq; cached sector data | yfinance GitHub issues #2480, #2289 |
-| **Stooq CSV** | second EOD fallback (bulk history for backtests) | since ≈ Apr 2026 needs an **apikey (obtained via captcha)**; daily hit limit | Unofficial public CSV | **FRAGILE** | Tiingo → Yahoo | stooq.com / community reports |
+| **Stooq CSV** | second EOD fallback (bulk history for backtests) | since ≈ Apr 2026 needs an **apikey (obtained via captcha)**; daily hit limit (size **⚠**) | Unofficial public CSV | **FRAGILE** | Tiingo → Yahoo | stooq.com / community reports |
 | **Alpha Vantage `TIME_SERIES_DAILY`** | spot-check fallback only | 25/day total; full history may need premium **⚠ re-check** | Official | Stable but tiny quota | n/a | alphavantage.co |
 | **Finnhub `/quote`** | today's open for 09:35 fills; last price for marking | 60/min | Official | Stable | wait for EOD bar | finnhub.io |
 | Finnhub `/stock/candle` | **not usable**: returns **403 on free keys** (moved to premium) | n/a | Official | n/a | n/a | GitHub issue #546 |
@@ -848,15 +849,10 @@ tool is fine. If you ever monetise or share signals publicly, you need paid plan
 Everything else I decided myself, with defaults shown above.
 
 1. ~~Go-ahead for Phase 1~~ **Given.** The name is CatalystEdge.
-2. **Benzinga.** The only permitted route I found is its official free "Basic News API"
-   tier via AWS Marketplace (headline, teaser, link). It needs an AWS account subscription
-   on your side. Do you want that, or should the adapter stay a disabled stub?
-3. **Investing.com.** It offers official RSS feeds, but its terms say its data may not be
-   "used, stored… without explicit prior written permission". My recommendation is to
-   **keep it a disabled stub** (no scraping, ever). If you'd rather enable it for personal
-   use of RSS headlines and links only, tell me and it will ship behind
-   `INVESTING_RSS_ENABLED=false` with a ToS warning. I also could not load its
-   `robots.txt` from this sandbox, so the adapter checks it at runtime before any fetch.
+2. ~~Benzinga~~ **Answered:** disabled stub. Revisit after Phase 1 works (official free
+   Basic News API via AWS Marketplace is the only permitted route found).
+3. ~~Investing.com~~ **Answered:** disabled stub. Its terms forbid using or storing its
+   data without written permission, and there will be no scraping.
 4. ~~Where it will run~~ **Answered:** local Docker first, then Oracle + Vercel + Neon + Upstash for $0.
 
 ---
