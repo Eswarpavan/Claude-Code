@@ -31,7 +31,14 @@ settings, metrics), `outcomes/tracker.py`, and the "(Rating Upgrade)" opinion
 filter + weak price-target upgrades (merged with 01Ny's rules-v3 disagree flag).
 
 Interfaces 018K will consume from 01Ny:
-- `catalystedge.signals.engine.generate_signals(session, now) -> list[Signal]`
+- `catalystedge.signals.engine.generate_signals(session, now, *, ensure_prices=None, ranker=None,
+  calibrator=None, timesfm_state=None, timesfm_forecasts=None, timesfm_status="ready") -> EngineResult`
+  (implemented, commit "Signal engine: priors..."). `result.displayed` / `result.skipped` /
+  `result.filtered_by_timesfm` are lists of `Candidate`; `candidate.signal` is the `Signal` row
+  (None only when there was no price data). `result.warnings` lists TimesFM fallbacks.
+  `ensure_prices(symbols)` is called once with the candidate tickers so the caller can fetch bars.
+  Signal `features` JSON carries `rule_components`, `price`, `timesfm` {enabled, mode,
+  confidence_delta, filtered, note, warning, forecast}, `model_disagrees`, `skip_reason`.
   (rows in `signals`; `displayed`, `calibrated`, `rule_id`, `reason`, `risk_notes`
   filled; confidence labelled UNCALIBRATED until evidence exists).
 - Calibration/backtest results in `calibration_snapshots` / `backtest_runs`
