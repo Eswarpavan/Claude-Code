@@ -66,6 +66,8 @@ def score(prior: CatalystPrior, events: Sequence[EventLike], f: PriceFeatures | 
     c["credibility"] = round((cred - 0.7) * 30.0, 2)
     if any(e.strength == "strong" for e in events):
         c["strength"] = 6.0
+    elif all(e.strength == "weak" for e in events):
+        c["strength"] = -6.0      # e.g. a single insider, a price-target raise without a rating change
     origins = {e.origin for e in events} | {e.source_key for e in events if e.source_key}
     if len(events) > 1:
         c["corroboration"] = min(6.0, 3.0 * (len(origins) - 1)) if len(origins) > 1 else 0.0

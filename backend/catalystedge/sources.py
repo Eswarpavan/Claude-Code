@@ -48,7 +48,15 @@ SOURCES: dict[str, SourceSpec] = {
         # Power plan only (free key gets HTTP 403, confirmed live): 10,000/h. Off unless TIINGO_NEWS_ENABLED=true.
         SourceSpec("tiingo_news", "news", True, False, 0.7, 1.0, 1000, 600, 900, enabled_by_default=False),
         # SEC fair-access policy: max 10 requests/s with a declared User-Agent. We use at most ~6/s.
-        SourceSpec("sec_edgar", "event", True, False, 1.0, 0.15, None, 86400, 600),
+        SourceSpec("sec_edgar", "event", True, False, 1.0, 0.15, None, 86400, 600, rate_group="sec"),
+        # The "latest filings" Atom feed changes every minute: short cache, same SEC rate group.
+        SourceSpec("sec_feed", "event", True, False, 1.0, 0.15, None, 240, 600, rate_group="sec"),
+        # Finnhub earnings calendar (actual vs estimate); shares the 60/min key limit.
+        SourceSpec("finnhub_earnings", "event", True, False, 1.0, 1.2, 200, 1800, 3600, rate_group="finnhub"),
+        # openFDA: 240/min, 1,000/day per IP without a key. We spend at most 300/day.
+        SourceSpec("openfda", "event", True, False, 1.0, 0.5, 300, 3600, 21600),
+        # ClinicalTrials.gov v2: ~50/min per IP (third-party reported). We stay far below.
+        SourceSpec("clinicaltrials", "event", True, False, 0.9, 1.5, 300, 3600, 21600),
         # Prices. Tiingo free (confirmed live): 50 req/h, 1,000/day, 500 unique symbols/month. We use 45/h, 900/day.
         SourceSpec("tiingo_eod", "price", True, False, 1.0, 0.5, 900, 3600, 86400, hourly_budget=45),
         # Finnhub /quote shares the news endpoint's 60/min key limit.
