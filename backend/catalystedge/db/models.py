@@ -147,7 +147,7 @@ class NewsItemTicker(Base):
     __tablename__ = "news_item_tickers"
     news_item_id: Mapped[int] = mapped_column(ForeignKey("news_items.id", ondelete="CASCADE"), primary_key=True)
     symbol: Mapped[str] = mapped_column(ForeignKey("tickers.symbol"), primary_key=True)
-    method: Mapped[str] = mapped_column(String(20))
+    method: Mapped[str] = mapped_column(String(64))
     link_confidence: Mapped[float] = mapped_column(Float)
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     ambiguous: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))

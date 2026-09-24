@@ -53,3 +53,5 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
+# SIM905 rewrites "a b c".split() into very long literal lists; keep word lists readable.
+ignore = ["SIM905"]

@@ -10,8 +10,9 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from catalystedge.clock import ensure_utc
-from catalystedge.db.models import NewsItem, Source
+from catalystedge.db.models import NewsItem, NewsItemTicker, Source, Ticker, TickerLinkLog
 from catalystedge.pipeline.dedupe import Cluster, simhash64
+from catalystedge.pipeline.ticker_link import LinkResult, Universe
 from catalystedge.pipeline.timing import news_available_at
 from catalystedge.sources import SOURCES
 
@@ -62,3 +63,25 @@ def store_clusters(session: Session, clusters: list[Cluster], fetched_at: dt.dat
         out[id(cluster)] = rep_id
     session.flush()
     return out
+
+
+def seed_tickers(session: Session, universe: Universe) -> None:
+    rows = [dict(symbol=c.symbol, cik=c.cik, name=c.name, aliases=list(c.aliases)) for c in universe.by_symbol.values()]
+    if rows:
+        stmt = insert(Ticker).values(rows)
+        session.execute(stmt.on_conflict_do_update(index_elements=[Ticker.symbol], set_={
+            "cik": stmt.excluded.cik, "name": stmt.excluded.name, "aliases": stmt.excluded.aliases}))
+
+
+def store_links(session: Session, news_item_id: int, headline: str, result: LinkResult) -> None:
+    """Accepted links go to news_item_tickers; every ambiguity goes to ticker_link_log."""
+    if result.mentions:
+        session.execute(insert(NewsItemTicker).values([
+            dict(news_item_id=news_item_id, symbol=m.symbol, method=m.method, link_confidence=m.confidence,
+                 is_primary=m.is_primary, ambiguous=False)
+            for m in result.mentions
+        ]).on_conflict_do_nothing())
+    for a in result.ambiguities:
+        session.add(TickerLinkLog(news_item_id=news_item_id, headline=headline, reason=a.reason, chosen=a.chosen,
+                                  candidates=[{"symbol": s, "method": m, "confidence": c} for s, m, c in a.candidates]))
+    session.flush()
