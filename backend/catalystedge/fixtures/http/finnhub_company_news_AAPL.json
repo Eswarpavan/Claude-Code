@@ -1,0 +1,12 @@
+[
+ {
+  "category": "company",
+  "datetime": 1790231400,
+  "headline": "Apple upgraded to Buy at Example Securities on services growth",
+  "id": 9101,
+  "related": "AAPL",
+  "source": "FixtureWire",
+  "summary": "FIXTURE summary text that must never be stored.",
+  "url": "https://example.com/fixture/aapl-upgrade"
+ }
+]

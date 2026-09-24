@@ -1,0 +1,73 @@
+{
+ "meta": {
+  "found": 3,
+  "returned": 3,
+  "limit": 3,
+  "page": 1
+ },
+ "data": [
+  {
+   "uuid": "mx-1",
+   "title": "Nvidia beats estimates, raises full-year revenue guidance",
+   "description": "FIXTURE summary text that must never be stored.",
+   "snippet": "FIXTURE summary text that must never be stored.",
+   "url": "https://example.com/fixture/nvda-beat-raise-2",
+   "language": "en",
+   "published_at": "2026-09-24T12:00:00.000000Z",
+   "source": "fixturenews.example",
+   "entities": [
+    {
+     "symbol": "NVDA",
+     "name": "NVIDIA Corporation",
+     "exchange": "NASDAQ",
+     "country": "us",
+     "type": "equity",
+     "match_score": 95.2,
+     "sentiment_score": 0.71
+    }
+   ]
+  },
+  {
+   "uuid": "mx-2",
+   "title": "Vertex Pharmaceuticals pain drug meets primary endpoint in Phase 3 trial",
+   "description": "FIXTURE summary text that must never be stored.",
+   "snippet": "FIXTURE summary text that must never be stored.",
+   "url": "https://example.com/fixture/vrtx-trial",
+   "language": "en",
+   "published_at": "2026-09-24T04:30:00.000000Z",
+   "source": "fixturenews.example",
+   "entities": [
+    {
+     "symbol": "VRTX",
+     "name": "Vertex Pharmaceuticals Incorporated",
+     "exchange": "NASDAQ",
+     "country": "us",
+     "type": "equity",
+     "match_score": 88.0,
+     "sentiment_score": 0.62
+    }
+   ]
+  },
+  {
+   "uuid": "mx-3",
+   "title": "Apple upgraded to buy at Example Securities on services growth",
+   "description": "FIXTURE summary text that must never be stored.",
+   "snippet": "FIXTURE summary text that must never be stored.",
+   "url": "https://example.com/fixture/aapl-upgrade?utm_source=feed",
+   "language": "en",
+   "published_at": "2026-09-24T07:00:00.000000Z",
+   "source": "fixturenews.example",
+   "entities": [
+    {
+     "symbol": "AAPL",
+     "name": "Apple Inc.",
+     "exchange": "NASDAQ",
+     "country": "us",
+     "type": "equity",
+     "match_score": 91.0,
+     "sentiment_score": 0.4
+    }
+   ]
+  }
+ ]
+}

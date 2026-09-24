@@ -1,0 +1,42 @@
+{
+ "note": "HAND-WRITTEN fixtures in each provider's documented response format. Not real news. Links point to example.com.",
+ "recorded_at": "2026-09-24T13:30:00+00:00",
+ "routes": [
+  {
+   "host": "finnhub.io",
+   "path": "/api/v1/news",
+   "file": "finnhub_general_news.json"
+  },
+  {
+   "host": "finnhub.io",
+   "path": "/api/v1/company-news",
+   "query": {
+    "symbol": "AAPL"
+   },
+   "file": "finnhub_company_news_AAPL.json"
+  },
+  {
+   "host": "finnhub.io",
+   "path": "/api/v1/company-news",
+   "file": "finnhub_company_news_empty.json"
+  },
+  {
+   "host": "api.marketaux.com",
+   "path": "/v1/news/all",
+   "file": "marketaux_news_all.json"
+  },
+  {
+   "host": "www.alphavantage.co",
+   "path": "/query",
+   "query": {
+    "function": "NEWS_SENTIMENT"
+   },
+   "file": "alphavantage_news_sentiment.json"
+  },
+  {
+   "host": "api.tiingo.com",
+   "path": "/tiingo/news",
+   "file": "tiingo_news.json"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+[
+ {
+  "id": 7001,
+  "title": "CrowdStrike beats estimates and raises annual guidance",
+  "url": "https://example.com/fixture/crwd-beat",
+  "description": "FIXTURE summary text that must never be stored.",
+  "publishedDate": "2026-09-24T11:00:00.000000Z",
+  "crawlDate": "2026-09-24T11:06:00.000000Z",
+  "source": "fixture.example",
+  "tickers": [
+   "crwd"
+  ],
+  "tags": [
+   "Earnings"
+  ]
+ }
+]

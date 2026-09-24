@@ -1,0 +1,190 @@
+{
+ "items": "6",
+ "sentiment_score_definition": "x",
+ "relevance_score_definition": "y",
+ "feed": [
+  {
+   "title": "Alphabet announces $70 billion share buyback",
+   "url": "https://example.com/fixture/googl-buyback",
+   "time_published": "20260924T023000",
+   "authors": [
+    "Fixture"
+   ],
+   "summary": "FIXTURE summary text that must never be stored.",
+   "source": "FixtureAV",
+   "category_within_source": "n/a",
+   "source_domain": "example.com",
+   "topics": [],
+   "overall_sentiment_score": 0.3,
+   "overall_sentiment_label": "Neutral",
+   "ticker_sentiment": [
+    {
+     "ticker": "GOOGL",
+     "relevance_score": "0.9",
+     "ticker_sentiment_score": "0.1",
+     "ticker_sentiment_label": "Neutral"
+    },
+    {
+     "ticker": "GOOG",
+     "relevance_score": "0.9",
+     "ticker_sentiment_score": "0.1",
+     "ticker_sentiment_label": "Neutral"
+    }
+   ]
+  },
+  {
+   "title": "ServiceNow shares fall after downgrade to Neutral at Example Bank",
+   "url": "https://example.com/fixture/now-downgrade",
+   "time_published": "20260924T013000",
+   "authors": [
+    "Fixture"
+   ],
+   "summary": "FIXTURE summary text that must never be stored.",
+   "source": "FixtureAV",
+   "category_within_source": "n/a",
+   "source_domain": "example.com",
+   "topics": [],
+   "overall_sentiment_score": -0.3,
+   "overall_sentiment_label": "Neutral",
+   "ticker_sentiment": [
+    {
+     "ticker": "NOW",
+     "relevance_score": "0.85",
+     "ticker_sentiment_score": "0.1",
+     "ticker_sentiment_label": "Neutral"
+    }
+   ]
+  },
+  {
+   "title": "Now is the time to buy chip stocks, strategist says",
+   "url": "https://example.com/fixture/now-word",
+   "time_published": "20260924T100000",
+   "authors": [
+    "Fixture"
+   ],
+   "summary": "FIXTURE summary text that must never be stored.",
+   "source": "FixtureAV",
+   "category_within_source": "n/a",
+   "source_domain": "example.com",
+   "topics": [],
+   "overall_sentiment_score": 0.2,
+   "overall_sentiment_label": "Neutral",
+   "ticker_sentiment": []
+  },
+  {
+   "title": "Palantir awarded $480 million Army contract",
+   "url": "https://example.com/fixture/pltr-contract",
+   "time_published": "20260924T003000",
+   "authors": [
+    "Fixture"
+   ],
+   "summary": "FIXTURE summary text that must never be stored.",
+   "source": "FixtureAV",
+   "category_within_source": "n/a",
+   "source_domain": "example.com",
+   "topics": [],
+   "overall_sentiment_score": 0.4,
+   "overall_sentiment_label": "Neutral",
+   "ticker_sentiment": [
+    {
+     "ticker": "PLTR",
+     "relevance_score": "0.95",
+     "ticker_sentiment_score": "0.1",
+     "ticker_sentiment_label": "Neutral"
+    }
+   ]
+  },
+  {
+   "title": "Gartner (NYSE: IT) raises annual outlook after strong quarter",
+   "url": "https://example.com/fixture/it-raise",
+   "time_published": "20260923T233000",
+   "authors": [
+    "Fixture"
+   ],
+   "summary": "FIXTURE summary text that must never be stored.",
+   "source": "FixtureAV",
+   "category_within_source": "n/a",
+   "source_domain": "example.com",
+   "topics": [],
+   "overall_sentiment_score": 0.35,
+   "overall_sentiment_label": "Neutral",
+   "ticker_sentiment": [
+    {
+     "ticker": "IT",
+     "relevance_score": "0.8",
+     "ticker_sentiment_score": "0.1",
+     "ticker_sentiment_label": "Neutral"
+    }
+   ]
+  },
+  {
+   "title": "FDA approves Madrigal liver drug for broader patient group",
+   "url": "https://example.com/fixture/mdgl-approval",
+   "time_published": "20260923T223000",
+   "authors": [
+    "Fixture"
+   ],
+   "summary": "FIXTURE summary text that must never be stored.",
+   "source": "FixtureAV",
+   "category_within_source": "n/a",
+   "source_domain": "example.com",
+   "topics": [],
+   "overall_sentiment_score": 0.45,
+   "overall_sentiment_label": "Neutral",
+   "ticker_sentiment": [
+    {
+     "ticker": "MDGL",
+     "relevance_score": "0.9",
+     "ticker_sentiment_score": "0.1",
+     "ticker_sentiment_label": "Neutral"
+    }
+   ]
+  },
+  {
+   "title": "FDA approves Sarepta gene therapy with boxed warning and narrower label",
+   "url": "https://example.com/fixture/srpt-mixed",
+   "time_published": "20260923T213000",
+   "authors": [
+    "Fixture"
+   ],
+   "summary": "FIXTURE summary text that must never be stored.",
+   "source": "FixtureAV",
+   "category_within_source": "n/a",
+   "source_domain": "example.com",
+   "topics": [],
+   "overall_sentiment_score": 0.0,
+   "overall_sentiment_label": "Neutral",
+   "ticker_sentiment": [
+    {
+     "ticker": "SRPT",
+     "relevance_score": "0.9",
+     "ticker_sentiment_score": "0.1",
+     "ticker_sentiment_label": "Neutral"
+    }
+   ]
+  },
+  {
+   "title": "$ON jumps after ON Semiconductor raises guidance on EV demand",
+   "url": "https://example.com/fixture/on-raise",
+   "time_published": "20260923T203000",
+   "authors": [
+    "Fixture"
+   ],
+   "summary": "FIXTURE summary text that must never be stored.",
+   "source": "FixtureAV",
+   "category_within_source": "n/a",
+   "source_domain": "example.com",
+   "topics": [],
+   "overall_sentiment_score": 0.4,
+   "overall_sentiment_label": "Neutral",
+   "ticker_sentiment": [
+    {
+     "ticker": "ON",
+     "relevance_score": "0.7",
+     "ticker_sentiment_score": "0.1",
+     "ticker_sentiment_label": "Neutral"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,92 @@
+[
+ {
+  "category": "company",
+  "datetime": 1790249400,
+  "headline": "NVIDIA beats estimates and raises full-year revenue guidance",
+  "id": 9001,
+  "related": "NVDA",
+  "source": "FixtureWire",
+  "summary": "FIXTURE summary text that must never be stored.",
+  "url": "https://example.com/fixture/nvda-beat-raise"
+ },
+ {
+  "category": "company",
+  "datetime": 1790238600,
+  "headline": "Allstate (NYSE: ALL) beats quarterly profit estimates on lower catastrophe losses",
+  "id": 9002,
+  "related": "",
+  "source": "FixtureWire",
+  "summary": "FIXTURE summary text that must never be stored.",
+  "url": "https://example.com/fixture/all-beat"
+ },
+ {
+  "category": "top news",
+  "datetime": 1790245800,
+  "headline": "All major indexes rise as Treasury yields fall",
+  "id": 9003,
+  "related": "",
+  "source": "FixtureWire",
+  "summary": "FIXTURE summary text that must never be stored.",
+  "url": "https://example.com/fixture/indexes-rise"
+ },
+ {
+  "category": "company",
+  "datetime": 1790235000,
+  "headline": "Moderna shares slip after FDA issues complete response letter for flu vaccine",
+  "id": 9004,
+  "related": "MRNA",
+  "source": "FixtureWire",
+  "summary": "FIXTURE summary text that must never be stored.",
+  "url": "https://example.com/fixture/mrna-crl"
+ },
+ {
+  "category": "company",
+  "datetime": 1790227800,
+  "headline": "Abbott to acquire Hologic for $15 billion in cash",
+  "id": 9005,
+  "related": "ABT,HOLX",
+  "source": "FixtureWire",
+  "summary": "FIXTURE summary text that must never be stored.",
+  "url": "https://example.com/fixture/abt-holx"
+ },
+ {
+  "category": "company",
+  "datetime": 1790220600,
+  "headline": "Lockheed Martin wins $2.1 billion Pentagon contract for missile defense",
+  "id": 9006,
+  "related": "LMT",
+  "source": "FixtureWire",
+  "summary": "FIXTURE summary text that must never be stored.",
+  "url": "https://example.com/fixture/lmt-contract"
+ },
+ {
+  "category": "company",
+  "datetime": 1790242200,
+  "headline": "Intel beats estimates but cuts fourth-quarter guidance",
+  "id": 9007,
+  "related": "INTC",
+  "source": "FixtureWire",
+  "summary": "FIXTURE summary text that must never be stored.",
+  "url": "https://example.com/fixture/intc-mixed"
+ },
+ {
+  "category": "company",
+  "datetime": 1790040600,
+  "headline": "Deere reports record quarterly profit",
+  "id": 9008,
+  "related": "DE",
+  "source": "FixtureWire",
+  "summary": "FIXTURE summary text that must never be stored.",
+  "url": "https://example.com/fixture/de-old"
+ },
+ {
+  "category": "company",
+  "datetime": 1790263800,
+  "headline": "First Solar to report results tomorrow",
+  "id": 9009,
+  "related": "FSLR",
+  "source": "FixtureWire",
+  "summary": "FIXTURE summary text that must never be stored.",
+  "url": "https://example.com/fixture/fslr-future"
+ }
+]
