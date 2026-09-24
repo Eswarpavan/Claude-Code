@@ -6,6 +6,7 @@ import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { setTheme, useIsDark } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
+import { TimesFMIndicator } from "@/components/timesfm";
 
 const LINKS = [
   ["/signals", "Signals"],
@@ -42,6 +43,7 @@ export function Nav() {
             </Link>
           ))}
         </nav>
+        <TimesFMIndicator />
         <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle light or dark mode">
           {/* Both icons render; CSS picks one, so server and client HTML always match. */}
           <Sun className="hidden h-4 w-4 dark:block" aria-hidden />

@@ -6,6 +6,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Badge } from "@/components/ui/badge";
 import { ago, pct, title, usd } from "@/lib/format";
 import type { SignalT } from "@/lib/types";
+import { TimesFMHoverLines } from "@/components/timesfm";
 
 function SentimentBar({ s }: { s: NonNullable<SignalT["sentiment"]> }) {
   const parts = [
@@ -92,9 +93,28 @@ export function TickerHover({ signal, children }: { signal: SignalT; children: R
               ))}
             </ul>
           </div>
+          <TimesFMHoverLines tag={signal.timesfm} />
           <div>
             <p className="mb-1 text-xs font-medium text-subtle">Why</p>
             <p>{signal.reason}</p>
+            {signal.rule_components && (
+              <p className="mt-1 text-xs text-subtle tabular">
+                {Object.entries(signal.rule_components)
+                  .filter(([k, v]) => k !== "base" && v !== 0)
+                  .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+                  .slice(0, 5)
+                  .map(([k, v]) => `${k.replace(/_/g, " ")} ${v > 0 ? "+" : ""}${v.toFixed(0)}`)
+                  .join(" · ")}
+              </p>
+            )}
+            {signal.reaction_since_news_pct != null && (
+              <p className="text-xs text-subtle">Price since the news: {pct(signal.reaction_since_news_pct)}</p>
+            )}
+            {signal.shap?.top?.length ? (
+              <ul className="mt-1 list-inside list-disc text-xs text-muted">
+                {signal.shap.top.slice(0, 3).map((x) => <li key={x.feature}>{x.plain}</li>)}
+              </ul>
+            ) : null}
           </div>
           {signal.risk_notes.length > 0 && (
             <div>

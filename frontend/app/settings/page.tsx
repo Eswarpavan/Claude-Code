@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { TimesFMSettings } from "@/components/timesfm";
 
 type Paper = { auto_buy: boolean; auto_buy_threshold: number; risk_per_trade: number; max_position_pct: number; max_open_positions: number;
   cash_floor_pct: number; time_stop_sessions: number; start_cash: number };
@@ -62,6 +63,7 @@ export default function SettingsPage() {
           <p className="text-xs text-subtle">The server only enables auto-buy once a historical backtest calibration exists or 30 paper trades have closed. The switch alone cannot turn it on.</p>
         </CardContent>
       </Card>
+      <TimesFMSettings />
       <Card>
         <CardHeader><CardTitle>Paper account ({"$"}{p.start_cash} start)</CardTitle></CardHeader>
         <CardContent>

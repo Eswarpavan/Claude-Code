@@ -29,7 +29,10 @@ export type SignalT = {
   sentiment_model: string | null;
   model_disagrees: boolean;
   features?: Record<string, unknown>;
-  shap?: Record<string, number> | null;
+  shap?: { base: number; top: { feature: string; contribution: number; plain: string }[] } | null;
+  timesfm?: TimesFMTag | null;
+  rule_components?: Record<string, number> | null;
+  reaction_since_news_pct?: number | null;
 };
 
 export type CalibrationStatus = {
@@ -118,4 +121,52 @@ export type SourceRow = {
 export type RefreshState = {
   refresh: { id: string; trigger: string; status: string; progress_pct: number; started_at: string; finished_at: string | null } | null;
   sources?: { key: string; status: string; items: number; calls: number; error: string | null; at: string | null }[];
+};
+
+// ----------------------------------------------------------------------------- TimesFM + evidence (signal brain)
+
+export type TimesFMForecast = { expected_return_pct: number; low_pct: number; high_pct: number; horizon_days: number; model: string; as_of: string };
+export type TimesFMTag = {
+  enabled: boolean;
+  mode: "feature" | "filter" | null;
+  confidence_delta: number;
+  filtered: boolean;
+  note: string | null;
+  warning: string | null;
+  forecast?: TimesFMForecast;
+};
+export type TimesFMInfo = {
+  enabled: boolean;
+  mode: "feature" | "filter";
+  status: { status: string; detail?: string; updated_at?: string };
+  changes: { at: string; enabled: boolean; mode: string; by: string }[];
+  model: string;
+  repo: string;
+  license_note: string;
+  leakage_note: string;
+  modes: Record<"feature" | "filter", string>;
+};
+export type Stat = { n: number; hit_rate: number | null; mean_pct: number | null; median_pct?: number | null; sharpe: number | null };
+export type BacktestReport = {
+  period: [string, string] | null;
+  strategies: Record<"all_events" | "rules" | "model" | "spy_same_days", Stat>;
+  verdict: { model_enabled: boolean; model_beats_baselines: boolean; rules_beat_baselines: boolean; plain: string };
+  by_catalyst: { all_events: Record<string, Stat>; rules: Record<string, Stat> };
+  confidence_buckets: { rules: (Stat & { bucket: string })[]; model: (Stat & { bucket: string })[] };
+  priced_in_skip?: { skipped: Stat; kept: Stat };
+  caveats: string[];
+  timesfm?: {
+    helps: boolean;
+    plain: string;
+    leakage_warning: string | null;
+    rules_without_timesfm: Stat;
+    rules_with_timesfm_filter: Stat;
+    naive_all_events: Stat;
+    spy_same_days: Stat;
+  };
+};
+export type CatalystReport = {
+  live: Record<string, Record<string, Stat & { mean_excess_vs_spy_pct?: number | null }>>;
+  backtest: { run_id: number | null; period: [string, string] | null; rules: Record<string, Stat>; all_events: Record<string, Stat> };
+  evidence: { plain: string; label: string };
 };
