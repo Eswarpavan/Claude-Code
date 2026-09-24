@@ -149,3 +149,13 @@ def test_timesfm_section_warns_when_not_helping(data):
     t = rep["timesfm"]
     assert t["leakage_warning"] == "overlaps pretraining" and "rules_with_timesfm_filter" in t
     assert isinstance(t["helps"], bool) and t["plain"]
+
+
+def test_permutation_p_value_detects_skill_and_rejects_luck():
+    rnd = random.Random(3)
+    pool = [rnd.gauss(0, 3) for _ in range(400)]
+    best = sorted(pool)[-60:]                                  # a genuinely skilled pick
+    lucky = rnd.sample(pool, 60)                               # a random pick
+    assert wfm.selection_p_value(best, pool) < 0.01
+    assert wfm.selection_p_value(lucky, pool) > 0.05
+    assert wfm.selection_p_value([1.0, 2.0], pool) is None     # too few trades to judge

@@ -38,6 +38,10 @@ LGB_PARAMS = dict(objective="binary", learning_rate=0.05, n_estimators=200, num_
                   subsample=0.8, subsample_freq=1, colsample_bytree=0.8, reg_lambda=1.0, verbose=-1,
                   random_state=7)
 WEIGHTS = (0.25, 0.5, 0.75, 1.0)
+# The ranker is enabled only with enough out-of-sample trades AND a selection that random picks
+# from the same events rarely match (one-sided permutation test).
+MIN_MODEL_TRADES = 50
+SIGNIFICANCE = 0.05
 
 
 # ----------------------------------------------------------------------------- metrics
@@ -56,6 +60,22 @@ def stats(returns: Sequence[float], holds: Sequence[int] | None = None) -> dict:
 
 def _trade_stats(rows: Sequence[Row]) -> dict:
     return stats([r.trade_return for r in rows], [r.trade_sessions or 5 for r in rows])
+
+
+def selection_p_value(picked: Sequence[float], pool: Sequence[float], n_perm: int = 5000,
+                      seed: int = 11) -> float | None:
+    """One-sided permutation test: how often does a RANDOM subset of the same size from the same
+    pool of trades average at least as much as the picked subset? Small = the selection has skill."""
+    import random
+
+    picked = [x for x in picked if x is not None]
+    pool = [x for x in pool if x is not None]
+    if len(picked) < 5 or len(pool) <= len(picked):
+        return None
+    target = statistics.mean(picked)
+    rnd = random.Random(seed)
+    hits = sum(statistics.mean(rnd.sample(pool, len(picked))) >= target for _ in range(n_perm))
+    return round((hits + 1) / (n_perm + 1), 4)
 
 
 def beats(a: dict, b: dict) -> bool:
@@ -226,9 +246,15 @@ def build_report(wf: WalkForward, universe_note: str, tfm_forecasts: dict[int, f
         "spy_same_days": spy,
     }
     m = strategies["model"]
+    pool = [r.trade_return for r in oos_rows]
+    p_model = selection_p_value([r.trade_return for r in model_rows], pool)
+    p_rules = selection_p_value([r.trade_return for r in rules_rows], pool)
+    strategies["model"]["p_value_vs_random_picks"] = p_model
+    strategies["rules"]["p_value_vs_random_picks"] = p_rules
     model_ok = (beats(m, strategies["all_events"]) and beats(m, strategies["rules"]) and beats(m, spy)
-                and m["n"] >= 30)
-    rules_ok = beats(strategies["rules"], strategies["all_events"]) and beats(strategies["rules"], spy)
+                and m["n"] >= MIN_MODEL_TRADES and p_model is not None and p_model < SIGNIFICANCE)
+    rules_ok = (beats(strategies["rules"], strategies["all_events"]) and beats(strategies["rules"], spy)
+                and p_rules is not None and p_rules < SIGNIFICANCE)
     report = {
         "generated_at": dt.datetime.now(dt.UTC).isoformat(),
         "universe": universe_note,
@@ -293,10 +319,18 @@ def _plain(model_ok: bool, rules_ok: bool, s: dict) -> str:
         parts.append(f"Buying every positive event: {a['hit_rate'] * 100:.0f}% winners, {a['mean_pct']:+.2f}% average.")
     if spy["n"]:
         parts.append(f"S&P 500 over the same days: {spy['hit_rate'] * 100:.0f}% up, {spy['mean_pct']:+.2f}% average.")
-    parts.append("The ranking model beat all baselines and is enabled." if model_ok else
-                 "The ranking model did NOT beat all baselines, so it stays OFF (rules only).")
+    m = s["model"]
+    pm = m.get("p_value_vs_random_picks")
+    if model_ok:
+        parts.append(f"The ranking model beat every baseline ({m['n']} trades, p = {pm}) and is enabled.")
+    elif m["n"] and beats(m, s["all_events"]) and beats(m, spy):
+        parts.append(f"The ranking model looked better ({m['n']} trades) but not convincingly "
+                     f"(p = {pm}, needs < {SIGNIFICANCE} and >= {MIN_MODEL_TRADES} trades), so it stays OFF.")
+    else:
+        parts.append("The ranking model did NOT beat all baselines, so it stays OFF (rules only).")
     if not rules_ok:
-        parts.append("The rules themselves did not beat both baselines in this test: treat signals with caution.")
+        parts.append("The rules themselves did not clearly beat both baselines in this test: treat signals as "
+                     "ideas to research, not proven edges.")
     return " ".join(parts)
 
 
