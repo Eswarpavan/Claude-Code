@@ -96,6 +96,14 @@ class HttpClient:
 
     def get_json(self, source: str, url: str, params: Mapping[str, Any] | None = None,
                  headers: Mapping[str, str] | None = None, *, ttl_s: int | None = None) -> Any:
+        return self._get(source, url, params, headers, ttl_s, as_json=True)
+
+    def get_text(self, source: str, url: str, params: Mapping[str, Any] | None = None,
+                 headers: Mapping[str, str] | None = None, *, ttl_s: int | None = None) -> str:
+        return self._get(source, url, params, headers, ttl_s, as_json=False)
+
+    def _get(self, source: str, url: str, params: Mapping[str, Any] | None, headers: Mapping[str, str] | None,
+             ttl_s: int | None, *, as_json: bool) -> Any:
         spec = self.specs[source]
         params = dict(params or {})
         for k in SECRET_PARAMS & params.keys():
@@ -132,11 +140,14 @@ class HttpClient:
                 self._record_failure(source)
                 body = self.redact(resp.text[:200])
                 raise ProviderError(source, f"HTTP {resp.status_code}: {body}", resp.status_code)
-            try:
-                data = resp.json()
-            except ValueError as e:
-                self._record_failure(source)
-                raise ProviderError(source, "response was not JSON") from e
+            if as_json:
+                try:
+                    data = resp.json()
+                except ValueError as e:
+                    self._record_failure(source)
+                    raise ProviderError(source, "response was not JSON") from e
+            else:
+                data = resp.text
             self._record_success(source)
             if ttl > 0:
                 self.kv.set(cache_key, json.dumps(data).encode(), ttl)
@@ -168,21 +179,26 @@ class HttpClient:
         return self.clock.now().strftime("%Y%m%d")
 
     def budget_used(self, source: str) -> int:
-        return int(self.kv.get(f"budget:{source}:{self._day()}") or b"0")
+        return int(self.kv.get(f"budget:{self.specs[source].group}:{self._day()}") or b"0")
 
     def _spend_budget(self, source: str, spec: SourceSpec) -> None:
+        if spec.hourly_budget is not None:
+            hour = self.clock.now().strftime("%Y%m%d%H")
+            used_h = self.kv.incr(f"budget_h:{spec.group}:{hour}", ttl_s=2 * 3600)
+            if used_h > spec.hourly_budget:
+                raise BudgetExhausted(source, f"hourly budget of {spec.hourly_budget} calls used")
         if spec.daily_budget is None:
             return
-        used = self.kv.incr(f"budget:{source}:{self._day()}", ttl_s=2 * 86400)
+        used = self.kv.incr(f"budget:{spec.group}:{self._day()}", ttl_s=2 * 86400)
         if used > spec.daily_budget:
             raise BudgetExhausted(source, f"daily budget of {spec.daily_budget} calls used")
 
     def _space(self, source: str, spec: SourceSpec) -> None:
         now = time.monotonic()
-        wait = spec.min_interval_s - (now - self._last_call.get(source, -1e12))
+        wait = spec.min_interval_s - (now - self._last_call.get(spec.group, -1e12))
         if wait > 0:
             self.sleep(wait)
-        self._last_call[source] = time.monotonic()
+        self._last_call[spec.group] = time.monotonic()
 
     def _backoff(self, attempt: int, retry_after: str | None, stats: CallStats) -> None:
         stats.retries += 1

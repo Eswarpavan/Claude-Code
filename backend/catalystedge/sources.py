@@ -28,13 +28,19 @@ class SourceSpec:
     poll_every_s: int              # how often the scheduler polls (local profile)
     enabled_by_default: bool = True
     note: str = ""
+    hourly_budget: int | None = None   # max calls per UTC hour (Tiingo free: 50/h)
+    rate_group: str | None = None      # sources sharing one provider key share spacing and budgets
+
+    @property
+    def group(self) -> str:
+        return self.rate_group or self.key
 
 
 SOURCES: dict[str, SourceSpec] = {
     s.key: s
     for s in [
         # Confirmed live: 60 calls/min (x-ratelimit-limit header), non-commercial. We use at most ~50/min.
-        SourceSpec("finnhub_news", "news", True, False, 0.7, 1.2, 5000, 240, 300),
+        SourceSpec("finnhub_news", "news", True, False, 0.7, 1.2, 5000, 240, 300, rate_group="finnhub"),
         # Published: 100 requests/day, 3 articles/request. We spend at most 90/day.
         SourceSpec("marketaux_news", "news", True, False, 0.65, 2.0, 90, 1800, 1800),
         # Published: 25 requests/day shared by all AV functions. News gets 10.
@@ -43,6 +49,13 @@ SOURCES: dict[str, SourceSpec] = {
         SourceSpec("tiingo_news", "news", True, False, 0.7, 1.0, 1000, 600, 900, enabled_by_default=False),
         # SEC fair-access policy: max 10 requests/s with a declared User-Agent. We use at most ~6/s.
         SourceSpec("sec_edgar", "event", True, False, 1.0, 0.15, None, 86400, 600),
+        # Prices. Tiingo free (confirmed live): 50 req/h, 1,000/day, 500 unique symbols/month. We use 45/h, 900/day.
+        SourceSpec("tiingo_eod", "price", True, False, 1.0, 0.5, 900, 3600, 86400, hourly_budget=45),
+        # Finnhub /quote shares the news endpoint's 60/min key limit.
+        SourceSpec("finnhub_quote", "price", True, False, 1.0, 1.2, 5000, 30, 86400, rate_group="finnhub"),
+        # Unofficial fallbacks (FRAGILE): no published limits; stay very polite.
+        SourceSpec("yahoo_eod", "price", False, True, 0.8, 2.0, 300, 3600, 86400),
+        SourceSpec("stooq_eod", "price", False, True, 0.8, 2.0, 200, 3600, 86400),
         SourceSpec("benzinga_news", "news", True, False, 0.75, 1.0, None, 600, 900, enabled_by_default=False,
                    note="disabled stub: revisit after Phase 1"),
         SourceSpec("investing_rss", "news", True, False, 0.5, 60.0, None, 1800, 1800, enabled_by_default=False,
