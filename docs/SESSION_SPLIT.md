@@ -64,3 +64,24 @@ at ~08:30 UTC. `HttpClient` now treats an hourly-quota 429 as "hour spent" (no r
 backtest history, please fetch each symbol once (full history in one call) and store it via
 `prices.store_bars`; 018K will use at most ~15 calls around 09:00-09:10 UTC for a live end-to-end
 check and screenshots.
+
+### Interfaces 01Ny provides for the API / dashboard (added ~09:40 UTC)
+All in `backend/catalystedge`; every function takes a SQLAlchemy `Session`.
+- **TimesFM** (`ml/timeseries.py`): `get_state(s) -> TimesFMState(enabled, mode)`,
+  `set_state(s, enabled, mode, by="user")` (persists + logs; takes effect on next read),
+  `changes(s)` (log), `get_status(s)` -> {status: off|ready|running|model missing|failed, detail},
+  `LICENSE_NOTE`, `LEAKAGE_NOTE`. After a toggle change, queue Celery task `timesfm_refresh`
+  (defined in worker/celery_app.py) so forecasts + signals update without blocking the page.
+  Per signal: `signal.features["timesfm"]` = {enabled, mode, confidence_delta, filtered, note,
+  warning, forecast{expected_return_pct, low_pct, high_pct, horizon_days}} for hover cards.
+  Filtered list: signals with `features["skip_reason"] == "filtered_by_timesfm"` for the
+  "Filtered by TimesFM" list (reason in `features["timesfm"]["note"]`).
+- **Evidence / catalysts** (`signals/report.py`): `evidence(s)` (UNCALIBRATED badge text and
+  counts), `catalyst_report(s)` (hit rate + avg return by catalyst, live 1/3/10d and latest
+  backtest), `latest_backtest(s)` (`BacktestRun.report` JSON: strategies, verdict.plain,
+  by_catalyst, confidence_buckets, priced_in_skip, timesfm section, caveats).
+- **Signals**: `signal.features["rule_components"]` (which rule and why), `signal.rule_id`,
+  `signal.shap` (top-5 model contributions, only when the ranker is enabled),
+  `features["model_disagrees"]`, `features["price"]["reaction_pct"]`.
+- **Model registry**: rows `ranker-lgbm` (enabled only if it beat baselines) and `timesfm`.
+- CLI: `catalystedge backtest [--timesfm]`, `catalystedge catalyst-report`.
