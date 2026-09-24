@@ -33,8 +33,8 @@ def _seed_open_position(db, entry_date=D1):
     buy = _one(db, "INSERT INTO paper_orders (account_id, symbol, side, notional_usd, decision_date, execute_on, "
                    "origin, status, idempotency_key) VALUES (:a, 'ABC', 'buy', 20, :d0, :d1, 'manual', 'filled', "
                    "'k-buy') RETURNING id", a=acct, d0=entry_date - dt.timedelta(days=1), d1=entry_date)
-    fill = _one(db, "INSERT INTO paper_fills (order_id, fill_date, raw_open, spread_bps, slippage_bps, fill_price, qty) "
-                    "VALUES (:o, :d, 10, 5, 5, 10.01, 1.998) RETURNING id", o=buy, d=entry_date)
+    fill = _one(db, "INSERT INTO paper_fills (order_id, fill_date, raw_open, spread_bps, slippage_bps, fill_price, "
+                    "qty) VALUES (:o, :d, 10, 5, 5, 10.01, 1.998) RETURNING id", o=buy, d=entry_date)
     pos = _one(db, "INSERT INTO paper_positions (account_id, symbol, entry_fill_id, entry_date, qty, cost_basis, "
                    "stop_price, target_price, time_stop_date, status) VALUES (:a, 'ABC', :f, :d, 1.998, 20, 9, 12, "
                    ":ts, 'open') RETURNING id", a=acct, f=fill, d=entry_date,
@@ -53,8 +53,11 @@ def _sell_order(db, acct, pos, decision, execute_on, key="k-sell"):
 
 def test_migration_matches_models_and_round_trips(engine):
     env = {**os.environ, "DATABASE_URL": os.environ["TEST_DATABASE_URL"]}
-    run = lambda *args: subprocess.run([sys.executable, "-m", "alembic", *args], cwd=BACKEND, env=env,
-                                       capture_output=True, text=True)
+
+    def run(*args):
+        return subprocess.run([sys.executable, "-m", "alembic", *args], cwd=BACKEND, env=env,
+                              capture_output=True, text=True)
+
     check = run("check")
     assert check.returncode == 0, check.stdout + check.stderr   # models == migrations, no drift
     assert run("downgrade", "base").returncode == 0
