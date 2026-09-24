@@ -1,30 +1,36 @@
 # CatalystEdge Phase 1: progress and next steps
 
-*Last updated 2026-09-24. Read this first when continuing Phase 1 in a new session.*
+*Last updated 2026-09-24 ~09:45 UTC. Read this first when continuing in a new session.*
 
-## Where we are
+## Where we are (updated ~09:45 UTC, session 01Ny)
 
-Built and tested in the agreed order. The first six steps are done. The build is
-**paused at the agreed sanity-check point**, before the signal engine.
+Two Claude sessions build this branch in parallel; the split is in `docs/SESSION_SPLIT.md`
+(01Ny = signal brain, 018K = app/infrastructure). Single-user app.
 
-| # | Step | Status | Tests |
-|---|---|---|---|
-| 0 | Source checker `scripts/verify_sources.py` | done; **run live 2026-09-24** | 16 |
-| 1 | Database schema + migrations (0001, 0002), rule-2 DB triggers | done | 18 |
-| 2 | 48-hour news window | done | 15 |
-| 3 | News adapters, HTTP client (budgets, cache, retries, breaker), dedupe, storage | done | 11 + 16 + 2 |
-| 4 | Ticker linking + ambiguity log | done | 29 |
-| 5 | Sentiment models behind a registry (FinBERT default, word-list fallback) | done | 26 |
-| 6 | Event classification + mixed-headline rules + end-to-end pipeline + `sample-news` | done | 34 + 4 |
-| 6b | Live fixes: ticker linking, M&A wording, analyst upgrades, non-event filter (`pipeline/noise.py`) | done | 78 |
-| | **Checkpoint: the user sanity-checks real headlines** | **2 bugs fixed + non-event filter added; clean sample shown; waiting on user** | |
-| 7 | Signal engine (rules, UNCALIBRATED confidence) | not started | |
-| 8 | Paper account (auto-buy OFF) | not started | |
+| Area | Status | Where |
+|---|---|---|
+| News pipeline, linking, classification, non-event filter | done, live-tested | `pipeline/` |
+| FinBERT policy: rule decides; `model_disagrees` flag lowers confidence; veto only >= 0.90 with no rule catalyst | done | `pipeline/classify.py` (rules-v3) |
+| Signal engine: priors (upgrades low weight), point-in-time features, priced-in skip, transparent rule score, ranker/calibrator/TimesFM hooks | done, live-tested | `signals/` |
+| SEC 8-K + Form 4 (directors/officers, no financings/IPOs), earnings surprises, openFDA into the same events table | done, live-tested | `events/`, `adapters/events/sec.py` |
+| ClinicalTrials.gov | code done; **blocked by network** (clinicaltrials.gov) | `events/trials.py` |
+| Backtest (EDGAR-based), walk-forward, LightGBM, calibration, SHAP, baselines, by-catalyst report | code done + tested on synthetic data; **real run waiting for data download** | `backtest/`, `ml/ranker.py` |
+| TimesFM 3.0 toggle, background job, cache, fallback, backtest with/without | done; model downloaded and health check passes | `ml/timeseries.py` |
+| Paper account, outcomes, alerts, scheduler, refresh, API + login, dashboard, Docker, CI | 018K (see their commits) | `paper/`, `jobs.py`, `api/`, `frontend/` |
 
-Total: **249 backend tests + 16 checker tests, all passing** against Postgres 16.
+Tests: **398 backend tests passing** against Postgres 16 (both sessions).
 
-Unchanged commitments: auto-buy stays OFF (enforced server-side) and every
-confidence number is labelled UNCALIBRATED in Phase 1.
+### Backtest data download (resumable, runs in the background)
+```bash
+cd backend
+export DATABASE_URL=...  BACKTEST_CACHE=./data_cache/backtest   # data_cache is gitignored
+uv run python -m catalystedge.backtest.fetch sec        # SEC history, ~2.5 req/s per worker
+uv run python -m catalystedge.backtest.fetch prices     # Tiingo, 50/h free limit -> ~2.5 h for 106 names
+uv run python -m catalystedge.backtest.fetch earnings   # Finnhub, last 4 quarters per name (done)
+uv run python -m catalystedge.backtest.fetch fda        # openFDA approvals (done)
+uv run catalystedge backtest --timesfm                  # walk-forward + ranker + calibration + TimesFM
+```
+Re-running any fetch skips what is already cached.
 
 ## Live run, 2026-09-24 (second session)
 
