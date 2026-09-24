@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from catalystedge.adapters.news.base import NewsAdapter
+from catalystedge.adapters.news.base import NewsAdapter, RawNews
 from catalystedge.db.models import Event
 from catalystedge.ml.sentiment import SentimentModel, SentimentScore
 from catalystedge.pipeline.classify import EventCandidate, classify
@@ -43,7 +43,13 @@ class Processed:
 def process_news(adapters: Sequence[NewsAdapter], universe: Universe, model: SentimentModel, now: dt.datetime,
                  symbols: Sequence[str] = ()) -> tuple[list[Processed], list[SourceReport]]:
     items, reports = collect_news(adapters, now, symbols)
-    clusters = cluster_items(items)
+    return process_items(items, universe, model, now), reports
+
+
+def process_items(items: Sequence[RawNews], universe: Universe, model: SentimentModel, now: dt.datetime
+                  ) -> list[Processed]:
+    """Dedupe -> link -> sentiment -> non-event filter -> classify, for already-collected items."""
+    clusters = cluster_items(list(items))
     reps = [c.representative for c in clusters]
     scores = score_headlines(model, [(r.headline, r.published_at) for r in reps], now)
     out: list[Processed] = []
@@ -53,7 +59,7 @@ def process_news(adapters: Sequence[NewsAdapter], universe: Universe, model: Sen
         noise = non_event_reason(headline)
         events = [] if noise else classify(headline, link.mentions, score)
         out.append(Processed(cluster, link, score, events, noise))
-    return out, reports
+    return out
 
 
 def credibility(cluster: Cluster) -> float:

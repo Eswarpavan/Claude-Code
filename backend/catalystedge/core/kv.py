@@ -16,6 +16,7 @@ class KV(Protocol):
     def set(self, key: str, value: bytes, ttl_s: int) -> None: ...
     def incr(self, key: str, ttl_s: int) -> int: ...
     def delete(self, key: str) -> None: ...
+    def set_if_absent(self, key: str, value: bytes, ttl_s: int) -> bool: ...
 
 
 class InMemoryKV:
@@ -49,6 +50,12 @@ class InMemoryKV:
     def delete(self, key: str) -> None:
         self._data.pop(key, None)
 
+    def set_if_absent(self, key: str, value: bytes, ttl_s: int) -> bool:
+        if self.get(key) is not None:
+            return False
+        self.set(key, value, ttl_s)
+        return True
+
 
 class RedisKV:
     def __init__(self, url: str, prefix: str = "ce:"):
@@ -71,3 +78,6 @@ class RedisKV:
 
     def delete(self, key: str) -> None:
         self._r.delete(self._p + key)
+
+    def set_if_absent(self, key: str, value: bytes, ttl_s: int) -> bool:
+        return bool(self._r.set(self._p + key, value, ex=ttl_s, nx=True))
