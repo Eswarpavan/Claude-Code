@@ -66,6 +66,31 @@ back: copy everything it printed and paste it into the chat. It contains no keys
 4. Set `APP_PASSWORD` (and a long random `APP_SECRET`) before the app is reachable by anyone else.
 5. Rotate keys once in a while (Finnhub: dashboard → API key; Tiingo: Account → API).
 
+## Backtest, ranking model and TimesFM
+
+The Backtest & Calibration page shows whether the signals actually work: hit rate and average
+return after costs, by catalyst and by confidence bucket, against buying every positive event
+(naive baseline) and against buying the S&P 500 over the same days. It is walk-forward (trained
+only on the past) and uses SEC filings, earnings surprises and FDA approvals, because free news
+plans keep too little history.
+
+```bash
+# one-off data download (resumable; Tiingo's free 50 requests/hour makes prices take ~2.5 h)
+docker compose run --rm worker python -m catalystedge.backtest.fetch sec
+docker compose run --rm worker python -m catalystedge.backtest.fetch prices
+docker compose run --rm worker python -m catalystedge.backtest.fetch earnings
+docker compose run --rm worker python -m catalystedge.backtest.fetch fda
+docker compose run --rm worker python -m catalystedge backtest --timesfm
+```
+The LightGBM ranking model is switched on **only** if it beats every baseline out of sample with
+enough trades and a significance test; otherwise it stays off and the page says so.
+
+**TimesFM** (Google's price-forecast model, v3.0) is **off** by default. Switch it on in Settings
+(no restart); choose *Feature only* (nudges confidence) or *Filter* (keeps a signal only if the
+3-10 day forecast is positive; removed signals are listed). The first switch-on downloads ~1.3 GB.
+Its weights are licensed for non-commercial use, and its training data may overlap the backtest
+period, so the page warns you when its backtest numbers could be optimistic.
+
 ## API keys
 
 | Key | Needed? | Where |
@@ -85,5 +110,6 @@ export TEST_DATABASE_URL=postgresql+psycopg://postgres@127.0.0.1:55432/catalyste
 cd backend && uv sync && uv run pytest && uv run ruff check catalystedge tests
 cd ../frontend && pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 python3 scripts/verify_sources.py              # checks your keys against each provider's real limits
+python3 scripts/check_secrets.py               # scans files + git history for keys (prints locations only)
 cd backend && uv run catalystedge sample-news  # live headlines with ticker, sentiment and event type
 ```
