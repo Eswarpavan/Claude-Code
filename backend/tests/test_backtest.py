@@ -144,10 +144,11 @@ def test_calibration_snapshot_has_mapping(data):
 def test_timesfm_section_warns_when_not_helping(data):
     _, _, _, rows = data
     wf = wfm.run_walk_forward(rows, min_train=60)
-    fc = {i: (1.0 if i % 2 else -1.0) for i in wf.probs}                   # uninformative forecasts
+    fc = {i: ((1.0, -2.0, 4.0) if i % 2 else (-1.0, -4.0, 2.0)) for i in wf.probs}   # uninformative forecasts
     rep = wfm.build_report(wf, "synthetic", fc, "overlaps pretraining")
     t = rep["timesfm"]
     assert t["leakage_warning"] == "overlaps pretraining" and "rules_with_timesfm_filter" in t
+    assert "rules_with_timesfm_feature" in t and isinstance(t["feature_helps"], bool)
     assert isinstance(t["helps"], bool) and t["plain"]
 
 

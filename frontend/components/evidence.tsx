@@ -105,6 +105,7 @@ export function BacktestSummary() {
               <TBody>
                 <StatRow name="Rules without TimesFM" s={t.rules_without_timesfm} />
                 <StatRow name="Rules with TimesFM filter" s={t.rules_with_timesfm_filter} strong />
+                <StatRow name="Rules with TimesFM as a feature" s={t.rules_with_timesfm_feature} strong />
                 <StatRow name="Naive: every positive event" s={t.naive_all_events} />
                 <StatRow name="S&P 500 (same days)" s={t.spy_same_days} />
               </TBody>

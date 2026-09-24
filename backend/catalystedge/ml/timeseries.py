@@ -154,7 +154,8 @@ class TimesFMService:
         if not syms:
             return {}
         ctx = [np.asarray(closes[s][-CONTEXT:], dtype=np.float32) for s in syms]
-        outs = list(self.model().predict_batch(ctx, horizon=HORIZON, return_quantiles=True))
+        # Prices cannot go below zero: ask TimesFM for non-negative forecasts.
+        outs = list(self.model().predict_batch(ctx, horizon=HORIZON, return_quantiles=True, make_positive=True))
         return {s: summarize(s, closes[s][-1], o.forecast, o.quantiles, as_of) for s, o in zip(syms, outs, strict=True)}
 
     def health_check(self) -> tuple[bool, str]:
@@ -174,6 +175,7 @@ def summarize(symbol: str, last_close: float, median, quantiles, as_of: dt.date)
     er = (float(median[days].mean()) / last_close - 1) * 100
     lo = (float(quantiles[days, 0].mean()) / last_close - 1) * 100
     hi = (float(quantiles[days, -1].mean()) / last_close - 1) * 100
+    lo, er = max(lo, -100.0), max(er, -100.0)
     return Forecast(symbol, HORIZON, er, min(lo, er), max(hi, er), VERSION, as_of.isoformat())
 
 
@@ -259,20 +261,21 @@ def backtest_forecaster(settings) -> tuple[Any, str]:
     to that close only (no lookahead on our side; the pretraining overlap is reported)."""
     svc = TimesFMService(Path(settings.models_dir))
 
-    def forecaster(rows, bars) -> dict[int, float]:
+    def forecaster(rows, bars) -> dict[int, tuple[float, float, float]]:
         batch: list[tuple[int, str, list[float], dt.date]] = []
         for i, r in enumerate(rows):
             b = bars.get(r.event.symbol) or []
             closes = [x.close for x in b if x.date <= r.decision_date][-CONTEXT:]
             if len(closes) >= 32:
                 batch.append((i, f"{i}", closes, r.decision_date))
-        out: dict[int, float] = {}
+        out: dict[int, tuple[float, float, float]] = {}
         for k in range(0, len(batch), 64):
             chunk = batch[k:k + 64]
             fc = svc.forecast({key: c for _, key, c, _ in chunk}, chunk[0][3])
             for i, key, _, _ in chunk:
                 if key in fc:
-                    out[i] = fc[key].expected_return_pct
+                    f = fc[key]
+                    out[i] = (f.expected_return_pct, f.low_pct, f.high_pct)
         return out
 
     return forecaster, LEAKAGE_NOTE

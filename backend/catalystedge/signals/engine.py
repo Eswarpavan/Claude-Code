@@ -50,6 +50,7 @@ MIN_STOP_PCT = 3.0
 class Ranker(Protocol):
     version: str
     weight: float           # blend weight chosen in walk-forward (0..1)
+    uses_timesfm: bool      # trained with TimesFM forecast features
 
     def predict_proba(self, features: dict) -> float: ...
 
@@ -187,7 +188,9 @@ def generate_signals(session: Session, now: dt.datetime, *,
             model_note = f"Ranking model {model_version}: {model_prob * 100:.0f}% chance of a gain."
             explain = getattr(ranker, "explain", None)
             shap = explain(feats) if explain else None
-            if tfm.confidence_delta and tfm_state.mode == "feature":
+            # Defer TimesFM to the ranker only if the ranker was trained WITH TimesFM features;
+            # otherwise the forecast would silently have no effect, so keep the direct nudge.
+            if tfm.confidence_delta and tfm_state.mode == "feature" and getattr(ranker, "uses_timesfm", False):
                 tfm = Effect(0.0, tfm.filtered, (tfm.note or "") + " (used as a model feature)", tfm.warning,
                              tfm.forecast)
                 feats["timesfm"] = tfm.as_dict(tfm_state)

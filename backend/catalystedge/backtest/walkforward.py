@@ -228,7 +228,8 @@ def _by_catalyst(rows: Sequence[Row]) -> dict:
     return out
 
 
-def build_report(wf: WalkForward, universe_note: str, tfm_forecasts: dict[int, float] | None = None,
+def build_report(wf: WalkForward, universe_note: str,
+                 tfm_forecasts: dict[int, tuple[float, float, float]] | None = None,
                  tfm_leakage_note: str | None = None) -> dict:
     rows = wf.rows
     pos = {id(r): i for i, r in enumerate(rows)}
@@ -285,24 +286,39 @@ def build_report(wf: WalkForward, universe_note: str, tfm_forecasts: dict[int, f
     return report
 
 
-def _timesfm_section(rows, oos, wf, fc: dict[int, float], strategies: dict, leakage: str | None) -> dict:
+def _timesfm_section(rows, oos, wf, fc: dict[int, tuple[float, float, float]], strategies: dict,
+                     leakage: str | None) -> dict:
+    """fc: row index -> (expected return %, 10th pct %, 90th pct %) at the decision close."""
+    from catalystedge.signals.timesfm_hook import Forecast, TimesFMState, apply
+
     have = [i for i in oos if i in fc]
-    base_idx = [i for i in have if rows[i].rule_score >= DISPLAY_MIN and not rows[i].skip_reason]
-    base_rules = [rows[i] for i in base_idx]
-    filt_rules = [rows[i] for i in base_idx if fc[i] > 0]
+    shown = lambda i, score: score >= DISPLAY_MIN and not rows[i].skip_reason  # noqa: E731
+    base_idx = [i for i in have if shown(i, rows[i].rule_score)]
+    filt_idx = [i for i in base_idx if fc[i][0] > 0]
+    feat_idx = []
+    for i in have:
+        er, lo, hi = fc[i]
+        delta = apply(TimesFMState(True, "feature"), Forecast("", 10, er, lo, hi, "bt", "")).confidence_delta
+        if shown(i, rows[i].rule_score + delta):
+            feat_idx.append(i)
     sec = {
         "rows_with_forecast": len(have),
-        "rules_without_timesfm": _trade_stats(base_rules),
-        "rules_with_timesfm_filter": _trade_stats(filt_rules),
-        "all_events_forecast_positive": _trade_stats([rows[i] for i in have if fc[i] > 0]),
-        "all_events_forecast_not_positive": _trade_stats([rows[i] for i in have if fc[i] <= 0]),
+        "rules_without_timesfm": _trade_stats([rows[i] for i in base_idx]),
+        "rules_with_timesfm_filter": _trade_stats([rows[i] for i in filt_idx]),
+        "rules_with_timesfm_feature": _trade_stats([rows[i] for i in feat_idx]),
+        "all_events_forecast_positive": _trade_stats([rows[i] for i in have if fc[i][0] > 0]),
+        "all_events_forecast_not_positive": _trade_stats([rows[i] for i in have if fc[i][0] <= 0]),
         "naive_all_events": strategies["all_events"],
         "spy_same_days": strategies["spy_same_days"],
         "leakage_warning": leakage,
     }
-    helps = beats(sec["rules_with_timesfm_filter"], sec["rules_without_timesfm"])
+    sec["filter_helps"] = beats(sec["rules_with_timesfm_filter"], sec["rules_without_timesfm"])
+    sec["feature_helps"] = beats(sec["rules_with_timesfm_feature"], sec["rules_without_timesfm"])
+    helps = sec["filter_helps"] or sec["feature_helps"]
     sec["helps"] = helps
-    sec["plain"] = ("TimesFM's filter improved hit rate, average return and Sharpe in this test."
+    sec["plain"] = ("TimesFM improved hit rate, average return and Sharpe in this test ("
+                    + ", ".join(m for m, ok in (("filter mode", sec["filter_helps"]),
+                                                ("feature mode", sec["feature_helps"])) if ok) + ")."
                     if helps else "The evidence says TimesFM is NOT helping here (it did not beat the same "
                                   "rules without it on hit rate, average return and Sharpe). You can keep it on, "
                                   "but it is not earning its place.")

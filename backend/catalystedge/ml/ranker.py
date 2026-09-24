@@ -23,6 +23,7 @@ class LgbRanker:
         self.booster = lgb.Booster(model_file=str(path / "model.txt"))
         self.weight = float(self.meta.get("weight", 0.5))
         self.version = f"lgbm-{self.meta['trained_at'][:10]}"
+        self.uses_timesfm = bool(self.meta.get("uses_timesfm", False))
 
     def predict_proba(self, features: dict) -> float:
         return float(self.booster.predict(np.array([vectorize(features)], dtype=float))[0])

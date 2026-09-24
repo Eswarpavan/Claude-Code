@@ -161,6 +161,9 @@ export type BacktestReport = {
     leakage_warning: string | null;
     rules_without_timesfm: Stat;
     rules_with_timesfm_filter: Stat;
+    rules_with_timesfm_feature?: Stat;
+    filter_helps?: boolean;
+    feature_helps?: boolean;
     naive_all_events: Stat;
     spy_same_days: Stat;
   };

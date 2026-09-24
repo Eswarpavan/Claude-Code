@@ -57,7 +57,7 @@ def _upsert_model(session: Session, name: str, kind: str, version: str, uri: str
 
 def run_backtest(session: Session, *, cache_dir: Path, symbols: list[str], universe: Universe,
                  model: SentimentModel | None, models_dir: Path,
-                 timesfm_forecaster: Callable[[list[Row], dict[str, list[Bar]]], dict[int, float]] | None = None,
+                 timesfm_forecaster: Callable[[list[Row], dict[str, list[Bar]]], dict[int, tuple]] | None = None,
                  timesfm_leakage_note: str | None = None, log: Callable[[str], None] = print) -> dict:
     started = dt.datetime.now(dt.UTC)
     events = load_events(cache_dir, symbols, universe, model)
