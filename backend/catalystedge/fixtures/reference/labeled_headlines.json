@@ -1,0 +1,305 @@
+{
+ "note": "Hand-labelled by CatalystEdge's author with fictional company names. 'mixed' items are excluded from sentiment accuracy and used to test the mixed-headline rules instead.",
+ "items": [
+  {
+   "headline": "Acme Corp beats quarterly estimates and raises full-year outlook",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Globex shares surge after record quarterly revenue",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Initech wins $1.2 billion government contract",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "FDA approves Umbrella Therapeutics' lead drug",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Stark Biotech trial meets primary endpoint",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Wayne Industries upgraded to Buy at Example Bank",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Hooli to be acquired by MegaCorp at 40% premium",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Soylent Foods raises dividend by 15%",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Vandelay Imports posts strong profit growth",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Cyberdyne expands buyback to $5 billion",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Tyrell Corp lifts annual guidance on robust demand",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Massive Dynamic stock jumps on upbeat forecast",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Oscorp directors buy $3 million of shares",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Nakatomi Trading reports profit well above expectations",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Gringotts Bank rallies after strong loan growth",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Pied Piper secures multi-year supply agreement with major automaker",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Aperture Labs receives breakthrough therapy designation",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Monarch Solar climbs after record bookings",
+   "label": "positive",
+   "mixed": false
+  },
+  {
+   "headline": "Acme Corp misses revenue estimates, shares fall",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Globex cuts full-year guidance on weak demand",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "FDA issues complete response letter to Umbrella Therapeutics",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Stark Biotech trial fails to meet primary endpoint",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Wayne Industries downgraded to Sell at Example Bank",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Initech plunges after accounting probe announced",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Hooli announces layoffs of 10% of workforce",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Soylent Foods recalls products over safety concerns",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Vandelay Imports files for bankruptcy protection",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Cyberdyne shares slump after CEO resigns abruptly",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Tyrell Corp withdraws annual outlook",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Massive Dynamic announces dilutive stock offering",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Oscorp faces lawsuit over data breach",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Nakatomi Trading swings to quarterly loss",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Gringotts Bank halts dividend payments",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Pied Piper delays product launch to next year",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Aperture Labs sinks as regulator rejects application",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Monarch Solar tumbles on disappointing sales",
+   "label": "negative",
+   "mixed": false
+  },
+  {
+   "headline": "Acme Corp to report earnings on Thursday",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Globex names new chief financial officer",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Initech schedules investor day for November",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Umbrella Therapeutics to present data at medical conference",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Stark Biotech completes enrollment in mid-stage study",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Wayne Industries files quarterly report",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Hooli declares regular quarterly dividend",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Soylent Foods annual meeting set for May",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Vandelay Imports to move headquarters to Texas",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Cyberdyne board appoints two independent directors",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Tyrell Corp announces pricing of senior notes",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Massive Dynamic to join industry trade group",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Oscorp CEO to speak at technology conference",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Nakatomi Trading changes fiscal year end",
+   "label": "neutral",
+   "mixed": false
+  },
+  {
+   "headline": "Acme Corp beats estimates but cuts full-year guidance",
+   "label": "negative",
+   "mixed": true
+  },
+  {
+   "headline": "Globex revenue tops forecasts while margins shrink",
+   "label": "negative",
+   "mixed": true
+  },
+  {
+   "headline": "FDA approves Umbrella drug with boxed warning and narrower label",
+   "label": "negative",
+   "mixed": true
+  },
+  {
+   "headline": "Initech upgraded to Buy but price target lowered",
+   "label": "positive",
+   "mixed": true
+  },
+  {
+   "headline": "Stark Biotech misses on profit but raises outlook",
+   "label": "positive",
+   "mixed": true
+  },
+  {
+   "headline": "Wayne Industries beats on earnings, misses on revenue",
+   "label": "negative",
+   "mixed": true
+  },
+  {
+   "headline": "Hooli wins contract despite weak quarterly results",
+   "label": "positive",
+   "mixed": true
+  },
+  {
+   "headline": "Soylent Foods raises guidance, announces CEO departure",
+   "label": "positive",
+   "mixed": true
+  },
+  {
+   "headline": "Vandelay Imports beats estimates; shares fall on weak outlook",
+   "label": "negative",
+   "mixed": true
+  },
+  {
+   "headline": "Cyberdyne approval delayed but trial data positive",
+   "label": "negative",
+   "mixed": true
+  }
+ ]
+}
