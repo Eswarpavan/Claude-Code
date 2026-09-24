@@ -5,3 +5,7 @@ reports/
 !.env.cloud.example
 __pycache__/
 *.pyc
+backend/.venv/
+backend/models/
+.pytest_cache/
+.ruff_cache/
