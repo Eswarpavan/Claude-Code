@@ -131,6 +131,13 @@ class HttpClient:
                 if not last_attempt:
                     self._backoff(attempt, None, stats)
                 continue
+            if resp.status_code == 429 and spec.hourly_budget is not None and not resp.headers.get("retry-after"):
+                # An hourly-quota provider (Tiingo free: 50/h per key, shared by everything using the key)
+                # said "too many": retrying only burns calls. Mark this hour as spent and stop.
+                hour = self.clock.now().strftime("%Y%m%d%H")
+                self.kv.set(f"budget_h:{spec.group}:{hour}", str(spec.hourly_budget).encode(), 2 * 3600)
+                raise BudgetExhausted(source, "provider says the hourly limit is used up (HTTP 429); "
+                                              "retrying next hour")
             if resp.status_code in RETRY_STATUS:
                 last_error = ProviderError(source, f"HTTP {resp.status_code}", resp.status_code)
                 if not last_attempt:

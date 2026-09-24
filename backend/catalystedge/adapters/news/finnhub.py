@@ -21,7 +21,7 @@ COMPANY_NEWS_TAG_SCORE = 0.0
 class FinnhubNews(NewsAdapter):
     source_key = "finnhub_news"
 
-    def __init__(self, http: HttpClient, api_key: str | None, max_symbols: int = 20):
+    def __init__(self, http: HttpClient, api_key: str | None, max_symbols: int = 30):
         super().__init__(http)
         self.api_key = api_key
         self.max_symbols = max_symbols
