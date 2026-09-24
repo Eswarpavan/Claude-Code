@@ -214,7 +214,8 @@ def job_events(ctx: Context, refresh_id: Any = None) -> dict:
     except ImportError:
         return {"status": "not available yet"}
     with _session(ctx) as s:
-        return poll_events(s, ctx.http, ctx.settings, ctx.clock.now())
+        return poll_events(s, ctx.http, ctx.settings, ctx.clock.now(), universe=ctx.universe(),
+                           model=ctx.sentiment_model())
 
 
 # ----------------------------------------------------------------------------- prices

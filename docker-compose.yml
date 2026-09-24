@@ -1,0 +1,109 @@
+# CatalystEdge, local profile: `docker compose up -d` starts everything.
+# First run is slow: images build and the sentiment model (~0.5 GB) downloads into the `models` volume.
+# Alerts and paper trades only run while this machine is on (see docs/DEPLOY_FREE.md for an always-on setup).
+
+x-backend: &backend
+  build:
+    context: ./backend
+    args:
+      INSTALL_ML: ${INSTALL_ML:-true}
+  image: catalystedge-backend:local
+  env_file:
+    - path: .env
+      required: false
+  environment: &backend-env
+    CATALYSTEDGE_PROFILE: local
+    DATABASE_URL: postgresql+psycopg://catalystedge:catalystedge@postgres:5432/catalystedge
+    REDIS_URL: redis://redis:6379/0
+    CELERY_BROKER_URL: redis://redis:6379/1
+    MODELS_DIR: /models
+    CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+  volumes:
+    - models:/models
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: catalystedge
+      POSTGRES_PASSWORD: catalystedge
+      POSTGRES_DB: catalystedge
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalystedge -d catalystedge"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    <<: *backend
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *backend
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    <<: *backend
+    command: ["celery", "-A", "catalystedge.worker.celery_app", "worker", "-l", "info", "--concurrency", "2"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A catalystedge.worker.celery_app inspect ping -d celery@$$HOSTNAME -t 5 || exit 1"]
+      interval: 60s
+      timeout: 15s
+      start_period: 60s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  beat:
+    <<: *backend
+    command: ["celery", "-A", "catalystedge.worker.celery_app", "beat", "-l", "info", "-s", "/tmp/celerybeat-schedule"]
+    healthcheck:
+      disable: true
+    depends_on:
+      worker:
+        condition: service_started
+
+  web:
+    build: ./frontend
+    image: catalystedge-web:local
+    environment:
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:8000}
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  models:
