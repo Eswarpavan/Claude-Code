@@ -9,3 +9,4 @@ backend/.venv/
 backend/models/
 .pytest_cache/
 .ruff_cache/
+backend/data_cache/

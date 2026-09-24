@@ -223,6 +223,58 @@ def cmd_compare_sentiment(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_backtest(args: argparse.Namespace) -> int:
+    """Walk-forward backtest on cached SEC/earnings/FDA history (see catalystedge.backtest.fetch)."""
+    import os
+
+    from sqlalchemy.orm import Session as OrmSession
+
+    from catalystedge.backtest.fetch import cache_dir
+    from catalystedge.backtest.history import DEFAULT_UNIVERSE
+    from catalystedge.backtest.run import run_backtest
+    from catalystedge.db.session import make_engine
+
+    settings = Settings()
+    clock = SystemClock()
+    http = HttpClient(kv=InMemoryKV(clock), clock=clock)
+    universe, _ = load_universe(settings, http)
+    model = ModelRegistry(settings).sentiment() if not args.no_sentiment else None
+    symbols = args.symbols.split(",") if args.symbols else list(DEFAULT_UNIVERSE)
+    forecaster, leakage = None, None
+    if args.timesfm:
+        from catalystedge.ml.timeseries import backtest_forecaster
+
+        forecaster, leakage = backtest_forecaster(settings)
+    with OrmSession(make_engine(settings.database_url)) as s:
+        rep = run_backtest(s, cache_dir=cache_dir(), symbols=symbols, universe=universe, model=model,
+                           models_dir=Path(settings.models_dir), timesfm_forecaster=forecaster,
+                           timesfm_leakage_note=leakage)
+        s.commit()
+    out = Path(os.environ.get("REPORTS_DIR", "../reports"))
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / f"backtest_{dt.datetime.now(dt.UTC):%Y%m%d_%H%M}.json"
+    path.write_text(json.dumps(rep, indent=1, default=str))
+    print(rep["verdict"]["plain"])
+    for name, st in rep["strategies"].items():
+        print(f"  {name:<15} n={st['n']:<5} hit={st['hit_rate']}  mean={st['mean_pct']}%  sharpe={st['sharpe']}")
+    print(f"\nBy catalyst (rules, out of sample): {json.dumps(rep['by_catalyst']['rules'])}")
+    if "timesfm" in rep:
+        print("\nTimesFM: " + rep["timesfm"]["plain"])
+    print(f"\nFull report: {path}")
+    return 0
+
+
+def cmd_catalyst_report(args: argparse.Namespace) -> int:
+    from sqlalchemy.orm import Session as OrmSession
+
+    from catalystedge.db.session import make_engine
+    from catalystedge.signals.report import catalyst_report
+
+    with OrmSession(make_engine(Settings().database_url)) as s:
+        print(json.dumps(catalyst_report(s), indent=1, default=str))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="catalystedge")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -239,6 +291,13 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--headlines", metavar="PATH", help="JSON from sample-news --save-headlines (default: bundled)")
     c.add_argument("--limit", type=int, default=60)
     c.set_defaults(func=cmd_compare_sentiment)
+    b = sub.add_parser("backtest", help="walk-forward backtest, ranker validation and calibration")
+    b.add_argument("--symbols", help="comma-separated tickers (default: the built-in ~100-name universe)")
+    b.add_argument("--timesfm", action="store_true", help="also evaluate TimesFM with vs without")
+    b.add_argument("--no-sentiment", action="store_true", help="skip FinBERT on historical headlines")
+    b.set_defaults(func=cmd_backtest)
+    r = sub.add_parser("catalyst-report", help="hit rate and average return by catalyst (live + backtest)")
+    r.set_defaults(func=cmd_catalyst_report)
     e = sub.add_parser("eval-sentiment", help="compare sentiment models")
     e.set_defaults(func=cmd_eval_sentiment)
     args = ap.parse_args(argv)

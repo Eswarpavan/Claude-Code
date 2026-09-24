@@ -171,23 +171,31 @@ def generate_signals(session: Session, now: dt.datetime, *,
         f = compute(bars, event_session(evs[0].available_at)) if bars else None
         r = rules.score(prior, evs, f)
         confidence, model_prob, model_version, model_note = r.score, None, None, None
-        feats = {"rule_components": r.components, "price": f.as_dict() if f else None,
+        feats = {"rule_score": r.score, "catalyst": catalyst,
+                 "rule_components": r.components, "price": f.as_dict() if f else None,
                  "catalyst_weight": prior.weight, "n_events": len(evs), "origins": sorted({e.origin for e in evs}),
                  "model_disagrees": r.model_disagrees, "engine": ENGINE_VERSION}
+        tfm = apply(tfm_state, (timesfm_forecasts or {}).get(symbol), timesfm_status)
+        if tfm.warning and tfm_state.enabled and timesfm_status == "ready":
+            result.warnings.append(f"{symbol}: {tfm.warning}")
+        feats["timesfm"] = tfm.as_dict(tfm_state)
+        shap = None
         if ranker is not None and ranker.weight > 0:
             model_prob = ranker.predict_proba(feats)
             model_version = ranker.version
             confidence = ranker.weight * model_prob * 100 + (1 - ranker.weight) * r.score
             model_note = f"Ranking model {model_version}: {model_prob * 100:.0f}% chance of a gain."
-        tfm = apply(tfm_state, (timesfm_forecasts or {}).get(symbol), timesfm_status)
-        if tfm.warning and tfm_state.enabled and timesfm_status == "ready":
-            result.warnings.append(f"{symbol}: {tfm.warning}")
+            explain = getattr(ranker, "explain", None)
+            shap = explain(feats) if explain else None
+            if tfm.confidence_delta and tfm_state.mode == "feature":
+                tfm = Effect(0.0, tfm.filtered, (tfm.note or "") + " (used as a model feature)", tfm.warning,
+                             tfm.forecast)
+                feats["timesfm"] = tfm.as_dict(tfm_state)
         confidence = max(0.0, min(99.0, confidence + tfm.confidence_delta))
         calibrated, calib_id = False, None
         if calibrator is not None and (cal := calibrator.calibrate(catalyst, confidence)) is not None:
             confidence, calib_id = cal
             calibrated = True
-        feats["timesfm"] = tfm.as_dict(tfm_state)
 
         skip = r.skip_reason or ("no_price_data" if f is None else None) or ("filtered_by_timesfm" if tfm.filtered
                                                                             else None)
@@ -212,6 +220,7 @@ def generate_signals(session: Session, now: dt.datetime, *,
             target_price=Decimal(str(round(target, 4))),
             suggested_size_usd=Decimal(str(round(_suggested_size(session, entry, stop), 2))),
             risk_notes=risk, reason=_reason(prior, evs, r, cand.confidence, f, tfm, model_note), features=feats,
+            shap=shap,
             status="active" if skip in (None, "below_display_threshold") else "invalidated", displayed=displayed,
         )
         if skip:
