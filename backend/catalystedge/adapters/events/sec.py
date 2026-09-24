@@ -166,7 +166,7 @@ def headline_from_html(doc_html: str) -> str | None:
     """The press release headline: the first line of 6-45 words that is not boilerplate."""
     p = _Text()
     p.feed(doc_html)
-    lines = [" ".join(x.split()) for x in "".join(p.parts).split("\n")]
+    lines = [" ".join(x.split()).lstrip("•·▪●-–—* ").strip() for x in "".join(p.parts).split("\n")]
     for line in lines[:80]:
         words = line.split()
         if not 6 <= len(words) <= 45 or _BOILER.match(line) or _MONTH_DATE.match(line) or _DATELINE.match(line):

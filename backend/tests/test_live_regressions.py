@@ -337,3 +337,40 @@ def test_contract_wins_are_recognised(headline, symbol):
 )
 def test_contract_rule_does_not_overreach(headline):
     assert all(e.event_type != "contract_win" or not e.is_signal_eligible for e in events(headline).values())
+
+
+
+# ----------------------------------------------------------------------------- 5. press-release wording (8-K EX-99)
+
+@pytest.mark.parametrize(
+    ("headline", "event_type"),
+    [
+        ("Adobe Raises FY26 Total Revenue and Non-GAAP EPS Targets", "guidance_raise"),
+        ("Adobe Raises FY25 Digital Media ARR Growth, Total Revenue, and EPS Targets", "guidance_raise"),
+        ("Adobe Reports Record Q4 and FY2025 Revenue", "earnings_beat"),
+        ("June quarter records for total company revenue and EPS", "earnings_beat"),
+        ("All-time records for total company revenue and EPS", "earnings_beat"),
+        ("Services revenue reaches new all-time high", "earnings_beat"),
+    ],
+)
+def test_press_release_positive_wording(headline, event_type):
+    from catalystedge.pipeline.ticker_link import Mention
+
+    [e] = classify(headline, [Mention("ADBE", "filing", 0.99, is_primary=True)], None)
+    assert (e.event_type, e.polarity) == (event_type, "positive"), e.reasons
+
+
+@pytest.mark.parametrize(
+    "headline",
+    [
+        "AMD Reports Second Quarter 2026 Financial Results",
+        "Company posts record loss as revenue falls",
+        "Stock hits record high after the announcement",
+        "Adobe lowers FY26 revenue targets",
+    ],
+)
+def test_press_release_neutral_or_negative_wording(headline):
+    from catalystedge.pipeline.ticker_link import Mention
+
+    [e] = classify(headline, [Mention("ADBE", "filing", 0.99, is_primary=True)], None)
+    assert not e.is_signal_eligible, e.reasons

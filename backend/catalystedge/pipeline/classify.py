@@ -34,19 +34,26 @@ PRIORITY = ("fda_approval", "positive_trial", "m_and_a_target", "guidance_raise"
 
 _ESTIMATES = r"(?:estimates?|expectations?|forecasts?|consensus|views?)"
 # "target" alone is usually an analyst's price target; company targets name what they measure.
-_GUIDE = r"(?:guidance|outlook|forecasts?|(?:revenue|sales|profit|earnings|margin|growth|financial)\s+targets?|view)"
+_GUIDE = (r"(?:guidance|outlook|forecasts?|(?:revenue|sales|profit|earnings|eps|margin|growth|financial|arr)"
+          r"\s+targets?|view)")
 
 POSITIVE_PATTERNS: dict[str, list[str]] = {
     "earnings_beat": [
         # "tops" / "topped" only: "Top Analyst Forecasts" is an adjective, not a beat.
         rf"\b(?:beats?|beat|tops|topped|exceeds?|exceeded|surpass(?:es|ed)?)\b(?:\s+\w+){{0,4}}\s+{_ESTIMATES}",
         rf"\babove\s+(?:\w+\s+){{0,2}}{_ESTIMATES}",
-        r"\brecord\s+(?:quarterly\s+|annual\s+)?(?:profit|revenue|earnings|sales|bookings)\b",
+        # press-release wording: "Record Q4 and FY2025 Revenue", "June quarter records for revenue and EPS",
+        # "Services revenue reaches new all-time high"
+        r"\brecord\s+(?:(?!loss|losses|low|lows|decline|drop|fall)[\w-]+\s+){0,4}?"
+        r"(?:profit|revenue|earnings|sales|bookings|eps)\b",
+        r"\b(?:all-time\s+|new\s+)?records?\s+for\s+(?:[\w-]+\s+){0,4}?(?:revenue|eps|earnings|sales|profit)\b",
+        r"\b(?:revenue|sales|earnings|eps|bookings|profit)\s+(?:reach(?:es|ed)?|hits?|sets?)\s+(?:a\s+)?(?:new\s+)?"
+        r"(?:all-time|record)\s+(?:high|level)\b",
         r"\b(?:beats?|tops)\s+(?:on\s+)?(?:earnings|profit|revenue|eps|sales)\b",
         r"^\S+(?:\s+\S+){0,3}\s+beats\b",
     ],
     "guidance_raise": [
-        rf"\b(?:raises?|raised|lifts?|boosts?|ups|hikes?|increases?)\s+(?:its\s+)?(?:\S+\s+){{0,3}}{_GUIDE}\b",
+        rf"\b(?:raises?|raised|lifts?|boosts?|ups|hikes?|increases?)\s+(?:its\s+)?(?:\S+\s+){{0,8}}?{_GUIDE}\b",
     ],
     "fda_approval": [
         r"\bfda\s+(?:approves?|approved|grants?\s+(?:full\s+|accelerated\s+)?approval|clears?)\b",
