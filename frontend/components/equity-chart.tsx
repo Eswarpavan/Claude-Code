@@ -11,8 +11,8 @@ type Point = { date: string; equity: number; spy: number | null };
 
 /** Direct label at the last point of a line (selective labelling: one per series, not every point). */
 function endLabel(text: string, n: number, fill: string) {
-  function EndLabel(p: { index?: number; x?: number | string; y?: number | string }) {
-    if (p.index !== n - 1) return <g />;
+  function EndLabel(p: { index?: number; x?: number | string; y?: number | string; value?: unknown }) {
+    if (p.index !== n - 1 || p.value == null || p.y == null) return <g />;
     return <text x={Number(p.x) + 6} y={Number(p.y)} dy={4} fontSize={11} fill={fill}>{text}</text>;
   }
   return EndLabel;
@@ -22,10 +22,15 @@ function endLabel(text: string, n: number, fill: string) {
 export function EquityChart({ data }: { data: Point[] }) {
   const c = useThemeColors();
   const [table, setTable] = React.useState(false);
-  if (data.length === 0) {
-    return <p className="text-sm text-muted">The equity curve starts after the first daily close with the account open.</p>;
-  }
   const last = data[data.length - 1];
+  if (data.length < 2) {
+    return (
+      <p className="text-sm text-muted">
+        The equity curve appears after two trading days{last ? ` (now ${usd(last.equity)})` : ""}. The S&amp;P 500 line
+        starts at the first market open after the account was created, so both lines begin on the same terms.
+      </p>
+    );
+  }
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">

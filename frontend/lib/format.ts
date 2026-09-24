@@ -4,7 +4,26 @@ export const usd = (x: number | null | undefined, digits = 2) =>
 export const pct = (x: number | null | undefined, digits = 1, sign = true) =>
   x == null ? "–" : `${sign && x > 0 ? "+" : ""}${x.toFixed(digits)}%`;
 
-export const title = (s: string) => s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const ACRONYMS: Record<string, string> = { fda: "FDA", m: "M", a: "A", sec: "SEC", eps: "EPS", ipo: "IPO" };
+const LABELS: Record<string, string> = {
+  fda_approval: "FDA approval",
+  m_and_a_target: "M&A target",
+  earnings_beat: "Earnings beat",
+  guidance_raise: "Guidance raise",
+  positive_trial: "Positive trial",
+  contract_win: "Contract win",
+  insider_buy_cluster: "Insider buying",
+  upgrade: "Analyst upgrade",
+  signal_decay: "Signal decay",
+  time_stop: "Time stop",
+};
+
+export const title = (s: string) =>
+  LABELS[s] ??
+  s
+    .split("_")
+    .map((w) => ACRONYMS[w] ?? w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 
 export function ago(hours: number | null | undefined): string {
   if (hours == null) return "–";

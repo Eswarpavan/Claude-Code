@@ -409,6 +409,13 @@ def start_refresh(ctx: Context, trigger: str = "open") -> tuple[Any, bool]:
     """Returns (refresh_id, started). Respects a cooldown and never runs two refreshes at once:
     within the cooldown the latest refresh id is returned with started=False."""
     cooldown_key = "refresh:cooldown"
+    with _session(ctx) as s:
+        running = s.scalar(select(RefreshRun.id).where(
+            RefreshRun.status == "running",
+            RefreshRun.started_at >= ctx.clock.now() - dt.timedelta(minutes=15))
+            .order_by(RefreshRun.started_at.desc()).limit(1))
+    if running is not None:          # one refresh at a time: follow the one already in progress
+        return running, False
     if not ctx.kv.set_if_absent(cooldown_key, b"1", ctx.settings.refresh_cooldown_s):
         with _session(ctx) as s:
             latest = s.scalar(select(RefreshRun.id).order_by(RefreshRun.started_at.desc()).limit(1))

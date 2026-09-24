@@ -196,3 +196,13 @@ def test_signal_hook_waits_for_engine_module():
         import catalystedge.signals.engine  # noqa: F401
     except ImportError:
         assert jobs.job_signals(ctx) == {"status": "signal engine not available yet"}
+
+
+def test_open_while_refreshing_follows_the_running_refresh(clean):
+    ctx = make_ctx(clean, recorded_at())
+    rid, started = jobs.start_refresh(ctx, "open")
+    assert started
+    ctx.clock.advance(seconds=400)                          # past the cooldown, first refresh still running
+    assert jobs.start_refresh(ctx, "open") == (rid, False)
+    ctx.clock.advance(minutes=16)                           # a stuck refresh stops blocking after 15 min
+    assert jobs.start_refresh(ctx, "open")[1] is True

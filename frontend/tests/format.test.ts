@@ -16,7 +16,9 @@ describe("format", () => {
     expect(ago(null)).toBe("–");
   });
   it("titles and caps", () => {
-    expect(title("m_and_a_target")).toBe("M And A Target");
+    expect(title("m_and_a_target")).toBe("M&A target");
+    expect(title("fda_approval")).toBe("FDA approval");
+    expect(title("gap_up_priced_in")).toBe("Gap Up Priced In");
     expect(capBucket(20e9)).toBe("large");
     expect(capBucket(100e6)).toBe("micro");
   });

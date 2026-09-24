@@ -150,6 +150,7 @@ def test_calibration_page_says_uncalibrated_and_buckets(clean):
         s.commit()
     body = client(clean).get("/api/calibration").json()
     assert body["status"]["label"] == "UNCALIBRATED" and "30 closed paper trades" in body["status"]["message"]
+    assert not body["status"]["message"].startswith("UNCALIBRATED")          # the UI adds the label once
     b = {x["bucket"]: x for x in body["live_buckets"]["10"]}
     assert b["80-85"]["n"] == 1 and b["80-85"]["hit_rate"] == 100.0 and b["65-70"]["n"] == 0
 
