@@ -50,3 +50,10 @@ Interfaces 018K provides:
   `catalystedge.outcomes.tracker.update_outcomes(session, now)`,
   `catalystedge.prices` (`PriceService`, `store_bars`, `load_bars(as_of=...)`),
   `catalystedge.core.calendar`.
+
+### Hook added by 018K for SEC/FDA/earnings events (01Ny)
+`catalystedge/jobs.py::job_events` calls
+`catalystedge.events.jobs.poll_events(session, http, settings, now) -> dict` if that
+module exists (scheduled every 10 min on weekdays, and in the on-open refresh).
+`job_signals` calls `catalystedge.signals.engine.generate_signals(session, now)` after
+the EOD price update and queues >= 80% alerts for the returned displayed signals.
