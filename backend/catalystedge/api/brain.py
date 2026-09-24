@@ -100,7 +100,9 @@ def router(db: Callable, auth: Callable) -> APIRouter:
 
     @r.get("/api/catalysts", dependencies=[Depends(auth)])
     def catalysts(s: Session = Depends(db)) -> dict:
-        return catalyst_report(s)
+        from catalystedge.signals.catalyst_status import catalyst_status
+
+        return {**catalyst_report(s), "status": catalyst_status(s)}
 
     @r.get("/api/evidence", dependencies=[Depends(auth)])
     def evidence_(s: Session = Depends(db)) -> dict:

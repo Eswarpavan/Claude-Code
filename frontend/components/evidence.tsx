@@ -11,6 +11,8 @@ const hit = (s?: Stat | null) => (s && s.hit_rate != null ? `${(s.hit_rate * 100
 const avg = (s?: Stat | null) => (s && s.mean_pct != null ? pct(s.mean_pct, 2) : "–");
 const shp = (s?: Stat | null) => (s && s.sharpe != null ? s.sharpe.toFixed(2) : "–");
 
+const STATUS_VARIANT: Record<string, "good" | "warning" | "critical" | "outline"> = { enabled: "good", untested: "warning", disabled: "critical" };
+
 const STRATEGY_LABEL: Record<string, string> = {
   rules: "CatalystEdge rules (confidence ≥ 65)",
   model: "Rules + LightGBM ranking model",
@@ -125,7 +127,8 @@ export function BacktestSummary() {
 export function CatalystTable() {
   const { data } = useSWR<CatalystReport>("/api/catalysts");
   if (!data) return null;
-  const cats = Array.from(new Set([...Object.keys(data.live), ...Object.keys(data.backtest.rules), ...Object.keys(data.backtest.all_events)]));
+  const cats = Array.from(new Set([...Object.keys(data.status ?? {}), ...Object.keys(data.live), ...Object.keys(data.backtest.rules),
+    ...Object.keys(data.backtest.all_events)]));
   return (
     <Card>
       <CardHeader><CardTitle>Hit rate and average return by catalyst</CardTitle></CardHeader>
@@ -135,6 +138,7 @@ export function CatalystTable() {
             <THead>
               <TR>
                 <TH>Catalyst</TH>
+                <TH>Rule</TH>
                 <TH className="text-right">Live 10-day (n · hit · avg)</TH>
                 <TH className="text-right">Backtest rules (n · hit · avg)</TH>
                 <TH className="text-right">Backtest all events (n · hit · avg)</TH>
@@ -148,6 +152,13 @@ export function CatalystTable() {
                 return (
                   <TR key={c}>
                     <TD>{title(c)}</TD>
+                    <TD>
+                      {data.status?.[c] ? (
+                        <Badge variant={STATUS_VARIANT[data.status[c].status] ?? "outline"} title={data.status[c].why}>
+                          {data.status[c].status === "untested" ? "on · unproven" : data.status[c].status === "enabled" ? "on" : "off"}
+                        </Badge>
+                      ) : "–"}
+                    </TD>
                     <TD className="text-right tabular">{live ? `${live.n} · ${hit(live)} · ${avg(live)}` : "–"}</TD>
                     <TD className="text-right tabular">{br ? `${br.n} · ${hit(br)} · ${avg(br)}` : "–"}</TD>
                     <TD className="text-right tabular">{ba ? `${ba.n} · ${hit(ba)} · ${avg(ba)}` : "–"}</TD>
@@ -157,6 +168,10 @@ export function CatalystTable() {
             </TBody>
           </Table>
         )}
+        <p className="text-xs text-subtle">
+          A catalyst rule is on only if it beat buying the S&amp;P 500 over the same days (backtest, then live outcomes).
+          &ldquo;Unproven&rdquo; means too little history to test; those signals are shown with a warning. Hover a badge for the reason.
+        </p>
         <p className="text-xs text-subtle">{data.evidence.plain}</p>
       </CardContent>
     </Card>

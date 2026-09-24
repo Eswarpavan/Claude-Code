@@ -172,4 +172,5 @@ export type CatalystReport = {
   live: Record<string, Record<string, Stat & { mean_excess_vs_spy_pct?: number | null }>>;
   backtest: { run_id: number | null; period: [string, string] | null; rules: Record<string, Stat>; all_events: Record<string, Stat> };
   evidence: { plain: string; label: string };
+  status?: Record<string, { status: "enabled" | "disabled" | "untested"; why: string; basis: string }>;
 };

@@ -269,6 +269,7 @@ def build_report(wf: WalkForward, universe_note: str,
                     "plain": _plain(model_ok, rules_ok, strategies)},
         "by_catalyst": {"all_events": _by_catalyst(oos_rows), "rules": _by_catalyst(rules_rows)},
         "by_catalyst_full_period": _by_catalyst([r for r in rows if r.trade_return is not None]),
+        "catalyst_verdicts": catalyst_verdicts(oos_rows),
         "confidence_buckets": {"rules": _bucket_table(oos_rows, lambda r: r.rule_score),
                                "model": _bucket_table(oos_rows, lambda r: blended(
                                    r, wf.probs[pos[id(r)]], wf.weights[pos[id(r)]]))},
@@ -284,6 +285,28 @@ def build_report(wf: WalkForward, universe_note: str,
     if tfm_forecasts is not None:
         report["timesfm"] = _timesfm_section(rows, oos, wf, tfm_forecasts, strategies, tfm_leakage_note)
     return report
+
+
+MIN_CATALYST_TRADES = 30
+
+
+def catalyst_verdicts(oos_rows: Sequence[Row]) -> dict:
+    """Per catalyst rule: enabled only if its out-of-sample trades beat buying the S&P 500 over the
+    same days (hit rate, mean return and Sharpe). Fewer than 30 trades -> 'untested' (kept on, but
+    labelled unproven; live outcomes judge it later)."""
+    out = {}
+    for c in CATALYSTS:
+        sel = [r for r in oos_rows if r.catalyst == c and r.rule_score >= DISPLAY_MIN and not r.skip_reason]
+        st = _trade_stats(sel)
+        spy = stats([r.spy_return for r in sel], [r.trade_sessions or 5 for r in sel])
+        if st["n"] < MIN_CATALYST_TRADES:
+            status, why = "untested", f"only {st['n']} out-of-sample trades (needs {MIN_CATALYST_TRADES})"
+        elif beats(st, spy) and (st["mean_pct"] or 0) > 0:
+            status, why = "enabled", "beat the S&P 500 over the same days on hit rate, return and Sharpe"
+        else:
+            status, why = "disabled", "did not beat the S&P 500 over the same days"
+        out[c] = {"status": status, "why": why, "rules": st, "spy_same_days": spy}
+    return out
 
 
 def _timesfm_section(rows, oos, wf, fc: dict[int, tuple[float, float, float]], strategies: dict,

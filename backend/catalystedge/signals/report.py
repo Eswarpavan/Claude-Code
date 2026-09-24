@@ -15,11 +15,13 @@ from sqlalchemy.orm import Session
 from catalystedge.db.models import BacktestRun, PaperPosition, Signal, SignalOutcome
 
 
-def live_by_catalyst(session: Session, displayed_only: bool = True) -> dict:
+def live_by_catalyst(session: Session, displayed_only: bool = True, min_rule_score: float | None = None) -> dict:
     q = select(Signal.catalyst_type, SignalOutcome.horizon_days, SignalOutcome.return_pct,
                SignalOutcome.excess_vs_spy_pct).join(SignalOutcome, SignalOutcome.signal_id == Signal.id)
     if displayed_only:
         q = q.where(Signal.displayed.is_(True))
+    if min_rule_score is not None:
+        q = q.where(Signal.rule_score >= min_rule_score)
     acc: dict[str, dict[int, list[tuple[float, float | None]]]] = {}
     for cat, h, ret, exc in session.execute(q):
         acc.setdefault(cat, {}).setdefault(h, []).append((ret, exc))

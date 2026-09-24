@@ -149,7 +149,8 @@ def generate_signals(session: Session, now: dt.datetime, *,
                      calibrator: Calibrator | None = None,
                      timesfm_state: TimesFMState | None = None,
                      timesfm_forecasts: dict[str, Forecast] | None = None,
-                     timesfm_status: str = "ready") -> EngineResult:
+                     timesfm_status: str = "ready",
+                     catalyst_status: dict[str, dict] | None = None) -> EngineResult:
     now = ensure_utc(now)
     as_of_date = calendar.last_completed_session(now)
     tfm_state = timesfm_state or TimesFMState()
@@ -200,8 +201,15 @@ def generate_signals(session: Session, now: dt.datetime, *,
             confidence, calib_id = cal
             calibrated = True
 
+        cstat = (catalyst_status or {}).get(catalyst, {})
+        if cstat.get("status") == "untested":
+            r.risk_notes.append(f"Unproven catalyst: {cstat.get('why', 'not enough history')}; "
+                                "judged on live outcomes.")
         skip = r.skip_reason or ("no_price_data" if f is None else None) or ("filtered_by_timesfm" if tfm.filtered
                                                                             else None)
+        if skip is None and cstat.get("status") == "disabled":
+            skip = "catalyst_disabled"
+            r.risk_notes.append(f"This catalyst rule is switched off: {cstat.get('why')}.")
         if skip is None and confidence < DISPLAY_MIN:
             skip = "below_display_threshold"
         displayed = skip is None

@@ -240,9 +240,10 @@ def engine_kwargs(session: Session, now: dt.datetime, models_dir: Path) -> dict:
     from catalystedge.core import calendar
     from catalystedge.ml.ranker import load_enabled_ranker
     from catalystedge.signals.calibration import SnapshotCalibrator
+    from catalystedge.signals.catalyst_status import catalyst_status
 
     state = get_state(session)
-    kwargs: dict = {"timesfm_state": state}
+    kwargs: dict = {"timesfm_state": state, "catalyst_status": catalyst_status(session)}
     ranker = load_enabled_ranker(session, models_dir)
     if ranker is not None:
         kwargs["ranker"] = ranker

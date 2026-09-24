@@ -227,3 +227,50 @@ def test_event_session_after_close_is_next_day():
     after = calendar.session_close(AS_OF) + dt.timedelta(minutes=5)
     assert eng.event_session(after) == calendar.next_session(AS_OF)
     assert eng.event_session(NEWS_AT) == AS_OF
+
+
+# ----------------------------------------------------------------------------- catalyst on/off by evidence
+
+
+def test_disabled_catalyst_is_logged_but_not_shown(db):
+    add_bars(db, "OFFC")
+    add_event(db, "OFFC", event_type="fda_approval")
+    c = by_symbol(generate_signals(db, NOW, catalyst_status={
+        "fda_approval": {"status": "disabled", "why": "did not beat the S&P 500 over the same days"}}))["OFFC"]
+    assert not c.displayed and c.skip_reason == "catalyst_disabled" and c.signal is not None
+    assert any("switched off" in n for n in c.signal.risk_notes)
+
+
+def test_untested_catalyst_is_shown_as_unproven(db):
+    add_bars(db, "UNPR")
+    add_event(db, "UNPR", event_type="fda_approval")
+    c = by_symbol(generate_signals(db, NOW, catalyst_status={
+        "fda_approval": {"status": "untested", "why": "only 4 out-of-sample trades"}}))["UNPR"]
+    assert c.displayed and any("Unproven catalyst" in n for n in c.signal.risk_notes)
+
+
+def test_catalyst_status_uses_backtest_then_live(db):
+    from catalystedge.db.models import BacktestRun, SignalOutcome
+    from catalystedge.signals.catalyst_status import catalyst_status
+
+    assert catalyst_status(db)["upgrade"]["status"] == "untested"
+    db.add(BacktestRun(started_at=NOW, finished_at=NOW, params={}, data_sources=[], event_families=[], status="done",
+                       report={"catalyst_verdicts": {"fda_approval": {"status": "disabled", "why": "lost to SPY"}}}))
+    db.flush()
+    assert catalyst_status(db)["fda_approval"] == {"status": "disabled", "why": "lost to SPY", "basis": "backtest"}
+    # 30 live outcomes that beat SPY switch it back on
+    add_ticker(db, "LIVE")
+    for i in range(30):
+        sig = Signal(symbol="LIVE", as_of_date=AS_OF - dt.timedelta(days=i), catalyst_type="fda_approval",
+                     rule_id="R", rule_score=70, confidence=70, expected_return_pct=3, expected_return_basis="prior",
+                     holding_days_min=3, holding_days_max=10, entry_ref_price=Decimal("100"), stop_price=Decimal("95"),
+                     target_price=Decimal("106"), suggested_size_usd=Decimal("10"), risk_notes=[], reason="r",
+                     features={}, displayed=False)
+        db.add(sig)
+        db.flush()
+        db.add(SignalOutcome(signal_id=sig.id, horizon_days=10, entry_date=AS_OF, entry_price=Decimal("100"),
+                             exit_date=AS_OF + dt.timedelta(days=14), exit_price=Decimal("103"), return_pct=3.0,
+                             excess_vs_spy_pct=1.5, hit=True))
+    db.flush()
+    st = catalyst_status(db)["fda_approval"]
+    assert st["status"] == "enabled" and st["basis"] == "live"
