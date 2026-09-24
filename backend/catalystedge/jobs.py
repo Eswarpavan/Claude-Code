@@ -15,6 +15,7 @@ import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import func, select
@@ -297,12 +298,25 @@ def job_signals(ctx: Context) -> dict:
     def ensure_prices(symbols: list[str]) -> None:
         job_prices(ctx, symbols=list(dict.fromkeys([*BENCHMARKS, *symbols]))[:MAX_PRICE_SYMBOLS_PER_RUN])
 
+    from catalystedge.ml.timeseries import engine_kwargs
+
     with _session(ctx) as s:
-        result = generate_signals(s, ctx.clock.now(), ensure_prices=ensure_prices)
+        now = ctx.clock.now()
+        result = generate_signals(s, now, ensure_prices=ensure_prices,
+                                  **engine_kwargs(s, now, Path(ctx.settings.models_dir)))
         shown = [c.signal for c in result.displayed if c.signal is not None]
         queued = sum(queue_high_confidence(s, sig) for sig in shown)
     return {"as_of": result.as_of_date.isoformat(), "candidates": len(result.candidates), "displayed": len(shown),
             "alerts_queued": queued, "warnings": result.warnings}
+
+
+def job_timesfm(ctx: Context) -> dict:
+    """Background TimesFM forecasts for tickers with a positive event (only when switched on).
+    Runs before the EOD signal job; the signal job reads the cache and never waits for it."""
+    from catalystedge.ml.timeseries import run_timesfm_job
+
+    with _session(ctx) as s:
+        return run_timesfm_job(s, Path(ctx.settings.models_dir), ctx.clock.now())
 
 
 # ----------------------------------------------------------------------------- paper trading

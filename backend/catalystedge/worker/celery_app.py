@@ -70,12 +70,22 @@ def events_poll() -> dict:
 @app.task(name="eod", autoretry_for=(Exception,), retry_backoff=120, max_retries=3)
 def eod() -> dict:
     """After the close: prices -> signals -> outcomes, exits, buy decisions, marking."""
-    from catalystedge.jobs import job_paper_decide, job_prices, job_signals
+    from catalystedge.jobs import job_paper_decide, job_prices, job_signals, job_timesfm
 
     def run(c):
-        return {"prices": job_prices(c), "signals": job_signals(c), "paper": job_paper_decide(c)}
+        prices = job_prices(c)
+        timesfm = job_timesfm(c)          # no-op when switched off; never raises
+        return {"prices": prices, "timesfm": timesfm, "signals": job_signals(c), "paper": job_paper_decide(c)}
 
     return _run("eod", run, ttl_s=3600)
+
+
+@app.task(name="timesfm_refresh")
+def timesfm_refresh() -> dict:
+    """Run TimesFM now and re-score today's signals (queued when the Settings toggle changes)."""
+    from catalystedge.jobs import job_signals, job_timesfm
+
+    return _run("timesfm", lambda c: {"timesfm": job_timesfm(c), "signals": job_signals(c)}, ttl_s=1800)
 
 
 @app.task(name="paper_execute", autoretry_for=(Exception,), retry_backoff=60, max_retries=3)
