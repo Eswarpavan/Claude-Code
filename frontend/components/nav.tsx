@@ -42,8 +42,10 @@ export function Nav() {
             </Link>
           ))}
         </nav>
-        <Button variant="ghost" size="icon" onClick={toggle} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}>
-          {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle light or dark mode">
+          {/* Both icons render; CSS picks one, so server and client HTML always match. */}
+          <Sun className="hidden h-4 w-4 dark:block" aria-hidden />
+          <Moon className="block h-4 w-4 dark:hidden" aria-hidden />
         </Button>
       </div>
     </header>

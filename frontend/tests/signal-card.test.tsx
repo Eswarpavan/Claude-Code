@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { SWRConfig } from "swr";
 import { SignalCard } from "@/components/signal-card";
+import { EquityChart } from "@/components/equity-chart";
 import type { SignalT } from "@/lib/types";
 
 const base: SignalT = {
@@ -26,7 +27,7 @@ describe("SignalCard", () => {
     expect(screen.getByText("+2.4%")).toBeInTheDocument();          // expected upside
     expect(screen.getByText("$25.00")).toBeInTheDocument();         // suggested size
     expect(screen.getByText("$470.00")).toBeInTheDocument();        // stop-loss
-    expect(screen.getByText("Upgrade")).toBeInTheDocument();        // catalyst badge
+    expect(screen.getByText("Analyst upgrade")).toBeInTheDocument(); // catalyst badge
     expect(screen.getByText("News 5.0 h ago")).toBeInTheDocument(); // time since news
     expect(screen.getByRole("button", { name: /paper-buy msft at the next open/i })).toBeInTheDocument();
   });
@@ -36,5 +37,13 @@ describe("SignalCard", () => {
     expect(container.querySelector(".ring-2")).not.toBeNull();
     rerender(<SWRConfig value={{ provider: () => new Map() }}><SignalCard signal={{ ...base, confidence: 70, highlight: false }} rank={1} /></SWRConfig>);
     expect(container.querySelector(".ring-2")).toBeNull();
+  });
+});
+
+
+describe("EquityChart", () => {
+  it("waits for two trading days before drawing a curve", () => {
+    render(<EquityChart data={[{ date: "2026-09-23", equity: 100, spy: null }]} />);
+    expect(screen.getByText(/appears after two trading days/)).toBeInTheDocument();
   });
 });

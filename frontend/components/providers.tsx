@@ -23,12 +23,18 @@ function persistentCache(): Cache {
   return map;
 }
 
+const noopSubscribe = () => () => {};
+
 export function Providers({ children }: { children: React.ReactNode }) {
+  // The saved cache is only attached after hydration; attaching it during the first render would
+  // make the client HTML differ from the server's (React error #418). The key remounts SWR once.
+  const hydrated = React.useSyncExternalStore(noopSubscribe, () => true, () => false);
   return (
     <SWRConfig
+      key={hydrated ? "persisted" : "ssr"}
       value={{
         fetcher,
-        provider: typeof window === "undefined" ? undefined : persistentCache,
+        provider: hydrated ? persistentCache : undefined,
         revalidateOnFocus: true,
         dedupingInterval: 5000,
         keepPreviousData: true,

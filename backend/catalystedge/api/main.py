@@ -511,7 +511,7 @@ def _calibration_status(s: Session, gate) -> dict:
     elif calibrated:
         message = "Calibration evidence exists. Confidence is compared against outcomes on the Calibration page."
     else:
-        message = ("UNCALIBRATED: no historical backtest calibration yet and fewer than 30 closed paper trades. "
+        message = ("No historical backtest calibration yet and fewer than 30 closed paper trades. "
                    "Confidence is a rule score, not a probability.")
     return {"label": "CALIBRATED" if calibrated else "UNCALIBRATED", "message": message,
             "closed_trades": gate.closed_trades, "required_closed_trades": 30,
