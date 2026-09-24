@@ -1,8 +1,11 @@
 """Event classification: headline + linked tickers + sentiment -> catalyst type and polarity.
 
 Deterministic phrase rules decide the catalyst and its polarity; the sentiment
-model only cross-checks (a strongly negative model score turns a rule-positive
-headline into "mixed"). Mixed headlines are handled explicitly:
+model only cross-checks. When the rules found an explicit positive catalyst, a
+negative model score never changes the polarity: the event is flagged
+`model_disagrees` and the signal engine lowers its confidence. The model can
+only mark a headline negative on its own when it is very confident (>= 0.90)
+AND the rules found no positive catalyst. Mixed headlines are handled explicitly:
 
   * a guidance cut / withdrawal anywhere overrides any beat           -> mixed
   * approval with a boxed warning or narrower label                   -> mixed
@@ -23,7 +26,7 @@ from dataclasses import dataclass, field
 from catalystedge.ml.sentiment import SentimentScore
 from catalystedge.pipeline.ticker_link import Mention
 
-CLASSIFIER_VERSION = "rules-v2"
+CLASSIFIER_VERSION = "rules-v3"
 
 # Priority when one headline carries several positive catalysts.
 PRIORITY = ("fda_approval", "positive_trial", "m_and_a_target", "guidance_raise", "earnings_beat", "contract_win",
@@ -75,7 +78,12 @@ POSITIVE_PATTERNS: dict[str, list[str]] = {
         r"\b(?:initiated|initiates)\s+(?:at|with)\s+(?:buy|outperform|overweight)\b",
     ],
     "contract_win": [
-        r"\b(?:wins?|won|awarded|secures?|secured|lands?|landed)\b(?:\s+\S+){0,5}\s+(?:contract|order|award|deal)s?\b",
+        # up to 8 words in between: "Tesla wins lead role in 2,500-truck electric Class 8 order"
+        r"\b(?:wins?|won|awarded|secures?|secured|lands?|landed|books?|booked|receives?|received|clinches?)\b"
+        r"(?:\s+\S+){0,8}?\s+(?:contract|order|award|tender)s?\b",
+        r"\b(?:wins?|won|awarded|secures?|secured|lands?|landed|clinches?)\b(?:\s+\S+){0,4}?\s+deals?\b",
+        r"\b(?:\d[\d,.]*\s*(?:million|billion|m|bn)?|multi-?year|record|large|major|follow-on)[- ]"
+        r"(?:\S+[- ]){0,3}(?:contract|order)s?\s+(?:from|with|for|by)\b",
         r"\b(?:supply|licensing|partnership|multi-year)\s+agreement\b",
     ],
     "insider_buy_cluster": [
@@ -110,8 +118,10 @@ ACQ_PASSIVE = re.compile(r"\b(?:to\s+be|agrees?\s+to\s+be)\s+(?:acquired|bought|
                          r"offer)\b|\breceives?\s+(?:a\s+)?(?:buyout|takeover)\b", re.I)
 MONEY = re.compile(r"\$\s?(\d+(?:\.\d+)?)\s*(billion|bn|million|mln|m|b)\b", re.I)
 PREMIUM = re.compile(r"(\d+(?:\.\d+)?)\s*%\s*premium", re.I)
-# Strong negative model score on a rule-positive headline means "mixed".
-MODEL_VETO_NEG = 0.60
+# Model negative score at which a rule-positive event is flagged "model disagrees" (no polarity change).
+MODEL_DISAGREE_NEG = 0.60
+# Model negative score at which a headline with NO rule-positive catalyst is marked negative.
+MODEL_VETO_NEG = 0.90
 
 
 @dataclass(frozen=True)
@@ -125,6 +135,7 @@ class EventCandidate:
     mixed_resolution: dict | None
     sentiment: dict | None
     classifier_version: str = CLASSIFIER_VERSION
+    model_disagrees: bool = False   # rule says positive, sentiment model says clearly negative
 
     @property
     def is_signal_eligible(self) -> bool:
@@ -267,6 +278,7 @@ def classify(headline: str, mentions: Sequence[Mention], sentiment: SentimentSco
         kinds = [k for k in PRIORITY if k in kinds]
         negatives = sorted(scan.negatives)
         mixed: dict | None = None
+        disagrees = False
 
         if kinds:
             event_type = kinds[0]
@@ -287,10 +299,11 @@ def classify(headline: str, mentions: Sequence[Mention], sentiment: SentimentSco
                 polarity, strength = "mixed", None
                 mixed = {"conflict": conflict, "positive": kinds, "negative": negatives,
                          "clauses": [c.strip() for c in CONTRAST.split(headline) if c and c.strip()]}
-            elif sentiment is not None and sentiment.negative >= MODEL_VETO_NEG:
-                polarity, strength = "mixed", None
-                mixed = {"conflict": f"sentiment model strongly negative ({sentiment.negative:.2f})",
-                         "positive": kinds, "negative": ["model"]}
+            elif sentiment is not None and sentiment.negative >= MODEL_DISAGREE_NEG:
+                # The rule decides; the disagreement only lowers confidence downstream.
+                disagrees = True
+                reasons.append(f"model disagrees ({sentiment.model} negative {sentiment.negative:.2f}); "
+                               "rule-based polarity kept")
             elif sentiment is not None and sentiment.margin >= 0.2:
                 reasons.append(f"sentiment agrees ({sentiment.model}, margin {sentiment.margin:+.2f})")
         else:
@@ -300,6 +313,8 @@ def classify(headline: str, mentions: Sequence[Mention], sentiment: SentimentSco
                 reasons.append("negative cue: " + ", ".join(negatives))
             elif sentiment is not None and sym == subject:
                 polarity = sentiment.label
+                if polarity == "negative" and sentiment.negative < MODEL_VETO_NEG:
+                    polarity = "neutral"   # the model alone marks negative only when very confident
                 reasons.append(f"no catalyst; sentiment {sentiment.label} ({sentiment.model})")
             else:
                 polarity = "neutral"
@@ -307,5 +322,7 @@ def classify(headline: str, mentions: Sequence[Mention], sentiment: SentimentSco
                     reasons.append("no catalyst")
 
         mat = materiality(headline, (market_caps or {}).get(sym)) if event_type != "other" else 0.0
-        out.append(EventCandidate(sym, event_type, polarity, strength, mat, tuple(reasons), mixed, senti))
+        event_senti = {**senti, "model_disagrees": True} if (senti and disagrees) else senti
+        out.append(EventCandidate(sym, event_type, polarity, strength, mat, tuple(reasons), mixed, event_senti,
+                                  model_disagrees=disagrees))
     return out

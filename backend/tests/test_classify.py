@@ -90,10 +90,34 @@ def test_mixed_resolution_explains_itself():
     assert e.mixed_resolution["clauses"] == ["Intel beats estimates", "cuts fourth-quarter guidance"]
 
 
-def test_strongly_negative_model_vetoes_rule_positive():
-    veto = SentimentScore(0.1, 0.2, 0.7, "finbert")
+def test_negative_model_never_overrides_a_rule_positive_event():
+    """User decision 2026-09-24: the rule decides; the model only flags a disagreement."""
+    veto = SentimentScore(0.02, 0.03, 0.95, "finbert")
     e = run("Palantir awarded $480 million Army contract", sentiment=veto)["PLTR"]
-    assert e.polarity == "mixed" and "model" in e.mixed_resolution["conflict"]
+    assert (e.event_type, e.polarity) == ("contract_win", "positive") and e.is_signal_eligible
+    assert e.model_disagrees and e.sentiment["model_disagrees"] is True
+    assert e.mixed_resolution is None
+
+
+@pytest.mark.parametrize("headline", [
+    "Palantir Stock Scores Price Target Hike. Analyst Says AI Push 'Flips The Narrative'.",
+    "Stifel Upgrades Microsoft to Buy, Raises Price Target to $575",
+])
+def test_analyst_actions_are_not_vetoed_by_the_model(headline):
+    veto = SentimentScore(0.06, 0.04, 0.90, "finbert")
+    e = next(ev for ev in run(headline, sentiment=veto).values() if ev.event_type == "upgrade")
+    assert e.polarity == "positive" and e.model_disagrees
+
+
+def test_model_marks_negative_alone_only_when_very_confident():
+    headline = "Alphabet announces new data center plans"
+    assert run(headline, sentiment=SentimentScore(0.1, 0.2, 0.7, "finbert"))["GOOGL"].polarity == "neutral"
+    assert run(headline, sentiment=SentimentScore(0.02, 0.03, 0.95, "finbert"))["GOOGL"].polarity == "negative"
+
+
+def test_agreeing_model_sets_no_flag():
+    e = run("Palantir awarded $480 million Army contract", sentiment=SentimentScore(0.9, 0.08, 0.02, "finbert"))
+    assert not e["PLTR"].model_disagrees
 
 
 def test_model_alone_never_creates_a_catalyst():

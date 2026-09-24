@@ -41,6 +41,8 @@ ALWAYS: dict[str, list[str]] = {
         r"\b(?:i'?d|i\s+would|would\s+i)\s+(?:still\s+)?(?:buy|sell|own)\b|\bstill\s+buy\b",
         r"\b(?:overpriced|overvalued|undervalued|fully\s+priced|cheap\s+stock|bargain)\b",
         r"\bbuy\s+the\s+dip\b|\bmillionaire[- ]maker\b|\bno[- ]brainer\b|\bset\s+for\s+life\b",
+        # "Only One Clear Buy Among NVDA, AVGO, MU, AMD", "the better buy", "top buy"
+        r"\b(?:clear|better|best|top|only|smart|strong)\s+buys?\b|\bbuys?\s+among\b",
     ],
     "long_range_speculation": [
         r"\bwhere\s+will\b.*\bbe\s+in\s+\d+\s+years?\b",

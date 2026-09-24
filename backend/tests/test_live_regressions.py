@@ -135,6 +135,8 @@ def test_live_headline_links(headline, provider, expected):
          "GGRPY"),
         ("BIO-key Receives FIDO Alliance Full Certification for Passkey Authentication", "BIO"),
         ("Tracking Ole Andreas Halvorsen's Viking Global Portfolio - Q2 2026 Update", "QTWO"),
+        # "AI Era" is a headline phrase, not AI Era Corp
+        ("Jamf Takes Apple Management into the AI Era at JNUC 2026", "AERA"),
     ],
 )
 def test_live_headline_does_not_link_wrong_company(headline, wrong):
@@ -253,6 +255,8 @@ def test_price_target_lift_is_an_upgrade_not_guidance():
         ("Is an AMD Stock Split Coming Now That the Shares Have Topped $600?", "opinion_or_question"),
         ("McDonald’s Increased Its Dividend by Nearly 4%. How to Play MCD Stock Here.", "opinion_or_question"),
         ("AMD Is Up 187% This Year: Take Profits, or Buy More?", "price_move_only"),
+        ("Chip Trillionaires Club: Only One Clear Buy Among NVDA, AVGO, MU, AMD", "stock_picking_advice"),
+        ("Sandisk vs. NVIDIA: Which AI Stock Is the Better Buy Now?", "stock_picking_advice"),
     ],
 )
 def test_non_events_are_filtered(headline, reason):
@@ -275,3 +279,31 @@ def test_non_events_are_filtered(headline, reason):
 )
 def test_real_events_are_kept(headline):
     assert non_event_reason(headline) is None
+
+
+# ----------------------------------------------------------------------------- 4. contract wins
+
+@pytest.mark.parametrize(
+    ("headline", "symbol"),
+    [
+        ("Tesla wins lead role in 2,500-truck electric Class 8 order", "TSLA"),
+        ("Palantir secures five-year $480 million contract with the U.S. Army", "PLTR"),
+        ("Nvidia receives $2 billion order from Saudi data center operator", "NVDA"),
+        ("Tesla books record 10,000-unit Semi order from PepsiCo", "TSLA"),
+    ],
+)
+def test_contract_wins_are_recognised(headline, symbol):
+    e = events(headline)[symbol]
+    assert e.event_type == "contract_win" and e.is_signal_eligible, e.reasons
+
+
+@pytest.mark.parametrize(
+    "headline",
+    [
+        "Tesla wins over skeptics as investors cheer the robotaxi deal rumors",
+        "Nvidia wins the week as chip stocks rally",
+        "Tesla receives subpoena over order backlog disclosures",
+    ],
+)
+def test_contract_rule_does_not_overreach(headline):
+    assert all(e.event_type != "contract_win" or not e.is_signal_eligible for e in events(headline).values())
