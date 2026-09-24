@@ -48,11 +48,33 @@ Two Claude sessions build this branch in parallel; the split is in `docs/SESSION
 | Signal engine: priors (upgrades low weight), point-in-time features, priced-in skip, transparent rule score, ranker/calibrator/TimesFM hooks | done, live-tested | `signals/` |
 | SEC 8-K + Form 4 (directors/officers, no financings/IPOs), earnings surprises, openFDA into the same events table | done, live-tested | `events/`, `adapters/events/sec.py` |
 | ClinicalTrials.gov | code done; **blocked by network** (clinicaltrials.gov) | `events/trials.py` |
-| Backtest (EDGAR-based), walk-forward, LightGBM, calibration, SHAP, baselines, by-catalyst report | code done + tested on synthetic data; **real run waiting for data download** | `backtest/`, `ml/ranker.py` |
+| Backtest (EDGAR-based), walk-forward, LightGBM, calibration, SHAP, baselines, by-catalyst report | **done; real run 2026-09-24** (results below) | `backtest/`, `ml/ranker.py` |
 | TimesFM 3.0 toggle, background job, cache, fallback, backtest with/without | done; model downloaded and health check passes | `ml/timeseries.py` |
 | Paper account, outcomes, alerts, scheduler, refresh, API + login, dashboard, Docker, CI | 018K (see their commits) | `paper/`, `jobs.py`, `api/`, `frontend/` |
 
-Tests: **398 backend tests passing** against Postgres 16 (both sessions).
+Tests: **416 backend + 15 frontend tests passing** against Postgres 16 (both sessions).
+
+### Final backtest result (2026-09-24, 106 companies, out of sample 2025-10-01 to 2026-09-04, after costs)
+
+| Strategy | Trades | Hit rate | Avg return | Sharpe |
+|---|---|---|---|---|
+| Rules (confidence >= 65) | 275 | 52% | +0.48% | 0.42 |
+| Naive: every positive event | 370 | 52% | +0.57% | 0.50 |
+| Rules + LightGBM | 155 | 50% | -0.10% | -0.09 |
+| S&P 500 over the same days | 370 | 50% | +0.42% | 1.06 |
+
+- Rules vs random picks from the same events: p = 0.67 (no demonstrated skill). **Ranker OFF.**
+- Higher confidence did not win more (65-80: 55%, 80-100: 49%): calibration **insufficient**,
+  confidence stays **UNCALIBRATED**; auto-buy stays locked.
+- Catalyst rules by evidence: `insider_buy_cluster` **on** (34 trades, beat SPY; thin evidence);
+  `earnings_beat` and `fda_approval` **off** (did not beat SPY over the same days; still logged
+  and re-judged on live outcomes); upgrade, contract_win, positive_trial, guidance_raise,
+  m_and_a_target **on but unproven** (< 30 trades or not backtestable without news history).
+- TimesFM: filter mode made results worse (+0.10% vs +0.48%); feature mode about neutral.
+  Forecast-positive events did worse than forecast-negative ones. Leakage caveat applies.
+  **TimesFM stays OFF by default; the page warns it is not helping.**
+- Priced-in skip: inconclusive (skipped events: 49% hit, +0.68%; kept: 52%, +0.53%).
+- Report JSON: `reports/backtest_20260924_2048.json` (gitignored; also in `backtest_runs`).
 
 ### Backtest data download (resumable, runs in the background)
 ```bash
