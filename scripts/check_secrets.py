@@ -55,7 +55,7 @@ def main() -> int:
             problems.append(f"git history: contains the value of ${name} (rewrite history and rotate the key)")
     for line in history.splitlines():
         if line.startswith("+") and any(p.search(line) for p in PATTERNS) and not ALLOW.search(line):
-            problems.append("git history: key-shaped text in an added line (run with --show to locate)")
+            problems.append("git history: key-shaped text in an added line (search with: git log -p --all -S <prefix>)")
             break
     ignored = run("git", "check-ignore", ".env", "backend/.env").split()
     if ".env" not in ignored:
