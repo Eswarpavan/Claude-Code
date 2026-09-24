@@ -195,14 +195,20 @@ each API with your key and records the actual limits it sees (from response head
 error bodies). That becomes the source of truth. It is available now as
 `scripts/verify_sources.py` (standard library only, ≈ 20 requests total). See the README.
 
+**Live check, 2026-09-24** (`scripts/verify_sources.py` with real Finnhub and Tiingo keys and
+an SEC User-Agent). Rows marked **✔ live** were confirmed against the provider's API.
+Marketaux, Alpha Vantage, FRED and Resend were skipped (no key yet); openFDA,
+ClinicalTrials.gov, Yahoo and Stooq were blocked by the session's network policy, so their
+⚠ items are still open.
+
 ### 3.1 News
 
 | Source | Used for | Free tier (current) | Cheapest paid | History depth | Official? | Status in CatalystEdge | Verified via |
 |---|---|---|---|---|---|---|---|
-| **Finnhub** company news | primary news feed; also earnings calendar, EPS surprises, `/quote` open | ~**60 calls/min**; company news included; **non-commercial use only** | "Premium" often cited ≈ $50/mo **⚠ re-check** (pricing page blocked) | company news ≈ **1 year** on free tier **⚠** | Official API | **Enabled** (default) | finnhub.io search index + GitHub issues ([#546](https://github.com/finnhubio/Finnhub-API/issues/546)) |
+| **Finnhub** company news | primary news feed; also earnings calendar, EPS surprises, `/quote` open | **60 calls/min** (✔ live: `x-ratelimit-limit: 60` header); company news and earnings calendar included; **non-commercial use only** | "Premium" often cited ≈ $50/mo **⚠ re-check** (pricing page blocked) | company news ≈ **1 year** on free tier (✔ live: a 13-month-old window returned 0 items) | Official API | **Enabled** (default) | ✔ live 2026-09-24; finnhub.io search index + GitHub issues ([#546](https://github.com/finnhubio/Finnhub-API/issues/546)) |
 | **Marketaux** | secondary news; has entity/ticker tagging | **100 requests/day, 3 articles per request**, $0, no card | paid tiers exist; price **⚠ re-check** | not documented for free tier **⚠** | Official API | **Enabled**, polled every 30 min (≈ 50 req/day budget) | marketaux.com pricing (search index) |
 | **Alpha Vantage NEWS_SENTIMENT** | tertiary news + their sentiment as one extra feature | **25 requests/day** (shared with every other AV call) | $49.99/mo (75 req/min) → $249.99/mo (1,200 req/min) | from **Mar 2022** **⚠** | Official API | **Enabled**, budget 10 req/day for news | alphavantage.co (search index) + third-party price listings |
-| **Tiingo News** | optional news feed | not confirmed on free tier **⚠**; treat as **Power plan only** | **Power $30/mo**: 10,000 req/h, 100,000 req/day, 40 GB/mo | **3 months** queryable + going forward | Official API | **Adapter built, OFF** (`TIINGO_NEWS_ENABLED=false`) | tiingo.com pricing (search index) |
+| **Tiingo News** | optional news feed | **not on the free plan** (✔ live: HTTP 403 "You do not have permission to access the News API") | **Power $30/mo**: 10,000 req/h, 100,000 req/day, 40 GB/mo | **3 months** queryable + going forward | Official API | **Adapter built, OFF** (`TIINGO_NEWS_ENABLED=false`) | ✔ live 2026-09-24; tiingo.com pricing (search index) |
 | **Benzinga** | optional news feed | Official **"Benzinga Basic News API" free tier** on AWS Marketplace: headline, teaser, link only | premium tiers via sales (quote only) | unknown **⚠** | Official API | **Disabled stub** (your decision; revisit after Phase 1) | benzinga.com/apis + AWS Marketplace listing |
 | **Investing.com** | optional news feed | official **RSS feeds** at investing.com/webmaster-tools/rss; no public API | none | RSS = latest items only | RSS is official; ToS says data may not be "used, stored… without explicit prior written permission" | **Disabled stub** (your decision). No scraping. | investing.com RSS page + quoted ToS clause |
 
@@ -214,7 +220,7 @@ then discarded.
 
 | Source | Used for | Free limits (current) | Cost | History depth | Official? | Verified via |
 |---|---|---|---|---|---|---|
-| **SEC EDGAR** (submissions JSON, daily index, full-text search, Form 4 XML, 13F) | 8-K items (1.01 material agreement, 2.02 results, 7.01/8.01 PR), Form 4 insider **open-market buys (code P)**, 13F | **10 requests/s max** across all machines; **User-Agent must declare name + email**; over-limit IPs get a 10-min block | Free | 8-K / Form 4 back to early 2000s (Form 4 XML ≈ 2003+) | Official | sec.gov "Accessing EDGAR Data" (search index) |
+| **SEC EDGAR** (submissions JSON, daily index, full-text search, Form 4 XML, 13F) | 8-K items (1.01 material agreement, 2.02 results, 7.01/8.01 PR), Form 4 insider **open-market buys (code P)**, 13F | **10 requests/s max** across all machines; **User-Agent must declare name + email**; over-limit IPs get a 10-min block (policy; deliberately not probed) | Free | 8-K / Form 4 back to early 2000s (Form 4 XML ≈ 2003+); ✔ live: 2004 daily index reachable | Official | ✔ live 2026-09-24 (submissions API + archive); sec.gov "Accessing EDGAR Data" |
 | **SEC companyfacts (XBRL)** | fundamentals (revenue growth, margins, shares, debt) | same 10 req/s | Free | ≈ 2009+ | Official | sec.gov developer resources |
 | **openFDA** (drugsfda, device PMA/510k) | FDA approval events | **240 req/min**; without a key also **1,000 req/day per IP**; key raises the daily cap (by how much: **⚠**) | Free | decades | Official | open.fda.gov/apis/authentication |
 | **ClinicalTrials.gov API v2** | trial status/results-posted changes (enrichment only) | no key; ≈ **50 req/min per IP** (third-party reported, **⚠ re-check**) | Free | full registry | Official | third-party API references |
@@ -225,12 +231,12 @@ then discarded.
 
 | Source | Used for | Free limits | Official? | Fragility | Fallback | Verified via |
 |---|---|---|---|---|---|---|
-| **Tiingo EOD** (free "Starter") | **primary EOD** (adjusted OHLCV, includes delisted tickers, which avoids survivorship bias) | **50 req/h, 1,000 req/day, 500 unique symbols/month** | Official | Stable | Yahoo → Stooq | tiingo.com pricing (search index) |
+| **Tiingo EOD** (free "Starter") | **primary EOD** (adjusted OHLCV, includes delisted tickers, which avoids survivorship bias) | **50 req/h, 1,000 req/day, 500 unique symbols/month** (Tiingo sends no rate-limit headers, so these stay as published) | Official | Stable | Yahoo → Stooq | ✔ live 2026-09-24: key works, AAPL history from 1980-12-31; tiingo.com pricing |
 | **Yahoo Finance via `yfinance`** | EOD fallback, sector/industry, market cap | none published; aggressive **429 / `YFRateLimitError`** blocks | **Unofficial** (wraps undocumented endpoints) | **FRAGILE** | Tiingo → Stooq; cached sector data | yfinance GitHub issues #2480, #2289 |
 | **Stooq CSV** | second EOD fallback (bulk history for backtests) | since ≈ Apr 2026 needs an **apikey (obtained via captcha)**; daily hit limit (size **⚠**) | Unofficial public CSV | **FRAGILE** | Tiingo → Yahoo | stooq.com / community reports |
 | **Alpha Vantage `TIME_SERIES_DAILY`** | spot-check fallback only | 25/day total; full history may need premium **⚠ re-check** | Official | Stable but tiny quota | n/a | alphavantage.co |
-| **Finnhub `/quote`** | today's open for 09:35 fills; last price for marking | 60/min | Official | Stable | wait for EOD bar | finnhub.io |
-| Finnhub `/stock/candle` | **not usable**: returns **403 on free keys** (moved to premium) | n/a | Official | n/a | n/a | GitHub issue #546 |
+| **Finnhub `/quote`** | today's open for 09:35 fills; last price for marking | 60/min | Official | Stable | wait for EOD bar | ✔ live 2026-09-24 (`o` field present) |
+| Finnhub `/stock/candle` | **not usable**: returns **403 on free keys** (moved to premium) | n/a | Official | n/a | n/a | ✔ live 2026-09-24 (HTTP 403); GitHub issue #546 |
 
 ### 3.4 Other services
 
@@ -239,7 +245,7 @@ then discarded.
 | **Resend** (email, primary) | **3,000 emails/month, 100/day** | pay-as-you-go | Default |
 | **SendGrid** | **no permanent free plan anymore**: 60-day trial (100/day) for new accounts since Mar 2025 | Essentials $19.95/mo | Supported, not recommended (cost) |
 | **SMTP** (e.g. Gmail app password, Fastmail) | free with your existing mailbox | n/a | Fallback |
-| **Hugging Face Hub** (model downloads) | free, no key for public models | n/a | Used on first run |
+| **Hugging Face Hub** (model downloads) | free, no key for public models; the model files come from `cas-server.xethub.hf.co` (or `us.aws.cdn.hf.co` with Xet off), which must be allowed too | n/a | Used on first run |
 | **Sentry** | free developer tier | n/a | Optional DSN |
 
 **Budget impact of the limits.** The binding constraints are Alpha Vantage (25/day) and

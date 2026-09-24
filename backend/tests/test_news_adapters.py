@@ -146,7 +146,9 @@ def test_one_broken_source_does_not_stop_the_others(http):
     assert len(items) == 3
 
 
-def test_live_mode_without_keys_reports_disabled_not_errors(http):
+def test_live_mode_without_keys_reports_disabled_not_errors(http, monkeypatch):
+    for var in ("FINNHUB_API_KEY", "MARKETAUX_API_KEY", "ALPHAVANTAGE_API_KEY", "TIINGO_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
     adapters = build_news_adapters(Settings(_env_file=None, CATALYSTEDGE_DATA_MODE="live"), http)
     _, reports = collect_news(adapters, NOW)
     assert {r.status for r in reports} == {"disabled"}
