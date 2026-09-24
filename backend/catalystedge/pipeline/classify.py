@@ -23,21 +23,23 @@ from dataclasses import dataclass, field
 from catalystedge.ml.sentiment import SentimentScore
 from catalystedge.pipeline.ticker_link import Mention
 
-CLASSIFIER_VERSION = "rules-v1"
+CLASSIFIER_VERSION = "rules-v2"
 
 # Priority when one headline carries several positive catalysts.
 PRIORITY = ("fda_approval", "positive_trial", "m_and_a_target", "guidance_raise", "earnings_beat", "contract_win",
             "upgrade", "insider_buy_cluster")
 
 _ESTIMATES = r"(?:estimates?|expectations?|forecasts?|consensus|views?)"
-_GUIDE = r"(?:guidance|outlook|forecasts?|targets?|view)"
+# "target" alone is usually an analyst's price target; company targets name what they measure.
+_GUIDE = r"(?:guidance|outlook|forecasts?|(?:revenue|sales|profit|earnings|margin|growth|financial)\s+targets?|view)"
 
 POSITIVE_PATTERNS: dict[str, list[str]] = {
     "earnings_beat": [
-        rf"\b(?:beats?|beat|tops?|topped|exceeds?|exceeded|surpass(?:es|ed)?)\b(?:\s+\w+){{0,4}}\s+{_ESTIMATES}",
+        # "tops" / "topped" only: "Top Analyst Forecasts" is an adjective, not a beat.
+        rf"\b(?:beats?|beat|tops|topped|exceeds?|exceeded|surpass(?:es|ed)?)\b(?:\s+\w+){{0,4}}\s+{_ESTIMATES}",
         rf"\babove\s+(?:\w+\s+){{0,2}}{_ESTIMATES}",
         r"\brecord\s+(?:quarterly\s+|annual\s+)?(?:profit|revenue|earnings|sales|bookings)\b",
-        r"\b(?:beats?|tops?)\s+(?:on\s+)?(?:earnings|profit|revenue|eps|sales)\b",
+        r"\b(?:beats?|tops)\s+(?:on\s+)?(?:earnings|profit|revenue|eps|sales)\b",
         r"^\S+(?:\s+\S+){0,3}\s+beats\b",
     ],
     "guidance_raise": [
@@ -52,15 +54,24 @@ POSITIVE_PATTERNS: dict[str, list[str]] = {
         r"\bpositive\s+(?:topline|top-line|phase\s*\w+|pivotal|late-stage|trial|study)\b",
         r"\bstatistically\s+significant\b",
     ],
+    # Deal wording only. A bare "buy" ("Buy signal", "stocks to buy", "upgraded to Buy") is never M&A.
     "m_and_a": [
-        r"\b(?:to\s+)?(?:acquire|acquires|buy|buys|purchase|purchases)\b",
+        r"\b(?:to\s+)?(?:acquire|acquires)\b",
         r"\b(?:agrees?|agreed)\s+to\s+(?:acquire|buy|merge)\b",
         r"\btakeover\s+(?:bid|offer)\b",
         r"\b(?:to\s+be|agrees?\s+to\s+be)\s+(?:acquired|bought|taken\s+private)\b",
+        r"\breceives?\s+(?:a\s+)?(?:buyout|takeover)\s+(?:bid|offer)\b",
     ],
+    # Analyst actions only: "Upgrade Southern's Nuclear Plants" or "Power Upgrade Agreement" are not ratings.
     "upgrade": [
-        r"\bupgraded?\b|\bupgrades\b",
+        r"\bupgraded\s+(?:to|by|at)\b|^[^,:;]{1,40}\bupgraded\b(?:\s*[,:;.]|$)",
+        r"\bupgrades\s+(?:[\w.&'’-]+\s+){1,4}to\s+(?:buy|strong\s+buy|outperform|overweight|positive|accumulate|add|"
+        r"market\s+outperform|sector\s+outperform)\b",
+        r"\b(?:wins?|gets?|receives?|earns?|scores?)\s+(?:another\s+|an?\s+)?(?:analyst\s+)?upgrade\b",
+        r"\b(?:analysts?|ratings?)\s+upgrades?\b|\bupgrades?\s+to\s+['‘’\"]?(?:buy|outperform|overweight)\b",
         r"\braises?\s+(?:its\s+)?price\s+target\b",
+        r"\b(?:lifts?|boosts?|hikes?|raises?|ups)\s+(?:its\s+)?(?:price\s+)?target\s+(?:to|on)\s",
+        r"\bprice[- ]target\s+(?:hike|raise|increase)\b",
         r"\b(?:initiated|initiates)\s+(?:at|with)\s+(?:buy|outperform|overweight)\b",
     ],
     "contract_win": [
@@ -93,8 +104,8 @@ NEGATIVE_CUES: dict[str, str] = {
 }
 
 CONTRAST = re.compile(r"\b(?:but|while|though|although|despite|yet|however)\b|;", re.I)
-ACQ_ACTIVE = re.compile(r"\b(?:to\s+)?(?:acquire|acquires|buy|buys|purchase|purchases)\b|\bagrees?\s+to\s+(?:acquire|"
-                        r"buy)\b|\btakeover\s+of\b", re.I)
+ACQ_ACTIVE = re.compile(r"\b(?:to\s+)?(?:acquire|acquires)\b|\bagrees?\s+to\s+(?:acquire|buy|merge\s+with)\b"
+                        r"|\btakeover\s+of\b", re.I)
 ACQ_PASSIVE = re.compile(r"\b(?:to\s+be|agrees?\s+to\s+be)\s+(?:acquired|bought|taken\s+private)\b|\btakeover\s+(?:bid|"
                          r"offer)\b|\breceives?\s+(?:a\s+)?(?:buyout|takeover)\b", re.I)
 MONEY = re.compile(r"\$\s?(\d+(?:\.\d+)?)\s*(billion|bn|million|mln|m|b)\b", re.I)
@@ -153,6 +164,12 @@ def _scan(headline: str) -> _Scan:
     return s
 
 
+def has_catalyst_phrase(headline: str) -> bool:
+    """True if any positive or negative catalyst phrase appears (used by the non-event filter)."""
+    scan = _scan(headline)
+    return bool(scan.positives) or bool(set(scan.negatives) - {"price_drop"})
+
+
 def materiality(headline: str, market_cap: float | None = None) -> float:
     """0..1. Deal/contract size relative to market cap when known, else absolute tiers; deal premium."""
     score = 0.6
@@ -186,11 +203,26 @@ def _acquisition_roles(headline: str, mentions: Sequence[Mention]) -> dict[str, 
     return roles
 
 
+# Listed brokers whose analysts rate other companies. In "Stifel Upgrades Microsoft" the
+# upgrade belongs to Microsoft, not Stifel.
+BROKER_SYMBOLS = frozenset({
+    "SF", "GS", "MS", "JPM", "JEF", "RJF", "PIPR", "EVR", "WFC", "C", "BAC", "BCS", "UBS", "DB", "TFC", "OPY", "KEY",
+    "HSBC", "BMO", "RY", "TD", "CM", "BNS", "NMR", "LAZ", "SNEX", "MFG", "MUFG", "CS",
+})
+ANALYST_KINDS = frozenset({"upgrade"})
+
+
 def _catalyst_subject(scan: _Scan, mentions: Sequence[Mention]) -> str | None:
     """The company a (non-M&A) catalyst describes: the mention closest before the first
     catalyst phrase ("Apple supplier Palantir wins ..." -> Palantir), else the first one
-    after it ("FDA approves Madrigal ..." -> Madrigal), else the primary mention."""
+    after it ("FDA approves Madrigal ..." -> Madrigal), else the primary mention.
+    For analyst actions, a broker is never the subject when another company is named."""
     spans = [m for m in mentions if m.start >= 0]
+    if set(scan.positives) & ANALYST_KINDS:
+        rated = [m for m in spans if m.symbol not in BROKER_SYMBOLS]
+        if rated and len(rated) < len(spans):
+            spans = rated
+            mentions = [m for m in mentions if m.symbol not in BROKER_SYMBOLS]
     starts = [hit.start() for k, hits in scan.positives.items() if k != "m_and_a" for hit in hits]
     if not spans or not starts:
         return next((m.symbol for m in mentions if m.is_primary), None)

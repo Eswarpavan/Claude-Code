@@ -1,0 +1,372 @@
+{
+"0": {
+"cik_str": 1045810,
+"ticker": "NVDA",
+"title": "NVIDIA CORP"
+},
+"1": {
+"cik_str": 320193,
+"ticker": "AAPL",
+"title": "Apple Inc."
+},
+"2": {
+"cik_str": 1652044,
+"ticker": "GOOGL",
+"title": "Alphabet Inc."
+},
+"3": {
+"cik_str": 789019,
+"ticker": "MSFT",
+"title": "MICROSOFT CORP"
+},
+"4": {
+"cik_str": 1018724,
+"ticker": "AMZN",
+"title": "AMAZON COM INC"
+},
+"5": {
+"cik_str": 1326801,
+"ticker": "META",
+"title": "Meta Platforms, Inc."
+},
+"6": {
+"cik_str": 1730168,
+"ticker": "AVGO",
+"title": "Broadcom Inc."
+},
+"7": {
+"cik_str": 1318605,
+"ticker": "TSLA",
+"title": "Tesla, Inc."
+},
+"11": {
+"cik_str": 2488,
+"ticker": "AMD",
+"title": "ADVANCED MICRO DEVICES INC"
+},
+"13": {
+"cik_str": 104169,
+"ticker": "WMT",
+"title": "Walmart Inc."
+},
+"18": {
+"cik_str": 50863,
+"ticker": "INTC",
+"title": "INTEL CORP"
+},
+"20": {
+"cik_str": 1551152,
+"ticker": "ABBV",
+"title": "AbbVie Inc."
+},
+"23": {
+"cik_str": 1321655,
+"ticker": "PLTR",
+"title": "Palantir Technologies Inc."
+},
+"33": {
+"cik_str": 1089113,
+"ticker": "HSBC",
+"title": "HSBC HOLDINGS PLC"
+},
+"38": {
+"cik_str": 895421,
+"ticker": "MS",
+"title": "MORGAN STANLEY"
+},
+"39": {
+"cik_str": 1065280,
+"ticker": "NFLX",
+"title": "NETFLIX INC"
+},
+"84": {
+"cik_str": 1800,
+"ticker": "ABT",
+"title": "ABBOTT LABORATORIES"
+},
+"88": {
+"cik_str": 1594805,
+"ticker": "SHOP",
+"title": "SHOPIFY INC."
+},
+"89": {
+"cik_str": 63908,
+"ticker": "MCD",
+"title": "MCDONALDS CORP"
+},
+"114": {
+"cik_str": 1373715,
+"ticker": "NOW",
+"title": "ServiceNow, Inc."
+},
+"173": {
+"cik_str": 92122,
+"ticker": "SO",
+"title": "SOUTHERN CO"
+},
+"193": {
+"cik_str": 865752,
+"ticker": "MNST",
+"title": "Monster Beverage Corp"
+},
+"254": {
+"cik_str": 1682852,
+"ticker": "MRNA",
+"title": "Moderna, Inc."
+},
+"264": {
+"cik_str": 1050446,
+"ticker": "MSTR",
+"title": "Strategy Inc"
+},
+"319": {
+"cik_str": 1679788,
+"ticker": "COIN",
+"title": "Coinbase Global, Inc."
+},
+"325": {
+"cik_str": 1120193,
+"ticker": "NDAQ",
+"title": "NASDAQ, INC."
+},
+"450": {
+"cik_str": 1660134,
+"ticker": "OKTA",
+"title": "Okta, Inc."
+},
+"512": {
+"cik_str": 731802,
+"ticker": "ATO",
+"title": "ATMOS ENERGY CORP"
+},
+"613": {
+"cik_str": 1751788,
+"ticker": "DOW",
+"title": "DOW INC."
+},
+"634": {
+"cik_str": 764478,
+"ticker": "BBY",
+"title": "BEST BUY CO INC"
+},
+"649": {
+"cik_str": 1810806,
+"ticker": "U",
+"title": "Unity Software Inc."
+},
+"717": {
+"cik_str": 1564708,
+"ticker": "NWSA",
+"title": "NEWS CORP"
+},
+"896": {
+"cik_str": 720672,
+"ticker": "SF",
+"title": "STIFEL FINANCIAL CORP"
+},
+"973": {
+"cik_str": 12208,
+"ticker": "BIO",
+"title": "BIO-RAD LABORATORIES, INC."
+},
+"990": {
+"cik_str": 1564408,
+"ticker": "SNAP",
+"title": "Snap Inc"
+},
+"1039": {
+"cik_str": 1858985,
+"ticker": "ONON",
+"title": "On Holding AG"
+},
+"1104": {
+"cik_str": 22356,
+"ticker": "CBSH",
+"title": "COMMERCE BANCSHARES INC /MO/"
+},
+"1276": {
+"cik_str": 1872195,
+"ticker": "BLSH",
+"title": "Bullish"
+},
+"1374": {
+"cik_str": 1718227,
+"ticker": "ROAD",
+"title": "Construction Partners, Inc."
+},
+"1378": {
+"cik_str": 1308547,
+"ticker": "DLB",
+"title": "Dolby Laboratories, Inc."
+},
+"1546": {
+"cik_str": 1517413,
+"ticker": "FSLY",
+"title": "Fastly, Inc."
+},
+"1696": {
+"cik_str": 1410384,
+"ticker": "QTWO",
+"title": "Q2 Holdings, Inc."
+},
+"1912": {
+"cik_str": 2078856,
+"ticker": "PURR",
+"title": "Hyperliquid Strategies Inc"
+},
+"1921": {
+"cik_str": 1800227,
+"ticker": "PPLI",
+"title": "People Inc"
+},
+"1969": {
+"cik_str": 1849635,
+"ticker": "DJT",
+"title": "Trump Media & Technology Group Corp."
+},
+"2004": {
+"cik_str": 835324,
+"ticker": "SYBT",
+"title": "Stock Yards Bancorp, Inc."
+},
+"2934": {
+"cik_str": 2055592,
+"ticker": "GEMI",
+"title": "Gemini Space Station, Inc."
+},
+"3370": {
+"cik_str": 1228627,
+"ticker": "IRD",
+"title": "Opus Genetics, Inc."
+},
+"3904": {
+"cik_str": 918541,
+"ticker": "NNBR",
+"title": "NN INC"
+},
+"4019": {
+"cik_str": 1828937,
+"ticker": "FOA",
+"title": "Finance of America Companies Inc."
+},
+"4468": {
+"cik_str": 1473490,
+"ticker": "GLAI",
+"title": "Global AI, Inc."
+},
+"4474": {
+"cik_str": 1866757,
+"ticker": "BRLT",
+"title": "Brilliant Earth Group, Inc."
+},
+"4478": {
+"cik_str": 2128462,
+"ticker": "TLAC",
+"title": "Three Lions Acquisition Corp."
+},
+"4707": {
+"cik_str": 1884046,
+"ticker": "SPKL",
+"title": "Spark I Acquisition Corp"
+},
+"4719": {
+"cik_str": 1932770,
+"ticker": "HERE",
+"title": "Here Group Ltd"
+},
+"4872": {
+"cik_str": 1819411,
+"ticker": "GANX",
+"title": "Gain Therapeutics, Inc."
+},
+"4884": {
+"cik_str": 1835268,
+"ticker": "CNTB",
+"title": "Connect Biopharma Holdings Ltd"
+},
+"4929": {
+"cik_str": 881787,
+"ticker": "CRT",
+"title": "CROSS TIMBERS ROYALTY TRUST"
+},
+"4987": {
+"cik_str": 949961,
+"ticker": "IOR",
+"title": "INCOME OPPORTUNITY REALTY INVESTORS INC /TX/"
+},
+"5149": {
+"cik_str": 1360565,
+"ticker": "WFCF",
+"title": "Where Food Comes From, Inc."
+},
+"5715": {
+"cik_str": 1017655,
+"ticker": "PAYD",
+"title": "PAID INC"
+},
+"5924": {
+"cik_str": 2111846,
+"ticker": "GYGY",
+"title": "Game Your Game Inc."
+},
+"6134": {
+"cik_str": 1543652,
+"ticker": "FFLO",
+"title": "Free Flow USA, Inc."
+},
+"6216": {
+"cik_str": 2003977,
+"ticker": "CRE",
+"title": "Cre8 Enterprise Ltd"
+},
+"6319": {
+"cik_str": 1813783,
+"ticker": "VMAR",
+"title": "Vision Marine Technologies Inc."
+},
+"6628": {
+"cik_str": 1969863,
+"ticker": "SUGP",
+"title": "SU Group Holdings Ltd"
+},
+"6688": {
+"cik_str": 1605331,
+"ticker": "AERA",
+"title": "AI Era Corp."
+},
+"6738": {
+"cik_str": 1817232,
+"ticker": "HGAS",
+"title": "Global Gas Corp"
+},
+"6846": {
+"cik_str": 2075474,
+"ticker": "GGRPY",
+"title": "GPT Group/ADR"
+},
+"7038": {
+"cik_str": 2046370,
+"ticker": "UPX",
+"title": "Uptrend Holdings Ltd"
+},
+"7515": {
+"cik_str": 1652044,
+"ticker": "GOOG",
+"title": "Alphabet Inc."
+},
+"9654": {
+"cik_str": 1853630,
+"ticker": "HMELF",
+"title": "Hold Me Ltd"
+},
+"399": {
+"cik_str": 1447669,
+"ticker": "TWLO",
+"title": "TWILIO INC"
+},
+"1675": {
+"cik_str": 1418121,
+"ticker": "APLE",
+"title": "Apple Hospitality REIT, Inc."
+}
+}

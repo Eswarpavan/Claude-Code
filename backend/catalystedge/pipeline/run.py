@@ -1,5 +1,5 @@
 """The Stage-1 news pipeline end to end:
-collect (48 h window) -> dedupe -> ticker link -> sentiment -> classify [-> store]."""
+collect (48 h window) -> dedupe -> ticker link -> sentiment -> non-event filter -> classify [-> store]."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from catalystedge.ml.sentiment import SentimentModel, SentimentScore
 from catalystedge.pipeline.classify import EventCandidate, classify
 from catalystedge.pipeline.collect import SourceReport, collect_news
 from catalystedge.pipeline.dedupe import Cluster, cluster_items
+from catalystedge.pipeline.noise import NoiseVerdict, non_event_reason
 from catalystedge.pipeline.score import score_headlines
 from catalystedge.pipeline.store import store_clusters, store_links
 from catalystedge.pipeline.ticker_link import LinkResult, Universe, link_tickers
@@ -32,6 +33,7 @@ class Processed:
     link: LinkResult
     sentiment: SentimentScore
     events: list[EventCandidate]
+    noise: NoiseVerdict | None = None      # set when the non-event filter dropped it (then no events)
 
     @property
     def headline(self) -> str:
@@ -47,8 +49,10 @@ def process_news(adapters: Sequence[NewsAdapter], universe: Universe, model: Sen
     out: list[Processed] = []
     for cluster, score in zip(clusters, scores, strict=True):
         link = link_tickers(cluster.representative.headline, cluster.provider_tickers, universe)
-        events = classify(cluster.representative.headline, link.mentions, score)
-        out.append(Processed(cluster, link, score, events))
+        headline = cluster.representative.headline
+        noise = non_event_reason(headline)
+        events = [] if noise else classify(headline, link.mentions, score)
+        out.append(Processed(cluster, link, score, events, noise))
     return out, reports
 
 
