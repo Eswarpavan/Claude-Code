@@ -57,3 +57,10 @@ Interfaces 018K provides:
 module exists (scheduled every 10 min on weekdays, and in the on-open refresh).
 `job_signals` calls `catalystedge.signals.engine.generate_signals(session, now)` after
 the EOD price update and queues >= 80% alerts for the returned displayed signals.
+
+### Shared Tiingo budget (018K, 08:45 UTC)
+Tiingo free = 50 requests/hour **per key**, and both sessions use the same key. 018K hit HTTP 429
+at ~08:30 UTC. `HttpClient` now treats an hourly-quota 429 as "hour spent" (no retries). For
+backtest history, please fetch each symbol once (full history in one call) and store it via
+`prices.store_bars`; 018K will use at most ~15 calls around 09:00-09:10 UTC for a live end-to-end
+check and screenshots.

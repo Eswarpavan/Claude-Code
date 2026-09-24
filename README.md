@@ -1,41 +1,89 @@
 # CatalystEdge
 
 CatalystEdge finds **positive, news-driven swing-trade setups** in US stocks and runs a
-**$100 paper-trading account** on them. It uses end-of-day data only and never trades
-intraday. Every confidence number is labelled **UNCALIBRATED** until backtests or real
-outcomes support it.
+**$100 paper-trading account** on them. Every signal starts from a fresh news item or filing;
+prices only confirm or rank it. It uses end-of-day data only, never trades intraday, and labels
+every confidence number **UNCALIBRATED** until backtests or real outcomes support it.
+Auto-buy stays **off** until that evidence exists.
 
 > **Not financial advice.** Research and paper-trading tool only.
 
-## Documents
-- [Architecture, schema, data sources, phased plan](docs/ARCHITECTURE.md)
-- [$0 deployment: local Docker → Oracle + Vercel + Neon + Upstash](docs/DEPLOY_FREE.md)
+## What's in the box
 
-## Step 0: check the real API limits with your keys
-Run this before anything else. It uses only the Python standard library and makes about
-20 requests in total: at most 3 of Alpha Vantage's 25/day, 2 of Marketaux's 100/day, and
-it never sends email.
+| Part | Where |
+|---|---|
+| Dashboard (Signals, Paper Portfolio, Trade History, News Feed, Backtest & Calibration, Source Health, Settings) | `frontend/` (Next.js) |
+| API | `backend/catalystedge/api/` (FastAPI) |
+| Scheduler (news polls, end-of-day signals, paper fills at the open, emails) | `backend/catalystedge/worker/` (Celery) |
+| News pipeline, ticker linking, sentiment, event classification | `backend/catalystedge/pipeline/`, `ml/` |
+| SEC 8-K / Form 4, earnings, FDA, trials | `backend/catalystedge/events/` |
+| Signal engine, ranking model, calibration, backtest | `backend/catalystedge/signals/` and related |
+| Paper account, outcomes, email alerts | `backend/catalystedge/paper/`, `outcomes/`, `notify/` |
+| Design and data sources | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| $0 online deployment | [docs/DEPLOY_FREE.md](docs/DEPLOY_FREE.md) |
+| Progress log | [docs/PHASE1_PROGRESS.md](docs/PHASE1_PROGRESS.md) |
+
+## Run it on your computer
+
+1. Install **Docker Desktop** (Windows/Mac) or Docker Engine (Linux).
+2. Download this project, open a terminal in its folder, and create your settings file:
+   ```bash
+   cp .env.example .env
+   ```
+3. Open `.env` in a text editor and fill in at least `FINNHUB_API_KEY`, `TIINGO_API_KEY` and
+   `SEC_USER_AGENT` (your name and email). Everything else is optional.
+4. Start everything:
+   ```bash
+   docker compose up -d
+   ```
+   **The first start is slow** (it builds the app and downloads the ~0.5 GB FinBERT model).
+5. Open **http://localhost:3000**. The Signals page shows cached results at once and refreshes in
+   the background; Source Health shows each source and the model's download status.
+
+Stop with `docker compose down` (your data stays in Docker volumes).
+
+**Alerts and paper trades only run while the computer is on.** For alerts while it is off, use an
+always-on machine or the free cloud setup in [docs/DEPLOY_FREE.md](docs/DEPLOY_FREE.md).
+
+## Check FinBERT on your computer
+
+No API keys needed. After `docker compose up -d`:
 ```bash
-# create a .env file in the repo root containing the keys listed below (one KEY=value per line)
-python3 scripts/verify_sources.py            # writes reports/source_check_<time>.md/.json
-python3 scripts/test_verify_sources.py       # offline tests for the checker itself
+docker compose run --rm api python -m catalystedge compare-sentiment
 ```
-Keys it reads: `FINNHUB_API_KEY`, `MARKETAUX_API_KEY`, `ALPHAVANTAGE_API_KEY`,
-`TIINGO_API_KEY`, `FRED_API_KEY`, `SEC_USER_AGENT` ("Your Name you@example.com"), and
-optionally `OPENFDA_API_KEY`, `STOOQ_API_KEY`, `RESEND_API_KEY`. Missing keys are skipped.
-Keys are redacted from all output. The report marks each ⚠ item from the docs as
-confirmed / differs / unknown.
+It downloads FinBERT (first time only), scores recent headlines with FinBERT and with the
+word-list fallback side by side, and prints accuracy on hand-labelled headlines. To send the result
+back: copy everything it printed and paste it into the chat. It contains no keys or personal data.
 
-## Quick start (local)
+## Keeping your API keys safe
+
+1. Put keys **only** in the `.env` file on your machine (or the host's secret settings, e.g. the
+   environment settings of a Claude cloud session, Vercel's Environment Variables, or the VM's `.env`).
+   `.env` is excluded from git, and the app never prints or logs a key.
+2. Never paste a key into a chat, an email, a screenshot, or an issue. If that happens, generate a
+   new key on the provider's website and replace the old one in `.env`.
+3. On a shared or cloud machine, make `.env` readable only by you: `chmod 600 .env`.
+4. Set `APP_PASSWORD` (and a long random `APP_SECRET`) before the app is reachable by anyone else.
+5. Rotate keys once in a while (Finnhub: dashboard → API key; Tiingo: Account → API).
+
+## API keys
+
+| Key | Needed? | Where |
+|---|---|---|
+| `FINNHUB_API_KEY` | yes | finnhub.io (free) |
+| `TIINGO_API_KEY` | yes | tiingo.com (free plan is enough to start) |
+| `SEC_USER_AGENT` | yes (not a secret) | your name and email, as SEC requires |
+| `MARKETAUX_API_KEY`, `ALPHAVANTAGE_API_KEY` | optional, more news | marketaux.com, alphavantage.co |
+| `RESEND_API_KEY` + `ALERT_EMAIL_TO` | for email alerts | resend.com (free 3,000/month) |
+| `OPENFDA_API_KEY`, `STOOQ_API_KEY` | optional | open.fda.gov, stooq.com |
+
+## For developers
+
 ```bash
-cp .env.example .env     # add free API keys, see docs/ARCHITECTURE.md §14
-docker compose up -d     # first run is slow: builds + model download
-open http://localhost:3000
+scripts/dev_test_db.sh                         # throwaway Postgres 16 on port 55432
+export TEST_DATABASE_URL=postgresql+psycopg://postgres@127.0.0.1:55432/catalystedge_test
+cd backend && uv sync && uv run pytest && uv run ruff check catalystedge tests
+cd ../frontend && pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+python3 scripts/verify_sources.py              # checks your keys against each provider's real limits
+cd backend && uv run catalystedge sample-news  # live headlines with ticker, sentiment and event type
 ```
-
-## Status
-- Phase 0: design ✅ · source checker ✅ (awaiting a run with real keys)
-- Phase 1: MVP, steps 1–6 done (see [progress](docs/PHASE1_PROGRESS.md)); paused for the real-data sanity check before the signal engine. Remaining: rule-based signals,
-  paper account, outcome tracking, email alerts, on-open refresh, dashboard
-- Phase 2: LightGBM, calibration, EDGAR backtest, SHAP
-- Phase 3: observability, hardening, optional TimesFM feature, cost review
