@@ -273,3 +273,35 @@ def test_trades_and_positions_are_tagged_with_timesfm(clean):
     sell = next(o for o in orders if o["side"] == "sell")
     assert sell["signal_id"] == on and sell["timesfm"]["mode"] == "filter"   # sells inherit the entry tag
     assert {o["symbol"]: o["timesfm"]["enabled"] for o in orders if o["side"] == "buy"} == {"ABC": True, "XYZ": False}
+
+
+def test_top_signals_show_catalyst_history_not_promises(clean):
+    from catalystedge.db.models import BacktestRun
+
+    for i in range(12):
+        seed(clean, f"S{i:02d}", 66 + i, catalyst="insider_buy_cluster" if i % 2 else "contract_win")
+    c = client(clean)
+    fresh = c.get("/api/signals/top").json()["signals"]                  # no backtest in this database yet
+    assert "shipped" in fresh[0]["history"]["source"]
+    with sessionmaker(clean)() as s:
+        s.add(BacktestRun(started_at=NOW, finished_at=NOW, params={}, data_sources=[], event_families=[],
+                          status="done", report={"catalyst_verdicts": {
+                              "insider_buy_cluster": {"status": "enabled", "why": "beat",
+                                                      "rules": {"n": 52, "hit_rate": 0.56, "mean_pct": 0.9,
+                                                                "sharpe": 1.1},
+                                                      "spy_same_days": {"n": 52, "hit_rate": 0.5, "mean_pct": 0.4}},
+                              "contract_win": {"status": "untested", "why": "only 0 out-of-sample trades",
+                                               "rules": {"n": 0}, "spy_same_days": {"n": 0}}}}))
+        s.commit()
+    body = c.get("/api/signals/top").json()
+    top = body["signals"]
+    assert len(top) == 10 and [x["confidence"] for x in top] == sorted((x["confidence"] for x in top), reverse=True)
+    assert top[0]["symbol"] == "S11" and top[0]["headline"]["headline"] == "S11 wins contract"
+    ins = next(x for x in top if x["catalyst"] == "insider_buy_cluster")["history"]
+    assert ins["n"] == 52 and "avg +0.90% per trade, win rate 56%, 52 trades" in ins["text"]
+    assert "S&P 500" in ins["text"]
+    cw = next(x for x in top if x["catalyst"] == "contract_win")["history"]
+    assert cw["n"] == 0 and "not enough data yet" in cw["text"]
+    e = top[0]["expected"]
+    assert e["basis"] == "prior" and e["stop_pct"] == -6.0 and e["target_pct"] == 6.0
+    assert "No profit is promised" in body["note"] and top[0]["confidence_label"] == "UNCALIBRATED"

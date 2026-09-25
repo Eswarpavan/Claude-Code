@@ -177,3 +177,17 @@ export type CatalystReport = {
   evidence: { plain: string; label: string };
   status?: Record<string, { status: "enabled" | "disabled" | "untested"; why: string; basis: string }>;
 };
+
+export type CatalystHistory = {
+  catalyst: string; label: string; source: string | null; status: string; n: number;
+  win_rate: number | null; avg_return_pct: number | null; sharpe: number | null;
+  spy_win_rate: number | null; spy_avg_return_pct: number | null; enough_data: boolean; text: string;
+};
+export type TopSignal = {
+  id: number; symbol: string; company: string; catalyst: string;
+  headline: { headline: string; url: string; source: string | null; at: string } | null;
+  confidence: number; confidence_label: string;
+  expected: { prior_return_pct: number; basis: string; stop_pct: number; target_pct: number; holding_days: [number, number] };
+  history: CatalystHistory | null;
+};
+export type TopSignalsResponse = { as_of_date: string | null; signals: TopSignal[]; note: string };

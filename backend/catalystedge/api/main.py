@@ -274,6 +274,35 @@ def _router():
                 "note": "Positive signals only. Confidence is UNCALIBRATED until backtest or outcome evidence "
                         "supports it."}
 
+    @r.get("/api/signals/top", dependencies=[Depends(auth)])
+    def top_signals(s: Session = Depends(db), limit: int = Query(10, ge=1, le=25)) -> dict:
+        """The highest-confidence current signals, each with what its catalyst type has done historically."""
+        from catalystedge.signals.catalyst_evidence import catalyst_evidence
+
+        now = state.clock.now()
+        latest = s.scalar(select(func.max(Signal.as_of_date)).where(Signal.displayed.is_(True)))
+        rows = s.scalars(select(Signal).where(Signal.displayed.is_(True), Signal.status == "active",
+                                              Signal.as_of_date == latest)
+                         .order_by(Signal.confidence.desc(), Signal.id).limit(limit)).all() if latest else []
+        ev = catalyst_evidence(s)
+        out = []
+        for sig in rows:
+            j = signal_json(s, sig, now)
+            entry = float(sig.entry_ref_price)
+            out.append({
+                "id": sig.id, "symbol": sig.symbol, "company": j["company"], "catalyst": sig.catalyst_type,
+                "headline": j["headlines"][0] if j["headlines"] else None,
+                "confidence": j["confidence"], "confidence_label": j["confidence_label"],
+                "expected": {"prior_return_pct": j["expected_return_pct"], "basis": sig.expected_return_basis,
+                             "stop_pct": round((float(sig.stop_price) / entry - 1) * 100, 2),
+                             "target_pct": round((float(sig.target_price) / entry - 1) * 100, 2),
+                             "holding_days": j["holding_days"]},
+                "history": ev.get(sig.catalyst_type),
+            })
+        return {"as_of_date": latest.isoformat() if latest else None, "signals": out,
+                "note": "No profit is promised. Each signal shows what its catalyst type actually did in the "
+                        "backtest (after costs), next to the S&P 500 over the same days."}
+
     @r.get("/api/signals/{signal_id}", dependencies=[Depends(auth)])
     def signal_detail(signal_id: int, s: Session = Depends(db)) -> dict:
         sig = s.get(Signal, signal_id)

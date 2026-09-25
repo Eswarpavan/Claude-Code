@@ -10,6 +10,7 @@ import { TimesFMIndicator } from "@/components/timesfm";
 
 const LINKS = [
   ["/signals", "Signals"],
+  ["/top", "Top signals"],
   ["/portfolio", "Paper Portfolio"],
   ["/history", "Trade History"],
   ["/news", "News Feed"],
