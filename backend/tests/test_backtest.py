@@ -163,3 +163,29 @@ def test_permutation_p_value_detects_skill_and_rejects_luck():
     assert wfm.selection_p_value(best, pool) < 0.01
     assert wfm.selection_p_value(lucky, pool) > 0.05
     assert wfm.selection_p_value([1.0, 2.0], pool) is None     # too few trades to judge
+
+
+def test_raw_export_reproduces_the_report_exactly(data, tmp_path):
+    """The saved per-trade CSV alone must give the same numbers as the backtest report."""
+    from catalystedge.backtest import raw
+
+    _, _, _, rows = data
+    wf = wfm.run_walk_forward(rows, min_train=60)
+    fc = {i: ((1.0, -2.0, 4.0) if i % 3 else (-1.0, -4.0, 2.0)) for i in wf.probs}
+    rep = wfm.build_report(wf, "synthetic", fc, "overlaps pretraining")
+    files = raw.export(wf, fc, {**rep, "generated_at": "2026-09-25T00:00:00"}, tmp_path / "backtest",
+                       tmp_path / "BACKTEST_RAW.md")
+    back = raw.read_csv(files["csv"])
+    t = rep["timesfm"]
+    for key, flag in (("rules_without_timesfm", "in_rules_without_timesfm"),
+                      ("rules_with_timesfm_filter", "in_timesfm_filter"),
+                      ("rules_with_timesfm_feature", "in_timesfm_feature")):
+        s = raw.summarize(back, flag)
+        assert s["strategy"] == t[key] and s["spy_same_days"] == t["spy_same_days_as"][key]
+    for key, flag in (("rules", "in_rules"), ("all_events", "in_naive_all_events"), ("model", "in_rules_plus_model")):
+        got = raw.summarize(back, flag)["strategy"]
+        want = {k: v for k, v in rep["strategies"][key].items() if k != "p_value_vs_random_picks"}
+        assert got == want
+    assert raw.summarize(back, "in_naive_all_events")["spy_same_days"] == rep["strategies"]["spy_same_days"]
+    md = files["md"].read_text()
+    assert "TimesFM feature mode" in md and "backtest/trades.csv" in md and "Ollama" in md

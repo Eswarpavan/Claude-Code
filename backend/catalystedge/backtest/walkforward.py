@@ -309,21 +309,28 @@ def catalyst_verdicts(oos_rows: Sequence[Row]) -> dict:
     return out
 
 
-def _timesfm_section(rows, oos, wf, fc: dict[int, tuple[float, float, float]], strategies: dict,
-                     leakage: str | None) -> dict:
-    """fc: row index -> (expected return %, 10th pct %, 90th pct %) at the decision close."""
+def timesfm_variants(rows, oos, fc: dict[int, tuple[float, float, float]]):
+    """Which out-of-sample rows each variant trades. Only rows that have a forecast are compared, so all
+    three variants see the same events. Returns (have, rules_only, filter, feature, feature_deltas)."""
     from catalystedge.signals.timesfm_hook import Forecast, TimesFMState, apply
 
     have = [i for i in oos if i in fc]
     shown = lambda i, score: score >= DISPLAY_MIN and not rows[i].skip_reason  # noqa: E731
     base_idx = [i for i in have if shown(i, rows[i].rule_score)]
     filt_idx = [i for i in base_idx if fc[i][0] > 0]
-    feat_idx = []
+    feat_idx, deltas = [], {}
     for i in have:
         er, lo, hi = fc[i]
-        delta = apply(TimesFMState(True, "feature"), Forecast("", 10, er, lo, hi, "bt", "")).confidence_delta
-        if shown(i, rows[i].rule_score + delta):
+        deltas[i] = apply(TimesFMState(True, "feature"), Forecast("", 10, er, lo, hi, "bt", "")).confidence_delta
+        if shown(i, rows[i].rule_score + deltas[i]):
             feat_idx.append(i)
+    return have, base_idx, filt_idx, feat_idx, deltas
+
+
+def _timesfm_section(rows, oos, wf, fc: dict[int, tuple[float, float, float]], strategies: dict,
+                     leakage: str | None) -> dict:
+    """fc: row index -> (expected return %, 10th pct %, 90th pct %) at the decision close."""
+    have, base_idx, filt_idx, feat_idx, _ = timesfm_variants(rows, oos, fc)
     sec = {
         "rows_with_forecast": len(have),
         "rules_without_timesfm": _trade_stats([rows[i] for i in base_idx]),

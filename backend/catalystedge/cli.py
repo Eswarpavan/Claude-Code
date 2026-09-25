@@ -248,7 +248,8 @@ def cmd_backtest(args: argparse.Namespace) -> int:
     with OrmSession(make_engine(settings.database_url)) as s:
         rep = run_backtest(s, cache_dir=cache_dir(), symbols=symbols, universe=universe, model=model,
                            models_dir=Path(settings.models_dir), timesfm_forecaster=forecaster,
-                           timesfm_leakage_note=leakage)
+                           timesfm_leakage_note=leakage,
+                           raw_out=Path(args.raw_out) if args.raw_out else None)
         s.commit()
     out = Path(os.environ.get("REPORTS_DIR", "../reports"))
     out.mkdir(parents=True, exist_ok=True)
@@ -295,7 +296,12 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--symbols", help="comma-separated tickers (default: the built-in ~100-name universe)")
     b.add_argument("--timesfm", action="store_true", help="also evaluate TimesFM with vs without")
     b.add_argument("--no-sentiment", action="store_true", help="skip FinBERT on historical headlines")
+    b.add_argument("--raw-out", metavar="DIR", help="also save per-trade results (trades.csv, report.json) to DIR "
+                                                    "and a summary to DIR/../BACKTEST_RAW.md")
     b.set_defaults(func=cmd_backtest)
+    bs = sub.add_parser("backtest-summary", help="recompute the backtest tables from a saved trades.csv")
+    bs.add_argument("csv")
+    bs.set_defaults(func=cmd_backtest_summary)
     r = sub.add_parser("catalyst-report", help="hit rate and average return by catalyst (live + backtest)")
     r.set_defaults(func=cmd_catalyst_report)
     e = sub.add_parser("eval-sentiment", help="compare sentiment models")
@@ -308,6 +314,14 @@ def main(argv: list[str] | None = None) -> int:
     v.set_defaults(func=cmd_verify_deployment)
     args = ap.parse_args(argv)
     return args.func(args)
+
+
+def cmd_backtest_summary(args: argparse.Namespace) -> int:
+    from catalystedge.backtest.raw import STRATEGIES, VARIANTS, _table, read_csv
+
+    rows = read_csv(Path(args.csv))
+    print("\n".join(["TimesFM variants:", *_table(rows, VARIANTS), "", "Strategies:", *_table(rows, STRATEGIES)]))
+    return 0
 
 
 def cmd_verify_deployment(args: argparse.Namespace) -> int:

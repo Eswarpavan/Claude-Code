@@ -58,7 +58,8 @@ def _upsert_model(session: Session, name: str, kind: str, version: str, uri: str
 def run_backtest(session: Session, *, cache_dir: Path, symbols: list[str], universe: Universe,
                  model: SentimentModel | None, models_dir: Path,
                  timesfm_forecaster: Callable[[list[Row], dict[str, list[Bar]]], dict[int, tuple]] | None = None,
-                 timesfm_leakage_note: str | None = None, log: Callable[[str], None] = print) -> dict:
+                 timesfm_leakage_note: str | None = None, log: Callable[[str], None] = print,
+                 raw_out: Path | None = None, raw_md: Path | None = None) -> dict:
     started = dt.datetime.now(dt.UTC)
     events = load_events(cache_dir, symbols, universe, model)
     log(f"{len(events)} historical positive events")
@@ -77,6 +78,8 @@ def run_backtest(session: Session, *, cache_dir: Path, symbols: list[str], unive
     note = f"{len(bars) - 1} of {len(symbols)} symbols with prices; SEC 8-K/Form 4 + Finnhub earnings + openFDA"
     report = build_report(wf, note, fc, timesfm_leakage_note)
     report["n_events"] = len(events)
+    report["generated_at"] = dt.datetime.now(dt.UTC).isoformat()
+    report["note"] = note
 
     run = BacktestRun(started_at=started, finished_at=dt.datetime.now(dt.UTC),
                       params={"symbols": len(symbols), "display_min": DISPLAY_MIN, "embargo_days": 14,
@@ -110,4 +113,9 @@ def run_backtest(session: Session, *, cache_dir: Path, symbols: list[str], unive
                       {"run_id": run.id, "strategies": report["strategies"], "verdict": report["verdict"]}, enabled)
     session.flush()
     report["run_id"] = run.id
+    if raw_out is not None:
+        from catalystedge.backtest.raw import export
+
+        files = export(wf, fc, report, raw_out, raw_md or raw_out.parent / "BACKTEST_RAW.md")
+        log("raw results: " + ", ".join(str(p) for p in files.values()))
     return report
