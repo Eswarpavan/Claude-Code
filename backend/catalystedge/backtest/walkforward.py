@@ -335,6 +335,15 @@ def _timesfm_section(rows, oos, wf, fc: dict[int, tuple[float, float, float]], s
         "spy_same_days": strategies["spy_same_days"],
         "leakage_warning": leakage,
     }
+    # Each variant against buying the S&P 500 over exactly its own trade days (same holding periods).
+    sec["spy_same_days_as"] = {}
+    sec["beats_spy"] = {}
+    for name, idx in (("rules_without_timesfm", base_idx), ("rules_with_timesfm_filter", filt_idx),
+                      ("rules_with_timesfm_feature", feat_idx)):
+        sel = [rows[i] for i in idx]
+        spy = stats([r.spy_return for r in sel], [r.trade_sessions or 5 for r in sel])
+        sec["spy_same_days_as"][name] = spy
+        sec["beats_spy"][name] = beats(sec[name], spy) and (sec[name]["mean_pct"] or 0) > 0
     sec["filter_helps"] = beats(sec["rules_with_timesfm_filter"], sec["rules_without_timesfm"])
     sec["feature_helps"] = beats(sec["rules_with_timesfm_feature"], sec["rules_without_timesfm"])
     helps = sec["filter_helps"] or sec["feature_helps"]

@@ -150,6 +150,9 @@ def test_timesfm_section_warns_when_not_helping(data):
     assert t["leakage_warning"] == "overlaps pretraining" and "rules_with_timesfm_filter" in t
     assert "rules_with_timesfm_feature" in t and isinstance(t["feature_helps"], bool)
     assert isinstance(t["helps"], bool) and t["plain"]
+    for name in ("rules_without_timesfm", "rules_with_timesfm_filter", "rules_with_timesfm_feature"):
+        assert t["spy_same_days_as"][name]["n"] == t[name]["n"]      # S&P over exactly that variant's trades
+        assert isinstance(t["beats_spy"][name], bool)
 
 
 def test_permutation_p_value_detects_skill_and_rejects_luck():
