@@ -573,7 +573,7 @@ class Notification(Base):
     created_at: Mapped[dt.datetime] = mapped_column(TZ, server_default=func.now())
     sent_at: Mapped[dt.datetime | None] = mapped_column(TZ)
     __table_args__ = (
-        CheckConstraint(_in("kind", ("paper_buy", "high_confidence", "digest")), name="ck_notifications_kind"),
+        CheckConstraint(_in("kind", ("paper_buy", "high_confidence", "digest", "test")), name="ck_notifications_kind"),
         CheckConstraint(_in("status", ("queued", "sending", "sent", "failed")), name="ck_notifications_status"),
     )
 

@@ -45,6 +45,18 @@ export default function SettingsPage() {
     }
   }
 
+  const [testMsg, setTestMsg] = React.useState<string | null>(null);
+  async function sendTest() {
+    setTestMsg("Sending…");
+    try {
+      await api("/api/notifications/test", { method: "POST" });
+      setTestMsg("Queued. It should show as 'sent' below within a minute; check your inbox and spam folder.");
+      for (const wait of [5000, 20000, 60000]) setTimeout(() => void mutate("/api/notifications"), wait);
+    } catch (e) {
+      setTestMsg(e instanceof Error ? e.message : "Could not send");
+    }
+  }
+
   if (error) return <p className="text-sm text-critical">{error.message}</p>;
   if (!data) return <p className="text-sm text-muted">Loading settings…</p>;
   const p = { ...data.paper, ...draft };
@@ -86,7 +98,11 @@ export default function SettingsPage() {
       </Card>
       <Card>
         <CardHeader><CardTitle>Email send log</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button size="sm" variant="outline" onClick={() => void sendTest()}>Send test email</Button>
+            {testMsg && <span className="text-sm text-muted">{testMsg}</span>}
+          </div>
           {!log || log.log.length === 0 ? <p className="text-sm text-muted">No alerts yet.</p> : (
             <Table>
               <THead><TR><TH>Created</TH><TH>Kind</TH><TH>Subject</TH><TH>Status</TH><TH className="text-right">Attempts</TH><TH>Error</TH></TR></THead>

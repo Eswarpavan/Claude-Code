@@ -111,6 +111,24 @@ def job_lock(kv: KV, name: str, ttl_s: int = 1800) -> Iterator[bool]:
             kv.delete(key)
 
 
+HEARTBEAT_KEY = "scheduler:heartbeat"
+
+
+def record_heartbeat(kv: KV, task: str, now: dt.datetime, ok: bool = True) -> None:
+    """Written by the worker after every scheduled task (shared Redis/Upstash), read by /health."""
+    kv.set(HEARTBEAT_KEY, json.dumps({"task": task, "at": now.isoformat(), "ok": ok}).encode(), 7 * 24 * 3600)
+
+
+def read_heartbeat(kv: KV, now: dt.datetime, stale_after_min: int = 75) -> dict:
+    raw = kv.get(HEARTBEAT_KEY)
+    if raw is None:
+        return {"status": "no heartbeat yet", "note": "the worker has not finished a scheduled task yet"}
+    hb = json.loads(raw)
+    age = (now - dt.datetime.fromisoformat(hb["at"])).total_seconds() / 60
+    return {"status": "ok" if age <= stale_after_min else "stale", "last_task": hb["task"], "last_run_at": hb["at"],
+            "minutes_ago": round(age, 1), "last_task_ok": hb.get("ok", True)}
+
+
 @contextlib.contextmanager
 def _session(ctx: Context) -> Iterator[Session]:
     s = ctx.session_factory()
@@ -308,6 +326,8 @@ def job_signals(ctx: Context) -> dict:
         shown = [c.signal for c in result.displayed if c.signal is not None]
         queued = sum(queue_high_confidence(s, sig) for sig in shown)
     llm = job_llm_notes(ctx, [sig.id for sig in shown])
+    if queued:
+        job_email(ctx)      # send 80%+ alerts now instead of waiting for the next scheduled email run
     return {"as_of": result.as_of_date.isoformat(), "candidates": len(result.candidates), "displayed": len(shown),
             "alerts_queued": queued, "warnings": result.warnings, "llm": llm}
 
@@ -410,6 +430,8 @@ def job_paper_execute(ctx: Context) -> dict:
         report = paper.execute_orders(s, acct, day, open_price, adv,
                                       last_completed=calendar.last_completed_session(now))
         emails = sum(queue_paper_buy(s, o) for o in report.filled if o.side == "buy")
+    if emails:
+        job_email(ctx)
     return {"day": day.isoformat(), "filled": len(report.filled), "waiting": len(report.waiting),
             "cancelled": len(report.cancelled), "buy_emails_queued": emails}
 

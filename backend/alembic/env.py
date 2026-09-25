@@ -20,7 +20,9 @@ def _url() -> str:
     url = os.environ.get("DATABASE_URL_DIRECT") or os.environ.get("DATABASE_URL")
     if not url:
         raise RuntimeError("set DATABASE_URL (or DATABASE_URL_DIRECT) to run migrations")
-    return url
+    from catalystedge.db.session import normalize_url
+
+    return normalize_url(url)
 
 
 def run_migrations_offline() -> None:

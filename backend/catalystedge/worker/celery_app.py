@@ -43,12 +43,18 @@ def ctx():
 
 
 def _run(name: str, fn, ttl_s: int = 1800) -> dict:
-    from catalystedge.jobs import job_lock
+    from catalystedge.jobs import job_lock, record_heartbeat
 
-    with job_lock(ctx().kv, name, ttl_s) as got:
+    c = ctx()
+    with job_lock(c.kv, name, ttl_s) as got:
         if not got:
             return {"skipped": "already running"}
-        result = fn(ctx())
+        try:
+            result = fn(c)
+        except Exception:
+            record_heartbeat(c.kv, name, c.clock.now(), ok=False)
+            raise
+        record_heartbeat(c.kv, name, c.clock.now())
         log.info("%s: %s", name, result)
         return result
 
@@ -135,7 +141,11 @@ def beat_schedule(profile: str) -> dict:
         # Fill at the official open: shortly after 09:30 via the quote, again later via the daily bar.
         "execute-open": {"task": "paper_execute", "schedule": crontab(minute=35, hour=9, day_of_week=weekdays)},
         "execute-late": {"task": "paper_execute", "schedule": crontab(minute=40, hour="11,16", day_of_week=weekdays)},
-        "email": {"task": "email_dispatch", "schedule": crontab(minute="*")},
+        # Alerts are sent right after they are queued; this run only handles retries and the backlog.
+        # In the cloud it follows the news schedule so the free Neon database can sleep between polls.
+        "email": {"task": "email_dispatch", "schedule": crontab(minute=market_news, hour="6-20", day_of_week=weekdays)
+                  if profile == "cloud" else crontab(minute="*")},
+        "email-off-hours": {"task": "email_dispatch", "schedule": crontab(minute=0, hour="0-5,21-23")},
         "retention": {"task": "retention", "schedule": crontab(minute=0, hour=3)},
     }
 

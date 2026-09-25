@@ -300,8 +300,20 @@ def main(argv: list[str] | None = None) -> int:
     r.set_defaults(func=cmd_catalyst_report)
     e = sub.add_parser("eval-sentiment", help="compare sentiment models")
     e.set_defaults(func=cmd_eval_sentiment)
+    v = sub.add_parser("verify-deployment", help="check a running deployment: health, scheduler, login, "
+                                                 "refresh, web app, test email")
+    v.add_argument("--url", required=True, help="the API address, e.g. https://you.duckdns.org")
+    v.add_argument("--web", help="the web app address, e.g. https://you.vercel.app")
+    v.add_argument("--email", action="store_true", help="also send one test email through the worker")
+    v.set_defaults(func=cmd_verify_deployment)
     args = ap.parse_args(argv)
     return args.func(args)
+
+
+def cmd_verify_deployment(args: argparse.Namespace) -> int:
+    from catalystedge.deploy_check import run
+
+    return run(args.url, web=args.web, email=args.email)
 
 
 if __name__ == "__main__":

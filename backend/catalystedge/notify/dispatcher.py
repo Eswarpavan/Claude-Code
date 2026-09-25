@@ -83,6 +83,16 @@ def queue_digest(session: Session, day: dt.date, lines: list[str]) -> bool:
                   {"subject": f"CatalystEdge daily digest {day.isoformat()}", "lines": lines})
 
 
+def queue_test(session: Session, now: dt.datetime) -> int:
+    """A one-off test email, sent by the worker like any alert (proves scheduler + email end to end)."""
+    stamp = ensure_utc(now).strftime("%Y-%m-%d %H:%M:%S UTC")
+    _queue(session, "test", f"test:{stamp}", {
+        "subject": "CatalystEdge test email",
+        "lines": [f"This is a test from CatalystEdge, requested at {stamp}.",
+                  "If you can read this, email alerts work: 80%+ signals will arrive the same way."]})
+    return session.scalar(select(Notification.id).where(Notification.dedupe_key == f"test:{stamp}"))
+
+
 def render(payload: dict, to: str) -> Email:
     lines = list(payload.get("lines", []))
     text = "\n".join(lines + ["", FOOTER])

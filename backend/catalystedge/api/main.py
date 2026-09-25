@@ -210,6 +210,14 @@ def _router():
         except Exception as e:
             out["status"], out["database"] = "degraded", f"error: {type(e).__name__}"
         out["models"] = [m.__dict__ for m in ModelRegistry(state.settings).report()]
+        try:
+            from catalystedge.jobs import read_heartbeat
+
+            out["scheduler"] = read_heartbeat(_ctx().kv, state.clock.now())
+        except Exception as e:
+            out["scheduler"] = {"status": f"unknown ({type(e).__name__})"}
+        out["email"] = "configured" if (build_provider(state.settings) and state.settings.alert_email_to) \
+            else "not configured (set RESEND_API_KEY or SMTP_* and ALERT_EMAIL_TO)"
         return out
 
     @r.post("/api/login")
@@ -472,6 +480,19 @@ def _router():
                          "sent_at": n.sent_at.isoformat() if n.sent_at else None, "last_error": n.last_error,
                          "subject": (n.payload or {}).get("subject")} for n in rows]}
 
+    @r.post("/api/notifications/test", dependencies=[Depends(auth)])
+    def test_email(s: Session = Depends(db)) -> dict:
+        """Queue a test email; the worker sends it (checks scheduler + email together)."""
+        from catalystedge.notify.dispatcher import queue_test
+
+        if not (build_provider(state.settings) and state.settings.alert_email_to):
+            raise HTTPException(409, "Email is not configured: set RESEND_API_KEY (or SMTP_*) and ALERT_EMAIL_TO.")
+        nid = queue_test(s, state.clock.now())
+        s.commit()
+        via = _dispatch_email()
+        return {"notification_id": nid, "sent_by": via,
+                "note": "Check /api/notifications (Settings page) for status; it should say 'sent' within a minute."}
+
     @r.post("/api/refresh", dependencies=[Depends(auth)])
     def refresh(trigger: str = Query("open", pattern="^(open|manual)$")) -> dict:
         from catalystedge import jobs
@@ -586,6 +607,22 @@ def _dispatch_refresh(rid) -> None:
     from catalystedge import jobs
 
     threading.Thread(target=jobs.run_refresh, args=(_ctx(), rid), daemon=True).start()
+
+
+def _dispatch_email() -> str:
+    """Ask the worker to send queued email now; without a worker, send from here."""
+    if state.settings.celery_broker_url or state.settings.redis_url:
+        try:
+            from catalystedge.worker.celery_app import email_dispatch
+
+            email_dispatch.delay()
+            return "worker"
+        except Exception:
+            pass
+    from catalystedge import jobs
+
+    threading.Thread(target=jobs.job_email, args=(_ctx(),), daemon=True).start()
+    return "api"
 
 
 def _refresh_json(s: Session, run: RefreshRun) -> dict:

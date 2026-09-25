@@ -16,9 +16,17 @@ from sqlalchemy.pool import NullPool
 from catalystedge.config import get_settings
 
 
+def normalize_url(url: str) -> str:
+    """Accept the plain `postgresql://` / `postgres://` strings that Neon's dashboard shows."""
+    for prefix in ("postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
 def make_engine(url: str | None = None, *, null_pool: bool | None = None) -> Engine:
     settings = get_settings()
-    url = url or settings.database_url
+    url = normalize_url(url or settings.database_url)
     if null_pool is None:
         null_pool = settings.profile == "cloud"
     kwargs = {"poolclass": NullPool} if null_pool else {"pool_pre_ping": True, "pool_size": 5}

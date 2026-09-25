@@ -7,6 +7,7 @@ x-backend: &backend
     context: ./backend
     args:
       INSTALL_ML: ${INSTALL_ML:-true}
+      INSTALL_TIMESFM: ${INSTALL_TIMESFM:-true}
   image: catalystedge-backend:local
   env_file:
     - path: .env
