@@ -163,3 +163,16 @@ def test_neon_connection_strings_work_as_pasted(given, expected):
     from catalystedge.db.session import normalize_url
 
     assert normalize_url(given) == expected
+
+
+@pytest.mark.db
+def test_fresh_database_starts_from_the_real_backtest_verdicts(clean):
+    """A new computer or a new Neon database must not re-enable catalysts the backtest switched off."""
+    from catalystedge.signals.catalyst_status import catalyst_status
+
+    with sessionmaker(clean)() as s:
+        st = catalyst_status(s)
+    assert st["earnings_beat"]["status"] == "disabled" and st["fda_approval"]["status"] == "disabled"
+    assert st["insider_buy_cluster"]["status"] == "enabled"
+    assert st["contract_win"]["status"] == "untested"
+    assert all(v["basis"] == "baseline backtest" for v in st.values())

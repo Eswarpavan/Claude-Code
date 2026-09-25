@@ -1,0 +1,13 @@
+{
+  "source": "walk-forward backtest of 2026-09-24 (106 companies, out of sample 2025-10-01 to 2026-09-04, after costs); see docs/PHASE1_PROGRESS.md",
+  "verdicts": {
+    "insider_buy_cluster": {"status": "enabled", "why": "beat the S&P 500 over the same days on hit rate, return and Sharpe (34 trades: thin evidence)"},
+    "earnings_beat": {"status": "disabled", "why": "did not beat the S&P 500 over the same days"},
+    "fda_approval": {"status": "disabled", "why": "did not beat the S&P 500 over the same days"},
+    "upgrade": {"status": "untested", "why": "not backtestable without a news archive"},
+    "contract_win": {"status": "untested", "why": "not backtestable without a news archive"},
+    "positive_trial": {"status": "untested", "why": "too few out-of-sample trades (needs 30)"},
+    "guidance_raise": {"status": "untested", "why": "too few out-of-sample trades (needs 30)"},
+    "m_and_a_target": {"status": "untested", "why": "too few out-of-sample trades (needs 30)"}
+  }
+}

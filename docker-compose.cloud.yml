@@ -14,6 +14,8 @@ x-backend: &backend
   env_file: .env                      # must exist: DATABASE_URL (Neon), REDIS_URL (Upstash), APP_PASSWORD, keys
   environment:
     CATALYSTEDGE_PROFILE: cloud
+    # The dashboard login. `docker compose up` refuses to start the cloud stack without it.
+    APP_PASSWORD: ${APP_PASSWORD:?set APP_PASSWORD in .env before deploying}
     CELERY_BROKER_URL: redis://redis:6379/0
     MODELS_DIR: /models
   volumes:

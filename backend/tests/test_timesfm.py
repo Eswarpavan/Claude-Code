@@ -11,6 +11,14 @@ from catalystedge.signals.engine import generate_signals
 from catalystedge.signals.timesfm_hook import Forecast
 from tests.test_signal_engine import AS_OF, NOW, add_bars, add_event
 
+
+@pytest.fixture(autouse=True)
+def _no_baseline_verdicts(monkeypatch):
+    """These tests are about TimesFM; keep the shipped catalyst verdicts out of them."""
+    from catalystedge.signals import catalyst_status
+
+    monkeypatch.setattr(catalyst_status, "baseline_verdicts", lambda: {})
+
 pytestmark = pytest.mark.db
 
 
