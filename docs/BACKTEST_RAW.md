@@ -42,6 +42,17 @@ Diagnostic only: not counted toward the bar or the Bonferroni correction. Confid
 
 **Higher confidence did WORSE (lower win rate and lower average return) for: top 10 vs the rest; 80+ vs 65-80. The confidence score does not rank trades and must be rebuilt before it is used for anything, including 'top signals' displays. With only 10 trades the top-10 row alone proves nothing either way; the 65-80 vs 80+ comparison has more trades.**
 
+## Diagnostic: do fresh signals still qualify at the next-day open?
+
+*End-of-day data only: 'fresh' means 0-5% by the decision-day close, not within the first hour; intraday moves before the close are not visible here.* Same two re-checks as the paper account: skip if the open is more than 5% above the decision-day close (gap rule), or more than 15% above / below the pre-news close (catalyst rule).
+
+| Group | Fresh signals | Qualify at fill | Still 0-5% | Moved 5-15% | Extended >15% | Reversed <0 | Skipped by gap rule | Skipped by catalyst rule |
+|---|---|---|---|---|---|---|---|---|
+| Rules signals | 112 | 90.2% | 83.9% | 6.2% | 0.0% | 9.8% | 0.0% | 9.8% |
+| All positive events | 131 | 90.8% | 83.2% | 7.6% | 0.0% | 9.2% | 0.0% | 9.2% |
+
+**90% of fresh 0-5% signals still qualified at the next-day open; most were still buyable the next morning.**
+
 ## What the LightGBM model weighted (SHAP)
 
 Mean absolute SHAP value per feature on 368 out-of-sample rows (each quarter's model scored rows it had not trained on), in log-odds of a winning trade. The model is **disabled**: it did not beat the baselines, so these weights are shown for transparency only.
@@ -68,37 +79,40 @@ Never used by any fold's model: `timesfm_er`, `c_liquidity`, `c_credibility`, `t
 
 ## Slices by sector, market cap and holding period
 
-Rules trades out of sample: 274. Bar for a candidate: at least 50 trades, beats the S&P 500 over the same days on win rate, average return and Sharpe, and p < 0.05 after a Bonferroni correction for 21 comparisons (p < 0.0024 each; one-sided sign-flip permutation on per-trade excess return vs the S&P 500 over the same days).
+Rules trades out of sample: 274. Bar for a candidate: at least 50 trades, beats the S&P 500 over the same days on win rate, average return and Sharpe, and p < 0.05 after a Bonferroni correction for 24 comparisons (p < 0.0021 each; one-sided sign-flip permutation on per-trade excess return vs the S&P 500 over the same days).
 
-**Verdict: No slice passes. 8 of 21 slices have at least 50 trades; after correcting for 21 comparisons (p < 0.0024 each), the smallest average edge over the S&P 500 that any of them could reliably detect is 0.62% per trade, while the rules as a whole beat the S&P 500 by only +0.04% per trade. The data is too small to trust any finer slicing: a real edge of a realistic size would not show up, and anything that looked good would most likely be noise.**
+**Verdict: No slice passes. 10 of 24 slices have at least 50 trades; after correcting for 24 comparisons (p < 0.0021 each), the smallest average edge over the S&P 500 that any of them could reliably detect is 0.63% per trade, while the rules as a whole beat the S&P 500 by only +0.04% per trade. The data is too small to trust any finer slicing: a real edge of a realistic size would not show up, and anything that looked good would most likely be noise.**
 
-**Closest catalyst: insider_buy_cluster (32 trades, +0.75% per trade vs the S&P 500, p = 0.240, corrected 1.000). It fails: 32 trades (needs 50); p = 0.240, 1.000 after correction (needs < 0.05). If that edge were real, about 809 trades would be needed to confirm it at the corrected threshold.**
+**Closest catalyst: insider_buy_cluster (32 trades, +0.75% per trade vs the S&P 500, p = 0.240, corrected 1.000). It fails: 32 trades (needs 50); p = 0.240, 1.000 after correction (needs < 0.05). If that edge were real, about 828 trades would be needed to confirm it at the corrected threshold.**
 
 The bar, the slices and the correction were fixed before the full results were seen.
 
 | Dimension | Slice | Trades | Win rate | Avg / trade | Sharpe | S&P same days avg | Excess | p | p (corrected) | Smallest detectable excess | Trades needed if the edge is real | Candidate |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| sector | Communication | 3 | 66.7% | -2.13% | – | -1.57% | -0.56% | – | – | 10.01% | – | no (< 50) |
-| sector | Consumer | 25 | 56.0% | +0.91% | 0.87 | +0.99% | -0.08% | 0.524 | 1.000 | 4.03% | – | no (< 50) |
-| sector | Energy | 13 | 30.8% | -1.00% | -1.48 | +1.22% | -2.22% | 0.904 | 1.000 | 5.58% | – | no (< 50) |
-| sector | Financials | 36 | 44.4% | -0.98% | -0.78 | +0.49% | -1.46% | 0.907 | 1.000 | 3.92% | – | no (< 50) |
-| sector | Health care | 133 | 56.4% | +1.34% | 1.20 | +0.52% | +0.81% | 0.086 | 1.000 | 2.16% | 935 | no |
-| sector | Industrials | 20 | 40.0% | -1.03% | -0.98 | +0.11% | -1.14% | 0.784 | 1.000 | 5.08% | – | no (< 50) |
-| sector | Technology | 44 | 52.3% | +0.10% | 0.09 | -0.11% | +0.22% | 0.419 | 1.000 | 3.92% | 14302 | no (< 50) |
-| market cap | Large (>= $10B) | 210 | 51.4% | +0.55% | 0.51 | +0.48% | +0.07% | 0.443 | 1.000 | 1.61% | 115357 | no |
-| market cap | Mid ($2-10B) | 43 | 55.8% | +0.38% | 0.31 | +0.23% | +0.16% | 0.441 | 1.000 | 4.19% | 30342 | no (< 50) |
-| market cap | Small ($300M-2B) | 8 | 62.5% | -0.45% | -0.26 | +0.18% | -0.62% | 0.561 | 1.000 | 10.84% | – | no (< 50) |
-| market cap | Unknown | 13 | 38.5% | +0.12% | 0.11 | +0.62% | -0.49% | 0.599 | 1.000 | 6.73% | – | no (< 50) |
-| holding period | hold exactly 1 session | 274 | 47.8% | +0.01% | 0.05 | -0.06% | +0.07% | 0.338 | 1.000 | 0.62% | 21530 | no |
-| holding period | hold exactly 3 sessions | 274 | 46.0% | +0.07% | 0.13 | +0.17% | -0.11% | 0.647 | 1.000 | 1.03% | – | no |
-| holding period | hold exactly 5 sessions | 274 | 54.4% | +0.36% | 0.42 | +0.31% | +0.06% | 0.437 | 1.000 | 1.35% | 148401 | no |
-| holding period | hold exactly 10 sessions | 274 | 54.0% | +0.76% | 0.43 | +0.51% | +0.25% | 0.325 | 1.000 | 1.97% | 16942 | no |
-| catalyst | earnings_beat | 173 | 52.6% | +0.23% | 0.19 | +0.52% | -0.29% | 0.711 | 1.000 | 1.93% | – | no |
-| catalyst | fda_approval | 50 | 46.0% | +0.60% | 0.75 | +0.63% | -0.03% | 0.510 | 1.000 | 3.00% | – | no |
-| catalyst | guidance_raise | 14 | 50.0% | -0.34% | -0.40 | +0.20% | -0.54% | 0.630 | 1.000 | 5.77% | – | no (< 50) |
-| catalyst | insider_buy_cluster | 32 | 50.0% | +0.55% | 0.49 | -0.20% | +0.75% | 0.240 | 1.000 | 3.75% | 809 | no (< 50) |
-| catalyst | m_and_a_target | 2 | 100.0% | +4.76% | – | -0.26% | +5.01% | – | – | 8.53% | 6 | no (< 50) |
-| catalyst | positive_trial | 3 | 100.0% | +12.86% | – | +1.00% | +11.86% | – | – | 5.61% | 1 | no (< 50) |
+| move since catalyst (by the close) | 0-5% very early | 112 | 49.1% | +0.22% | 0.25 | +0.35% | -0.12% | 0.586 | 1.000 | 2.00% | – | no |
+| move since catalyst (by the close) | 5-10% early | 8 | 37.5% | -1.75% | -1.39 | -0.61% | -1.14% | 0.659 | 1.000 | 9.09% | – | no (< 50) |
+| move since catalyst (by the close) | reversed (< 0%) | 154 | 54.5% | +0.77% | 0.60 | +0.56% | +0.21% | 0.359 | 1.000 | 2.15% | 15974 | no |
+| sector | Communication | 3 | 66.7% | -2.13% | – | -1.57% | -0.56% | – | – | 10.12% | – | no (< 50) |
+| sector | Consumer | 25 | 56.0% | +0.91% | 0.87 | +0.99% | -0.08% | 0.524 | 1.000 | 4.07% | – | no (< 50) |
+| sector | Energy | 13 | 30.8% | -1.00% | -1.48 | +1.22% | -2.22% | 0.904 | 1.000 | 5.65% | – | no (< 50) |
+| sector | Financials | 36 | 44.4% | -0.98% | -0.78 | +0.49% | -1.46% | 0.907 | 1.000 | 3.96% | – | no (< 50) |
+| sector | Health care | 133 | 56.4% | +1.34% | 1.20 | +0.52% | +0.81% | 0.086 | 1.000 | 2.18% | 957 | no |
+| sector | Industrials | 20 | 40.0% | -1.03% | -0.98 | +0.11% | -1.14% | 0.784 | 1.000 | 5.13% | – | no (< 50) |
+| sector | Technology | 44 | 52.3% | +0.10% | 0.09 | -0.11% | +0.22% | 0.419 | 1.000 | 3.96% | 14636 | no (< 50) |
+| market cap | Large (>= $10B) | 210 | 51.4% | +0.55% | 0.51 | +0.48% | +0.07% | 0.443 | 1.000 | 1.63% | 118051 | no |
+| market cap | Mid ($2-10B) | 43 | 55.8% | +0.38% | 0.31 | +0.23% | +0.16% | 0.441 | 1.000 | 4.24% | 31051 | no (< 50) |
+| market cap | Small ($300M-2B) | 8 | 62.5% | -0.45% | -0.26 | +0.18% | -0.62% | 0.561 | 1.000 | 10.97% | – | no (< 50) |
+| market cap | Unknown | 13 | 38.5% | +0.12% | 0.11 | +0.62% | -0.49% | 0.599 | 1.000 | 6.81% | – | no (< 50) |
+| holding period | hold exactly 1 session | 274 | 47.8% | +0.01% | 0.05 | -0.06% | +0.07% | 0.338 | 1.000 | 0.63% | 22033 | no |
+| holding period | hold exactly 3 sessions | 274 | 46.0% | +0.07% | 0.13 | +0.17% | -0.11% | 0.647 | 1.000 | 1.04% | – | no |
+| holding period | hold exactly 5 sessions | 274 | 54.4% | +0.36% | 0.42 | +0.31% | +0.06% | 0.437 | 1.000 | 1.37% | 151867 | no |
+| holding period | hold exactly 10 sessions | 274 | 54.0% | +0.76% | 0.43 | +0.51% | +0.25% | 0.325 | 1.000 | 1.99% | 17338 | no |
+| catalyst | earnings_beat | 173 | 52.6% | +0.23% | 0.19 | +0.52% | -0.29% | 0.711 | 1.000 | 1.95% | – | no |
+| catalyst | fda_approval | 50 | 46.0% | +0.60% | 0.75 | +0.63% | -0.03% | 0.510 | 1.000 | 3.04% | – | no |
+| catalyst | guidance_raise | 14 | 50.0% | -0.34% | -0.40 | +0.20% | -0.54% | 0.630 | 1.000 | 5.83% | – | no (< 50) |
+| catalyst | insider_buy_cluster | 32 | 50.0% | +0.55% | 0.49 | -0.20% | +0.75% | 0.240 | 1.000 | 3.79% | 828 | no (< 50) |
+| catalyst | m_and_a_target | 2 | 100.0% | +4.76% | – | -0.26% | +5.01% | – | – | 8.63% | 6 | no (< 50) |
+| catalyst | positive_trial | 3 | 100.0% | +12.86% | – | +1.00% | +11.86% | – | – | 5.67% | 1 | no (< 50) |
 
 The realised holding period of each stop/target exit is not a slice: it is only known after the trade ends, so filtering on it would use the future. The holding-period rows instead apply a fixed hold, decided before entry, to the same rules entries.
 

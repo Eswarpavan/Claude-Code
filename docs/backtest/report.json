@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-25T05:13:21.070335+00:00",
+ "generated_at": "2026-09-25T05:48:53.372374+00:00",
  "universe": "106 of 106 symbols with prices; SEC 8-K/Form 4 + Finnhub earnings + openFDA",
  "rows_total": 542,
  "rows_out_of_sample": 368,
@@ -254,7 +254,10 @@
  "catalyst_verdicts": {
   "fda_approval": {
    "status": "disabled",
-   "why": "did not beat the S&P 500 over the same days",
+   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.510, 1.000 after correcting for 24 comparisons",
+   "n": 50,
+   "p_value": 0.5100244987750613,
+   "p_bonferroni": 1.0,
    "rules": {
     "n": 50,
     "hit_rate": 0.46,
@@ -272,7 +275,10 @@
   },
   "positive_trial": {
    "status": "untested",
-   "why": "only 3 out-of-sample trades (needs 30)",
+   "why": "only 3 out-of-sample trades: too few to judge (needs 30 to judge, 50 to pass)",
+   "n": 3,
+   "p_value": null,
+   "p_bonferroni": null,
    "rules": {
     "n": 3,
     "hit_rate": 1.0,
@@ -290,7 +296,10 @@
   },
   "guidance_raise": {
    "status": "untested",
-   "why": "only 14 out-of-sample trades (needs 30)",
+   "why": "only 14 out-of-sample trades: too few to judge (needs 30 to judge, 50 to pass)",
+   "n": 14,
+   "p_value": 0.6299685015749212,
+   "p_bonferroni": 1.0,
    "rules": {
     "n": 14,
     "hit_rate": 0.5,
@@ -308,7 +317,10 @@
   },
   "earnings_beat": {
    "status": "disabled",
-   "why": "did not beat the S&P 500 over the same days",
+   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.711, 1.000 after correcting for 24 comparisons",
+   "n": 173,
+   "p_value": 0.7113644317784111,
+   "p_bonferroni": 1.0,
    "rules": {
     "n": 173,
     "hit_rate": 0.526,
@@ -325,8 +337,11 @@
    }
   },
   "insider_buy_cluster": {
-   "status": "enabled",
-   "why": "beat the S&P 500 over the same days on hit rate, return and Sharpe",
+   "status": "disabled",
+   "why": "failed the strict bar: 32 trades (needs 50), not significant after correction; p = 0.240, 1.000 after correcting for 24 comparisons",
+   "n": 32,
+   "p_value": 0.23998800059997,
+   "p_bonferroni": 1.0,
    "rules": {
     "n": 32,
     "hit_rate": 0.5,
@@ -344,7 +359,10 @@
   },
   "contract_win": {
    "status": "untested",
-   "why": "only 0 out-of-sample trades (needs 30)",
+   "why": "no backtest trades: needs a news archive to test, so it is judged on live outcomes (50 needed)",
+   "n": 0,
+   "p_value": null,
+   "p_bonferroni": null,
    "rules": {
     "n": 0,
     "hit_rate": null,
@@ -362,7 +380,10 @@
   },
   "m_and_a_target": {
    "status": "untested",
-   "why": "only 2 out-of-sample trades (needs 30)",
+   "why": "only 2 out-of-sample trades: too few to judge (needs 30 to judge, 50 to pass)",
+   "n": 2,
+   "p_value": null,
+   "p_bonferroni": null,
    "rules": {
     "n": 2,
     "hit_rate": 1.0,
@@ -380,7 +401,10 @@
   },
   "upgrade": {
    "status": "untested",
-   "why": "only 0 out-of-sample trades (needs 30)",
+   "why": "no backtest trades: needs a news archive to test, so it is judged on live outcomes (50 needed)",
+   "n": 0,
+   "p_value": null,
+   "p_bonferroni": null,
    "rules": {
     "n": 0,
     "hit_rate": null,
@@ -705,24 +729,105 @@
    "mean_excess_pct": 0.7464,
    "p_value": 0.23998800059997,
    "p_bonferroni": 1.0,
-   "min_detectable_excess_pct": 3.752,
-   "trades_needed": 809,
+   "min_detectable_excess_pct": 3.795,
+   "trades_needed": 828,
    "passes": false,
    "misses": [
     "32 trades (needs 50)",
     "p = 0.240, 1.000 after correction (needs < 0.05)"
    ],
-   "plain": "Closest catalyst: insider_buy_cluster (32 trades, +0.75% per trade vs the S&P 500, p = 0.240, corrected 1.000). It fails: 32 trades (needs 50); p = 0.240, 1.000 after correction (needs < 0.05). If that edge were real, about 809 trades would be needed to confirm it at the corrected threshold."
+   "plain": "Closest catalyst: insider_buy_cluster (32 trades, +0.75% per trade vs the S&P 500, p = 0.240, corrected 1.000). It fails: 32 trades (needs 50); p = 0.240, 1.000 after correction (needs < 0.05). If that edge were real, about 828 trades would be needed to confirm it at the corrected threshold."
   },
   "rules_trades": 274,
-  "comparisons": 21,
-  "alpha_per_test": 0.002380952380952381,
+  "comparisons": 24,
+  "alpha_per_test": 0.0020833333333333333,
   "min_trades": 50,
   "test": "one-sided sign-flip permutation on per-trade excess return vs the S&P 500 over the same days",
   "correction": "Bonferroni",
   "overall_mean_excess_pct": 0.0358,
   "candidates": [],
   "slices": [
+   {
+    "slice": "0-5% very early",
+    "dimension": "move since catalyst (by the close)",
+    "n": 112,
+    "strategy": {
+     "n": 112,
+     "hit_rate": 0.4911,
+     "mean_pct": 0.2235,
+     "median_pct": -0.0758,
+     "sharpe": 0.254
+    },
+    "spy_same_days": {
+     "n": 112,
+     "hit_rate": 0.4911,
+     "mean_pct": 0.3454,
+     "median_pct": -0.1556,
+     "sharpe": 0.808
+    },
+    "mean_excess_pct": -0.1219,
+    "sd_excess_pct": 5.7112,
+    "beats_spy": false,
+    "p_value": 0.5855707214639269,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 2.0,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "5-10% early",
+    "dimension": "move since catalyst (by the close)",
+    "n": 8,
+    "strategy": {
+     "n": 8,
+     "hit_rate": 0.375,
+     "mean_pct": -1.7525,
+     "median_pct": -4.7743,
+     "sharpe": -1.393
+    },
+    "spy_same_days": {
+     "n": 8,
+     "hit_rate": 0.375,
+     "mean_pct": -0.6145,
+     "median_pct": -0.821,
+     "sharpe": -3.063
+    },
+    "mean_excess_pct": -1.138,
+    "sd_excess_pct": 6.9366,
+    "beats_spy": false,
+    "p_value": 0.6590670466476676,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 9.091,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "reversed (< 0%)",
+    "dimension": "move since catalyst (by the close)",
+    "n": 154,
+    "strategy": {
+     "n": 154,
+     "hit_rate": 0.5455,
+     "mean_pct": 0.7716,
+     "median_pct": 0.4657,
+     "sharpe": 0.601
+    },
+    "spy_same_days": {
+     "n": 154,
+     "hit_rate": 0.5065,
+     "mean_pct": 0.56,
+     "median_pct": 0.0141,
+     "sharpe": 1.309
+    },
+    "mean_excess_pct": 0.2116,
+    "sd_excess_pct": 7.2146,
+    "beats_spy": false,
+    "p_value": 0.3586320683965802,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 2.155,
+    "trades_needed": 15974,
+    "candidate": false
+   },
    {
     "slice": "Communication",
     "dimension": "sector",
@@ -746,7 +851,7 @@
     "beats_spy": false,
     "p_value": null,
     "p_bonferroni": null,
-    "min_detectable_excess_pct": 10.006,
+    "min_detectable_excess_pct": 10.122,
     "trades_needed": null,
     "candidate": false
    },
@@ -773,7 +878,7 @@
     "beats_spy": false,
     "p_value": 0.5238738063096845,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 4.026,
+    "min_detectable_excess_pct": 4.073,
     "trades_needed": null,
     "candidate": false
    },
@@ -800,7 +905,7 @@
     "beats_spy": false,
     "p_value": 0.9043047847607619,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 5.582,
+    "min_detectable_excess_pct": 5.647,
     "trades_needed": null,
     "candidate": false
    },
@@ -827,7 +932,7 @@
     "beats_spy": false,
     "p_value": 0.9072546372681366,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 3.919,
+    "min_detectable_excess_pct": 3.965,
     "trades_needed": null,
     "candidate": false
    },
@@ -854,8 +959,8 @@
     "beats_spy": true,
     "p_value": 0.08599570021498926,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 2.158,
-    "trades_needed": 935,
+    "min_detectable_excess_pct": 2.183,
+    "trades_needed": 957,
     "candidate": false
    },
    {
@@ -881,7 +986,7 @@
     "beats_spy": false,
     "p_value": 0.783660816959152,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 5.076,
+    "min_detectable_excess_pct": 5.135,
     "trades_needed": null,
     "candidate": false
    },
@@ -908,8 +1013,8 @@
     "beats_spy": true,
     "p_value": 0.41882905854707264,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 3.918,
-    "trades_needed": 14302,
+    "min_detectable_excess_pct": 3.963,
+    "trades_needed": 14636,
     "candidate": false
    },
    {
@@ -935,8 +1040,8 @@
     "beats_spy": false,
     "p_value": 0.44342782860856955,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 1.61,
-    "trades_needed": 115357,
+    "min_detectable_excess_pct": 1.629,
+    "trades_needed": 118051,
     "candidate": false
    },
    {
@@ -962,8 +1067,8 @@
     "beats_spy": false,
     "p_value": 0.4406779661016949,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 4.192,
-    "trades_needed": 30342,
+    "min_detectable_excess_pct": 4.24,
+    "trades_needed": 31051,
     "candidate": false
    },
    {
@@ -989,7 +1094,7 @@
     "beats_spy": false,
     "p_value": 0.5606219689015549,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 10.841,
+    "min_detectable_excess_pct": 10.967,
     "trades_needed": null,
     "candidate": false
    },
@@ -1016,7 +1121,7 @@
     "beats_spy": false,
     "p_value": 0.5990700464976751,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 6.728,
+    "min_detectable_excess_pct": 6.807,
     "trades_needed": null,
     "candidate": false
    },
@@ -1043,8 +1148,8 @@
     "beats_spy": true,
     "p_value": 0.3382830858457077,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 0.623,
-    "trades_needed": 21530,
+    "min_detectable_excess_pct": 0.63,
+    "trades_needed": 22033,
     "candidate": false
    },
    {
@@ -1070,7 +1175,7 @@
     "beats_spy": false,
     "p_value": 0.6470676466176691,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 1.026,
+    "min_detectable_excess_pct": 1.038,
     "trades_needed": null,
     "candidate": false
    },
@@ -1097,8 +1202,8 @@
     "beats_spy": false,
     "p_value": 0.4373781310934453,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 1.354,
-    "trades_needed": 148401,
+    "min_detectable_excess_pct": 1.37,
+    "trades_needed": 151867,
     "candidate": false
    },
    {
@@ -1124,8 +1229,8 @@
     "beats_spy": false,
     "p_value": 0.3247837608119594,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 1.969,
-    "trades_needed": 16942,
+    "min_detectable_excess_pct": 1.992,
+    "trades_needed": 17338,
     "candidate": false
    },
    {
@@ -1151,7 +1256,7 @@
     "beats_spy": false,
     "p_value": 0.7113644317784111,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 1.928,
+    "min_detectable_excess_pct": 1.95,
     "trades_needed": null,
     "candidate": false
    },
@@ -1178,7 +1283,7 @@
     "beats_spy": false,
     "p_value": 0.5100244987750613,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 3.002,
+    "min_detectable_excess_pct": 3.036,
     "trades_needed": null,
     "candidate": false
    },
@@ -1205,7 +1310,7 @@
     "beats_spy": false,
     "p_value": 0.6299685015749212,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 5.767,
+    "min_detectable_excess_pct": 5.833,
     "trades_needed": null,
     "candidate": false
    },
@@ -1232,8 +1337,8 @@
     "beats_spy": true,
     "p_value": 0.23998800059997,
     "p_bonferroni": 1.0,
-    "min_detectable_excess_pct": 3.752,
-    "trades_needed": 809,
+    "min_detectable_excess_pct": 3.795,
+    "trades_needed": 828,
     "candidate": false
    },
    {
@@ -1259,7 +1364,7 @@
     "beats_spy": false,
     "p_value": null,
     "p_bonferroni": null,
-    "min_detectable_excess_pct": 8.533,
+    "min_detectable_excess_pct": 8.632,
     "trades_needed": 6,
     "candidate": false
    },
@@ -1286,12 +1391,12 @@
     "beats_spy": false,
     "p_value": null,
     "p_bonferroni": null,
-    "min_detectable_excess_pct": 5.61,
+    "min_detectable_excess_pct": 5.675,
     "trades_needed": 1,
     "candidate": false
    }
   ],
-  "plain": "No slice passes. 8 of 21 slices have at least 50 trades; after correcting for 21 comparisons (p < 0.0024 each), the smallest average edge over the S&P 500 that any of them could reliably detect is 0.62% per trade, while the rules as a whole beat the S&P 500 by only +0.04% per trade. The data is too small to trust any finer slicing: a real edge of a realistic size would not show up, and anything that looked good would most likely be noise."
+  "plain": "No slice passes. 10 of 24 slices have at least 50 trades; after correcting for 24 comparisons (p < 0.0021 each), the smallest average edge over the S&P 500 that any of them could reliably detect is 0.63% per trade, while the rules as a whole beat the S&P 500 by only +0.04% per trade. The data is too small to trust any finer slicing: a real edge of a realistic size would not show up, and anything that looked good would most likely be noise."
  },
  "note": "106 of 106 symbols with prices; SEC 8-K/Form 4 + Finnhub earnings + openFDA",
  "diagnostics": {
@@ -1370,7 +1475,31 @@
    "80+ vs 65-80"
   ],
   "plain": "Higher confidence did WORSE (lower win rate and lower average return) for: top 10 vs the rest; 80+ vs 65-80. The confidence score does not rank trades and must be rebuilt before it is used for anything, including 'top signals' displays. With only 10 trades the top-10 row alone proves nothing either way; the 65-80 vs 80+ comparison has more trades.",
+  "fill_check": {
+   "all_fresh_events": {
+    "n": 131,
+    "still_0_5_pct": 83.2,
+    "moved_5_15_pct": 7.6,
+    "extended_pct": 0.0,
+    "reversed_pct": 9.2,
+    "skipped_by_gap_rule_pct": 0.0,
+    "skipped_by_catalyst_rule_pct": 9.2,
+    "qualify_at_fill_pct": 90.8
+   },
+   "fresh_rules_signals": {
+    "n": 112,
+    "still_0_5_pct": 83.9,
+    "moved_5_15_pct": 6.2,
+    "extended_pct": 0.0,
+    "reversed_pct": 9.8,
+    "skipped_by_gap_rule_pct": 0.0,
+    "skipped_by_catalyst_rule_pct": 9.8,
+    "qualify_at_fill_pct": 90.2
+   },
+   "limitation": "End-of-day data only: 'fresh' means 0-5% by the decision-day close, not within the first hour; intraday moves before the close are not visible here.",
+   "plain": "90% of fresh 0-5% signals still qualified at the next-day open; most were still buyable the next morning."
+  },
   "note": "Diagnostic only: not counted toward the bar or the Bonferroni correction."
  },
- "run_id": 2
+ "run_id": 3
 }

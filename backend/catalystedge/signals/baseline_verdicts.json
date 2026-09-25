@@ -3,7 +3,7 @@
  "verdicts": {
   "fda_approval": {
    "status": "disabled",
-   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.510, 1.000 after correcting for 21 comparisons",
+   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.510, 1.000 after correcting for 24 comparisons",
    "n": 50,
    "p_value": 0.5100244987750613,
    "p_bonferroni": 1.0,
@@ -66,7 +66,7 @@
   },
   "earnings_beat": {
    "status": "disabled",
-   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.711, 1.000 after correcting for 21 comparisons",
+   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.711, 1.000 after correcting for 24 comparisons",
    "n": 173,
    "p_value": 0.7113644317784111,
    "p_bonferroni": 1.0,
@@ -87,7 +87,7 @@
   },
   "insider_buy_cluster": {
    "status": "disabled",
-   "why": "failed the strict bar: 32 trades (needs 50), not significant after correction; p = 0.240, 1.000 after correcting for 21 comparisons",
+   "why": "failed the strict bar: 32 trades (needs 50), not significant after correction; p = 0.240, 1.000 after correcting for 24 comparisons",
    "n": 32,
    "p_value": 0.23998800059997,
    "p_bonferroni": 1.0,
@@ -177,5 +177,29 @@
   ],
   "plain": "Higher confidence did WORSE (lower win rate and lower average return) for: top 10 vs the rest; 80+ vs 65-80. The confidence score does not rank trades and must be rebuilt before it is used for anything, including 'top signals' displays. With only 10 trades the top-10 row alone proves nothing either way; the 65-80 vs 80+ comparison has more trades."
  },
- "bar": "ON only with >= 50 trades that beat the S&P 500 over the same days (win rate, average return, Sharpe) and p < 0.05 after a Bonferroni correction; >= 30 trades and failed = OFF; fewer than 30 = unproven"
+ "bar": "ON only with >= 50 trades that beat the S&P 500 over the same days (win rate, average return, Sharpe) and p < 0.05 after a Bonferroni correction; >= 30 trades and failed = OFF; fewer than 30 = unproven",
+ "fill_check": {
+  "all_fresh_events": {
+   "n": 131,
+   "still_0_5_pct": 83.2,
+   "moved_5_15_pct": 7.6,
+   "extended_pct": 0.0,
+   "reversed_pct": 9.2,
+   "skipped_by_gap_rule_pct": 0.0,
+   "skipped_by_catalyst_rule_pct": 9.2,
+   "qualify_at_fill_pct": 90.8
+  },
+  "fresh_rules_signals": {
+   "n": 112,
+   "still_0_5_pct": 83.9,
+   "moved_5_15_pct": 6.2,
+   "extended_pct": 0.0,
+   "reversed_pct": 9.8,
+   "skipped_by_gap_rule_pct": 0.0,
+   "skipped_by_catalyst_rule_pct": 9.8,
+   "qualify_at_fill_pct": 90.2
+  },
+  "limitation": "End-of-day data only: 'fresh' means 0-5% by the decision-day close, not within the first hour; intraday moves before the close are not visible here.",
+  "plain": "90% of fresh 0-5% signals still qualified at the next-day open; most were still buyable the next morning."
+ }
 }
