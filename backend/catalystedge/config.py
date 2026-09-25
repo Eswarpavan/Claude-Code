@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     sec_user_agent: str | None = Field(None, alias="SEC_USER_AGENT")
 
     tiingo_news_enabled: bool = Field(False, alias="TIINGO_NEWS_ENABLED")
+    # Official newswire RSS feeds (primary sources). Set a URL empty to switch that wire off.
+    globenewswire_rss_url: str = Field(
+        "https://www.globenewswire.com/RssFeed/orgclass/1/feedTitle/GlobeNewswire%20-%20News%20about%20Public%20Companies",
+        alias="GLOBENEWSWIRE_RSS_URL")
+    prnewswire_rss_url: str = Field("https://www.prnewswire.com/rss/news-releases-list.rss",
+                                    alias="PRNEWSWIRE_RSS_URL")
+    businesswire_rss_url: str = Field("https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGVtRWA==",
+                                      alias="BUSINESSWIRE_RSS_URL")
     # Company-news queries on every poll, in addition to holdings and tickers with fresh positive events.
     # Market-wide headlines rarely carry company catalysts, so this list sets the discovery breadth.
     news_watchlist: str = Field(

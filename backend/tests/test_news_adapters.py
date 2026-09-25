@@ -130,7 +130,9 @@ def test_collect_reports_every_source_and_applies_window(http, transport):
     items, reports = collect_news(adapters, NOW, symbols=["AAPL"])
     status = {r.source_key: r.status for r in reports}
     assert status == {"finnhub_news": "ok", "marketaux_news": "ok", "alphavantage_news": "ok",
-                      "tiingo_news": "ok", "benzinga_news": "disabled", "investing_rss": "disabled"}
+                      "tiingo_news": "ok", "benzinga_news": "disabled", "investing_rss": "disabled",
+                      # recorded fixtures contain no newswire feeds, so they are off in fixture mode
+                      "globenewswire_rss": "disabled", "prnewswire_rss": "disabled", "businesswire_rss": "disabled"}
     fh = next(r for r in reports if r.source_key == "finnhub_news")
     assert fh.in_future == 1          # the item dated 2h after "now"
     assert all(NOW - dt.timedelta(hours=48) <= i.published_at <= NOW for i in items)
@@ -152,7 +154,10 @@ def test_live_mode_without_keys_reports_disabled_not_errors(http, monkeypatch):
         monkeypatch.delenv(var, raising=False)
     adapters = build_news_adapters(Settings(_env_file=None, CATALYSTEDGE_DATA_MODE="live"), http)
     _, reports = collect_news(adapters, NOW)
-    assert {r.status for r in reports} == {"disabled"}
+    keyed = {"finnhub_news", "marketaux_news", "alphavantage_news", "tiingo_news", "benzinga_news", "investing_rss"}
+    assert {r.status for r in reports if r.source_key in keyed} == {"disabled"}
+    # the newswire feeds need no key, so they are on (here they fail: the test transport has no such feed)
+    assert {r.source_key for r in reports} - keyed == {"globenewswire_rss", "prnewswire_rss", "businesswire_rss"}
 
 
 # ----------------------------------------------------------------------------- dedupe

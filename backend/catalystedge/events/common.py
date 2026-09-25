@@ -67,7 +67,14 @@ def add_event(session: Session, *, symbol: str, event_type: str, origin: str, he
               available_at=available_at, polarity=polarity, strength=strength if polarity == "positive" else None,
               sentiment=sentiment, mixed_resolution=mixed, materiality=materiality, novelty=1.0,
               credibility=credibility, reasons=reasons, classifier_version=classifier_version, accession=accession,
-              fda_event_id=fda_event_id, earnings_key=earnings_key)
+              fda_event_id=fda_event_id, earnings_key=earnings_key, verification="primary", original_url=url)
     session.add(e)
+    session.flush()
+    # The same announcement already seen through a news aggregator is now confirmed by this primary source.
+    from catalystedge.pipeline.run import is_primary_event, same_catalyst
+
+    for other in same_catalyst(session, symbol, event_type, available_at):
+        if other.id != e.id and not is_primary_event(other):
+            other.verification, other.original_url = "verified", url
     session.flush()
     return e

@@ -31,6 +31,7 @@ class SourceSpec:
     hourly_budget: int | None = None   # max calls per UTC hour (Tiingo free: 50/h)
     rate_group: str | None = None      # sources sharing one provider key share spacing and budgets
     shared_spacing: bool = False       # limit is per IP/key: spacing shared by every process (core.ratelimit)
+    primary: bool = False              # original/authoritative source (SEC, newswire, agency): confirms a catalyst
 
     @property
     def group(self) -> str:
@@ -50,22 +51,27 @@ SOURCES: dict[str, SourceSpec] = {
         SourceSpec("tiingo_news", "news", True, False, 0.7, 1.0, 1000, 600, 900, enabled_by_default=False),
         # SEC fair-access policy: max 10 requests/s with a declared User-Agent. We use at most ~6/s.
         SourceSpec("sec_edgar", "event", True, False, 1.0, 0.15, None, 86400, 600, rate_group="sec",
-                   shared_spacing=True),
+                   shared_spacing=True, primary=True),
         # The "latest filings" Atom feed changes every minute: short cache, same SEC rate group.
         SourceSpec("sec_feed", "event", True, False, 1.0, 0.15, None, 240, 600, rate_group="sec",
                    shared_spacing=True),
         # Finnhub earnings calendar (actual vs estimate); shares the 60/min key limit.
         SourceSpec("finnhub_earnings", "event", True, False, 1.0, 1.2, 200, 1800, 3600, rate_group="finnhub"),
         # openFDA: 240/min, 1,000/day per IP without a key. We spend at most 300/day.
-        SourceSpec("openfda", "event", True, False, 1.0, 0.5, 300, 3600, 21600),
+        SourceSpec("openfda", "event", True, False, 1.0, 0.5, 300, 3600, 21600, primary=True),
         # ClinicalTrials.gov v2: ~50/min per IP (third-party reported). We stay far below.
-        SourceSpec("clinicaltrials", "event", True, False, 0.9, 1.5, 300, 3600, 21600),
+        SourceSpec("clinicaltrials", "event", True, False, 0.9, 1.5, 300, 3600, 21600, primary=True),
         # Prices. Tiingo free (confirmed live): 50 req/h, 1,000/day, 500 unique symbols/month. We use 45/h, 900/day.
         SourceSpec("tiingo_eod", "price", True, False, 1.0, 0.5, 900, 3600, 86400, hourly_budget=45),
         # Finnhub /quote shares the news endpoint's 60/min key limit.
         SourceSpec("finnhub_quote", "price", True, False, 1.0, 1.2, 5000, 30, 86400, rate_group="finnhub"),
         # Unofficial fallbacks (FRAGILE): no published limits; stay very polite.
         SourceSpec("stooq_eod", "price", False, True, 0.8, 2.0, 200, 3600, 86400),
+        # Newswire RSS (public syndication feeds): primary sources for company announcements. No published
+        # limits: one request per feed every 5 minutes, >= 2 s apart, cached for 4 minutes.
+        SourceSpec("globenewswire_rss", "news", True, False, 0.95, 2.0, 400, 240, 300, primary=True),
+        SourceSpec("prnewswire_rss", "news", True, False, 0.95, 2.0, 400, 240, 300, primary=True),
+        SourceSpec("businesswire_rss", "news", True, False, 0.95, 2.0, 400, 240, 300, primary=True),
         SourceSpec("benzinga_news", "news", True, False, 0.75, 1.0, None, 600, 900, enabled_by_default=False,
                    note="disabled stub: revisit after Phase 1"),
         SourceSpec("investing_rss", "news", True, False, 0.5, 60.0, None, 1800, 1800, enabled_by_default=False,

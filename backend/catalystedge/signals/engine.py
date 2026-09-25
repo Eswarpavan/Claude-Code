@@ -201,6 +201,13 @@ def generate_signals(session: Session, now: dt.datetime, *,
             confidence, calib_id = cal
             calibrated = True
 
+        # Source verification: is the catalyst confirmed by an original source? Flag only (not a filter).
+        ver = ("primary" if any(e.origin != "news" or e.verification == "primary" for e in evs)
+               else "verified" if any(e.verification == "verified" for e in evs) else "unverified")
+        feats["verification"] = ver
+        if ver == "unverified":
+            r.risk_notes.append("Unverified: only news-aggregator reports so far, no original source (SEC filing, "
+                                "newswire, company or agency release) found yet.")
         # Contradiction check: recent SEC filings that cut against the story. Flags only (untested as a filter).
         from catalystedge.events.sec_forms import filing_flags, risk_notes
 

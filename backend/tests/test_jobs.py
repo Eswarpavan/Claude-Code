@@ -62,7 +62,7 @@ def test_news_job_stores_events_and_source_health(clean):
         assert srcs["finnhub_news"].status == "ok" and srcs["finnhub_news"].last_success_at is not None
         assert srcs["benzinga_news"].status == "disabled"
         assert s.scalar(select(Event).where(Event.symbol == "NVDA", Event.polarity == "positive")) is not None
-        assert len(s.scalars(select(SourceRun)).all()) == 6
+        assert len(s.scalars(select(SourceRun)).all()) == 9     # 6 aggregator/stub feeds + 3 newswires
     with ctx.session_factory() as s:
         before = s.scalar(text("SELECT count(*) FROM events"))
     jobs.job_news(ctx)          # the watchlist now adds company-news queries, but nothing is stored twice

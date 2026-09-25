@@ -93,6 +93,27 @@ export function TickerHover({ signal, children }: { signal: SignalT; children: R
               ))}
             </ul>
           </div>
+          {signal.verification && (
+            <p className="text-xs">
+              <span className="font-medium text-subtle">Source check: </span>
+              {signal.verification === "primary" ? "from an original source (SEC filing, newswire, company or agency)"
+                : signal.verification === "verified" ? "news report confirmed by an original source"
+                : <span className="text-warning-fg">unverified: news-aggregator reports only so far</span>}
+            </p>
+          )}
+          {signal.filing_flags && signal.filing_flags.length > 0 && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-subtle">Recent SEC filings (context, not in the score)</p>
+              <ul className="space-y-0.5 text-xs">
+                {signal.filing_flags.slice(0, 4).map((f) => (
+                  <li key={f.url} className={f.tone === "negative" ? "text-warning-fg" : "text-muted"}>
+                    <a href={f.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{f.form}</a>{" "}
+                    {f.filed_at.slice(0, 10)}: {f.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <TimesFMHoverLines tag={signal.timesfm} />
           <div>
             <p className="mb-1 text-xs font-medium text-subtle">Why</p>

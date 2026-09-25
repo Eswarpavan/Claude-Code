@@ -154,7 +154,11 @@ def signal_json(s: Session, sig: Signal, now: dt.datetime, detail: bool = False)
         "news_at": latest.isoformat() if latest else None,
         "hours_since_news": round((now - latest).total_seconds() / 3600, 1) if latest else None,
         "headlines": [{"headline": e.headline, "url": e.url, "source": e.source_key, "at": e.available_at.isoformat(),
-                       "event_type": e.event_type, "strength": e.strength} for e in events[:5]],
+                       "event_type": e.event_type, "strength": e.strength,
+                       "verification": e.verification or ("primary" if e.origin != "news" else "unverified"),
+                       "original_url": e.original_url} for e in events[:5]],
+        "verification": (sig.features or {}).get("verification"),
+        "filing_flags": (sig.features or {}).get("filing_flags") or [],
         "sentiment": {k: round(sum(x.get(k, 0) for x in senti) / len(senti), 3) for k in ("pos", "neu", "neg")}
         if senti else None,
         "sentiment_model": senti[0].get("model") if senti else None,

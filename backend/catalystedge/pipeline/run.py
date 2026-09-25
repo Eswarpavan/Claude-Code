@@ -68,6 +68,27 @@ def credibility(cluster: Cluster) -> float:
     return round(min(1.0, base + 0.05 * (len(cluster.sources) - 1)), 3)
 
 
+SAME_CATALYST_WINDOW = dt.timedelta(hours=36)
+
+
+def same_catalyst(session: Session, symbol: str, event_type: str, at: dt.datetime,
+                  exclude_news_id: int | None = None) -> list[Event]:
+    """Existing events for the same company and catalyst type within 36 hours (primary sources first)."""
+    if event_type == "other":
+        return []
+    q = select(Event).where(Event.symbol == symbol, Event.event_type == event_type,
+                            Event.available_at > at - SAME_CATALYST_WINDOW,
+                            Event.available_at < at + SAME_CATALYST_WINDOW)
+    if exclude_news_id is not None:
+        q = q.where(Event.news_item_id.is_(None) | (Event.news_item_id != exclude_news_id))
+    rows = session.scalars(q.order_by(Event.available_at)).all()
+    return sorted(rows, key=lambda r: not is_primary_event(r))
+
+
+def is_primary_event(e: Event) -> bool:
+    return e.origin != "news" or e.verification == "primary"
+
+
 def persist(session: Session, processed: Sequence[Processed], fetched_at: dt.datetime) -> int:
     """Store news, links, ambiguity log and events. Returns the number of new events."""
     rep_ids = store_clusters(session, [p.cluster for p in processed], fetched_at)
@@ -77,7 +98,19 @@ def persist(session: Session, processed: Sequence[Processed], fetched_at: dt.dat
         news_id = rep_ids[id(p.cluster)]
         store_links(session, news_id, rep.headline, p.link)
         available_at = news_available_at(rep.published_at, fetched_at)
+        primary = p.cluster.is_primary
         for e in p.events:
+            # One underlying announcement, one event. Only when a primary source is involved: a newswire or
+            # filing confirms earlier aggregator reports (they become 'verified'), and an aggregator report of an
+            # announcement already on record adds nothing. Aggregator-vs-aggregator stays as before.
+            same = same_catalyst(session, e.symbol, e.event_type, available_at, exclude_news_id=news_id)
+            if primary and same:
+                for old in same:
+                    if not is_primary_event(old):
+                        old.verification, old.original_url = "verified", rep.url
+                continue
+            if not primary and same and is_primary_event(same[0]):
+                continue
             recent = session.scalar(select(Event.id).where(
                 Event.symbol == e.symbol, Event.event_type == e.event_type, Event.news_item_id != news_id,
                 Event.available_at >= available_at - NOVELTY_LOOKBACK, Event.available_at < available_at).limit(1))
@@ -87,7 +120,9 @@ def persist(session: Session, processed: Sequence[Processed], fetched_at: dt.dat
                        polarity=e.polarity, strength=e.strength, sentiment=e.sentiment,
                        mixed_resolution=e.mixed_resolution, materiality=e.materiality, novelty=novelty,
                        credibility=credibility(p.cluster), reasons=list(e.reasons),
-                       classifier_version=e.classifier_version)
+                       classifier_version=e.classifier_version,
+                       verification="primary" if primary else "unverified",
+                       original_url=rep.url if primary else None)
             inserted = session.execute(insert(Event).values(row).on_conflict_do_nothing(
                 constraint="uq_events_news").returning(Event.id)).scalar_one_or_none()
             new_events += inserted is not None

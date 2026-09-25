@@ -32,6 +32,8 @@ export type SignalT = {
   shap?: { base: number; top: { feature: string; contribution: number; plain: string }[] } | null;
   timesfm?: TimesFMTag | null;
   llm_why?: { text: string; model: string; label: string } | null;
+  verification?: "primary" | "verified" | "unverified" | null;
+  filing_flags?: { kind: string; tone: string; form: string; text: string; filed_at: string; url: string }[];
   rule_components?: Record<string, number> | null;
   reaction_since_news_pct?: number | null;
 };

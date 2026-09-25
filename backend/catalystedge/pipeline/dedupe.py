@@ -57,8 +57,18 @@ class Cluster:
 
     @property
     def representative(self) -> RawNews:
-        """The earliest report of the story."""
-        return min(self.members, key=lambda m: (m.published_at, m.source_key))
+        """The canonical report: the original newswire/agency release when one is in the cluster (earliest of
+        those), otherwise the earliest report."""
+        from catalystedge.sources import SOURCES
+
+        primaries = [m for m in self.members if getattr(SOURCES.get(m.source_key), "primary", False)]
+        return min(primaries or self.members, key=lambda m: (m.published_at, m.source_key))
+
+    @property
+    def is_primary(self) -> bool:
+        from catalystedge.sources import SOURCES
+
+        return getattr(SOURCES.get(self.representative.source_key), "primary", False)
 
     @property
     def provider_tickers(self) -> dict[str, float]:
