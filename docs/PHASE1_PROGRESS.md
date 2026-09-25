@@ -2,31 +2,45 @@
 
 *Last updated 2026-09-24. Read this first when continuing in a new session.*
 
-## Current status (session 018K, updated 2026-09-25)
+## Current status (session 018K, updated 2026-09-25 23:00 UTC)
 
-Everything in the spec is built. Tests: **438 backend** (Postgres 16) + **18 frontend** passing; ruff,
-eslint and typecheck are clean; CI is green. Both sessions' work is merged on `claude/adoring-dirac-ohiyp8`.
+Tests: 500+ backend (Postgres 16) and 20 frontend passing; CI green on the latest commits. Everything is
+committed and pushed on `claude/adoring-dirac-ohiyp8`.
 
-| Part | Status |
-|---|---|
-| Prices, paper account ($100, next-open fills, no same-day sells), outcomes, email alerts, scheduler, refresh + SSE, API + login, dashboard, Docker | done and tested (details in earlier commits) |
-| TimesFM toggle | done: Settings toggle, header indicator, feature/filter modes, fallback when unavailable, signals **and paper trades/positions tagged** (History and Portfolio badges), with/without comparison on the Backtest page |
-| Ollama explanations | done, **off by default** (`LLM_ENABLED=false`); adds text only (`features.llm_why`), never changes scores; fails safe when Ollama is missing; Settings shows its status; README has setup |
-| Deployment checks | worker heartbeat in `/health`; `POST /api/notifications/test` + Settings "Send test email"; `python -m catalystedge verify-deployment` checks a live deployment end to end |
-| Cloud compose | refuses to start without `APP_PASSWORD`; email runs follow the news schedule so Neon's free 100 CU-hours are not exceeded; Neon `postgresql://` strings work as pasted |
-| Backtest verdicts | shipped in `signals/baseline_verdicts.json` and used when a database has no backtest (fresh PC or Neon): earnings_beat and fda_approval **off**, insider_buy_cluster on, the rest on-but-unproven |
-| Auto-buy | **OFF**, locked until 30 closed trades or a calibrated backtest; confidence **UNCALIBRATED** |
+### Decisions in force
+- **Strict bar** for live catalysts: ON only with >= 50 trades that beat the S&P 500 over the same days
+  (win rate, average return, Sharpe) and p < 0.05 after Bonferroni. Tested on >= 30 trades and failed = OFF;
+  fewer = unproven. Today: insider buying, earnings beats, FDA approvals OFF; the rest unproven; none ON.
+- Confidence stays UNCALIBRATED and does **not** rank trades (80+ did worse than 65-80); auto-buy OFF.
+- Nothing untested changes live scores: filing contradictions, halts, verification status, move since the
+  catalyst and short interest are all **flags only**.
+- No scraping: official APIs/feeds only; the unofficial Yahoo price endpoint was removed.
 
-Guides: `docs/WINDOWS_LOCAL.md` (run on Windows with Docker Desktop) and `docs/DEPLOY_FREE.md`
-(Oracle + Neon + Upstash + Vercel, click by click, with the live check).
+### Built in this round
+| Part | Where | Live-checked here? |
+|---|---|---|
+| Strict bar, shipped baseline verdicts | `backtest/slices.py`, `signals/catalyst_status.py`, `signals/baseline_verdicts.json` | yes |
+| SEC spacing shared across processes (Redis script / lock file) | `core/ratelimit.py` | yes (3 processes, 2 Redis clients) |
+| Next-open re-check (gap rule + move-since-catalyst rule, logged separately), qualify-at-fill rate | `paper/engine.py`, `backtest/raw.py`, Backtest page | backtest: 90% of fresh signals still qualify |
+| SEC forms: 13D/13G (EDGAR's new "SCHEDULE" names), S-3, 424B, 10-Q/10-K, NT late filings, tender offers; contradiction flags | `events/sec_forms.py` | yes: 163 filings, 12 form types |
+| Newswire RSS (GlobeNewswire, PR Newswire, Business Wire) as primary sources; one event per announcement; verification status | `adapters/news/rss.py`, `pipeline/run.py` | no: hosts blocked here |
+| Nasdaq Trader halts (incl. LULD) as a risk flag | `events/halts.py` | no: host blocked |
+| Government contracts: DoD daily RSS, USAspending, SAM.gov (key); material only if >= 1% of market cap | `events/gov_contracts.py` | no: hosts blocked |
+| FDA press-release RSS as a primary source | news registry | no: host blocked |
+| Tiingo move since catalyst + extended status; EOD relative volume | `signals/market_check.py` | yes: 1 request, 2 quotes |
+| FINRA short interest (context) | `events/short_interest.py` | no: host blocked |
+| Macro context: Fed + BLS RSS, FRED release calendar (key) | `events/macro.py`, Signals page card | no: hosts blocked |
+| Source Health connector states + manual-only list | `connector_status.py`, Sources page | yes |
 
-### Only the user can do
-- Create the accounts (Oracle, Neon, Upstash, Vercel, DuckDNS, Resend) and follow `docs/DEPLOY_FREE.md`;
-  then run `verify-deployment` on the server (step 7) to prove the scheduler, refresh and an email work live.
-- Optional network domains for this sandbox: `clinicaltrials.gov`, `api.fda.gov`,
-  `stooq.com`. (Yahoo is no longer used: its price endpoint was unofficial and has been removed.)
-- Optional keys: `MARKETAUX_API_KEY`, `ALPHAVANTAGE_API_KEY`.
-- Replace the Finnhub and Tiingo keys that were pasted into chat earlier.
+### Waiting on the user
+- Allow these hosts in the cloud environment's network settings to live-check the new connectors here:
+  `www.globenewswire.com`, `www.prnewswire.com`, `feed.businesswire.com`, `www.nasdaqtrader.com`,
+  `www.defense.gov`, `api.usaspending.gov`, `api.sam.gov`, `www.fda.gov`, `api.finra.org`,
+  `ews.fip.finra.org`, `www.federalreserve.gov`, `www.bls.gov`, `api.stlouisfed.org`. On your own computer
+  or the Oracle VM they should work as is.
+- Optional free keys: `FRED_API_KEY`, `SAM_GOV_API_KEY`; `FINRA_API_CLIENT_ID/_SECRET` only if FINRA refuses.
+- Decisions: should unverified (aggregator-only) catalysts be hidden? Should filing contradictions
+  (offerings, late filings) filter signals? Both need a backtest before they may change live signals.
 
 ## Where we are (updated ~09:45 UTC, session 01Ny)
 
