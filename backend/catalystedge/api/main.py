@@ -158,6 +158,7 @@ def signal_json(s: Session, sig: Signal, now: dt.datetime, detail: bool = False)
                        "verification": e.verification or ("primary" if e.origin != "news" else "unverified"),
                        "original_url": e.original_url} for e in events[:5]],
         "verification": (sig.features or {}).get("verification"),
+        "market_check": (sig.features or {}).get("market_check"),
         "filing_flags": (sig.features or {}).get("filing_flags") or [],
         "sentiment": {k: round(sum(x.get(k, 0) for x in senti) / len(senti), 3) for k in ("pos", "neu", "neg")}
         if senti else None,

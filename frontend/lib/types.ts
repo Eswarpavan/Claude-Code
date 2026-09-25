@@ -33,6 +33,11 @@ export type SignalT = {
   timesfm?: TimesFMTag | null;
   llm_why?: { text: string; model: string; label: string } | null;
   verification?: "primary" | "verified" | "unverified" | null;
+  market_check?: {
+    catalyst_price: number; current_price: number | null; price_source: string; as_of: string | null;
+    move_since_catalyst_pct: number | null; extended_status: string | null; extended_label: string;
+    relative_volume: number | null; relative_volume_note: string;
+  } | null;
   filing_flags?: { kind: string; tone: string; form: string; text: string; filed_at: string; url: string }[];
   rule_components?: Record<string, number> | null;
   reaction_since_news_pct?: number | null;

@@ -63,6 +63,9 @@ SOURCES: dict[str, SourceSpec] = {
         SourceSpec("clinicaltrials", "event", True, False, 0.9, 1.5, 300, 3600, 21600, primary=True),
         # Prices. Tiingo free (confirmed live): 50 req/h, 1,000/day, 500 unique symbols/month. We use 45/h, 900/day.
         SourceSpec("tiingo_eod", "price", True, False, 1.0, 0.5, 900, 3600, 86400, hourly_budget=45),
+        # Tiingo IEX real-time quotes: same key, same 45/h budget as EOD (rate group), one request per refresh.
+        SourceSpec("tiingo_iex", "price", True, False, 1.0, 0.5, 900, 300, 300, hourly_budget=45,
+                   rate_group="tiingo_eod"),
         # Finnhub /quote shares the news endpoint's 60/min key limit.
         SourceSpec("finnhub_quote", "price", True, False, 1.0, 1.2, 5000, 30, 86400, rate_group="finnhub"),
         # Unofficial fallbacks (FRAGILE): no published limits; stay very polite.

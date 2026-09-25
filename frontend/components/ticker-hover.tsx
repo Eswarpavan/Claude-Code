@@ -93,6 +93,23 @@ export function TickerHover({ signal, children }: { signal: SignalT; children: R
               ))}
             </ul>
           </div>
+          {signal.market_check && signal.market_check.move_since_catalyst_pct != null && (
+            <div className="text-xs">
+              <p>
+                <span className="font-medium text-subtle">Move since the news: </span>
+                <span className={signal.market_check.extended_status === "extended" || signal.market_check.extended_status === "reversed" ? "text-warning-fg" : ""}>
+                  {signal.market_check.move_since_catalyst_pct > 0 ? "+" : ""}{signal.market_check.move_since_catalyst_pct.toFixed(1)}% ({signal.market_check.extended_label})
+                </span>
+                <span className="text-subtle"> · {signal.market_check.price_source}</span>
+              </p>
+              {signal.market_check.relative_volume != null && (
+                <p className="text-subtle" title={signal.market_check.relative_volume_note}>
+                  Relative volume {signal.market_check.relative_volume.toFixed(1)}x (end of day, vs 20-day average)
+                </p>
+              )}
+              <p className="text-subtle">Information only: the early-move idea has not passed the backtest.</p>
+            </div>
+          )}
           {signal.verification && (
             <p className="text-xs">
               <span className="font-medium text-subtle">Source check: </span>

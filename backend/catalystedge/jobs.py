@@ -327,11 +327,27 @@ def job_signals(ctx: Context) -> dict:
                                   **engine_kwargs(s, now, Path(ctx.settings.models_dir)))
         shown = [c.signal for c in result.displayed if c.signal is not None]
         queued = sum(queue_high_confidence(s, sig) for sig in shown)
+    market = job_market_check(ctx, [sig.id for sig in shown])
     llm = job_llm_notes(ctx, [sig.id for sig in shown])
     if queued:
         job_email(ctx)      # send 80%+ alerts now instead of waiting for the next scheduled email run
     return {"as_of": result.as_of_date.isoformat(), "candidates": len(result.candidates), "displayed": len(shown),
-            "alerts_queued": queued, "warnings": result.warnings, "llm": llm}
+            "alerts_queued": queued, "warnings": result.warnings, "llm": llm, "market_check": market}
+
+
+def job_market_check(ctx: Context, signal_ids: list[int]) -> dict:
+    """Move since the catalyst for shown signals (Tiingo; flag only). Never breaks the signal job."""
+    from catalystedge.signals.market_check import annotate
+
+    if not signal_ids:
+        return {"checked": 0}
+    try:
+        with _session(ctx) as s:
+            sigs = list(s.scalars(select(Signal).where(Signal.id.in_(signal_ids))))
+            return annotate(sigs, ctx.http, ctx.settings.tiingo_api_key, ctx.clock.now())
+    except Exception as e:
+        log.warning("market check skipped: %s", type(e).__name__)
+        return {"error": type(e).__name__}
 
 
 def job_llm_notes(ctx: Context, signal_ids: list[int]) -> dict:
