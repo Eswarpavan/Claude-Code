@@ -212,9 +212,11 @@ def _slices_md(sl: dict) -> list[str]:
            f"p < 0.05 after a {sl['correction']} correction for {sl['comparisons']} comparisons "
            f"(p < {sl['alpha_per_test']:.4f} each; {sl['test']}).", "",
            f"**Verdict: {sl['plain']}**", "",
+           *([f"**{sl['closest_catalyst']['plain']}**", ""] if sl.get("closest_catalyst") else []),
+           "The bar, the slices and the correction were fixed before the full results were seen.", "",
            "| Dimension | Slice | Trades | Win rate | Avg / trade | Sharpe | S&P same days avg | Excess | p | "
-           "p (corrected) | Smallest detectable excess | Candidate |",
-           "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+           "p (corrected) | Smallest detectable excess | Trades needed if the edge is real | Candidate |",
+           "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for t in sl["slices"]:
         n, hit, mean, sh = _fmt(t["strategy"])
         sp = t["spy_same_days"]
@@ -224,8 +226,9 @@ def _slices_md(sl: dict) -> list[str]:
         pc = f"{t['p_bonferroni']:.3f}" if t["p_bonferroni"] is not None else "–"
         mde = f"{t['min_detectable_excess_pct']:.2f}%" if t["min_detectable_excess_pct"] is not None else "–"
         flag = "**yes**" if t["candidate"] else ("no" if t["n"] >= sl["min_trades"] else f"no (< {sl['min_trades']})")
+        need = str(t["trades_needed"]) if t.get("trades_needed") else "–"
         out.append(f"| {t['dimension']} | {t['slice']} | {n} | {hit} | {mean} | {sh} | {spm} | {ex} | {p} | {pc} | "
-                   f"{mde} | {flag} |")
+                   f"{mde} | {need} | {flag} |")
     out += ["", "The realised holding period of each stop/target exit is not a slice: it is only known after "
             "the trade ends, so filtering on it would use the future. The holding-period rows instead apply a "
             "fixed hold, decided before entry, to the same rules entries.", ""]

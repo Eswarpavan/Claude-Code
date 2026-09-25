@@ -75,3 +75,12 @@ def test_many_slices_raise_the_bar():
     m = out["comparisons"]
     assert m >= 10 and all(t["p_bonferroni"] == pytest.approx(min(1.0, t["p_value"] * m))
                            for t in out["slices"] if t["p_value"] is not None)
+
+
+def test_closest_catalyst_and_trades_needed_are_reported():
+    out = slices.analyse(*_data(edge_for_tech=0.0))
+    cl = out["closest_catalyst"]
+    assert cl["catalyst"] == "upgrade" and cl["passes"] is False and cl["plain"].startswith("Closest catalyst")
+    assert slices.trades_needed(0.5, 4.0, 0.05 / 12) > slices.trades_needed(1.0, 4.0, 0.05 / 12) > 0
+    assert slices.trades_needed(-0.2, 4.0, 0.01) is None
+

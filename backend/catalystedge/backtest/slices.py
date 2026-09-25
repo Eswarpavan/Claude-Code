@@ -135,6 +135,14 @@ def min_detectable_excess(sd: float, n: int, alpha: float, power: float = 0.8) -
     return z * sd / math.sqrt(n)
 
 
+def trades_needed(excess: float | None, sd: float | None, alpha: float, power: float = 0.8) -> int | None:
+    """Trades needed to detect this average excess at `alpha` with 80% power, IF the edge seen were real."""
+    if not excess or excess <= 0 or not sd:
+        return None
+    z = NormalDist().inv_cdf(1 - alpha) + NormalDist().inv_cdf(power)
+    return math.ceil((z * sd / excess) ** 2)
+
+
 def _test(name: str, dim: str, rets: list[float], spys: list[float], holds: list[int]) -> dict:
     pairs = [(r, s) for r, s in zip(rets, spys, strict=True) if r is not None and s is not None]
     st = stats([r for r, _ in pairs], holds[: len(pairs)] if holds else None)
@@ -166,10 +174,8 @@ def analyse(rows: Sequence, meta: dict[str, dict], closes: dict[tuple[str, objec
         sel = [r for r in rules if h in r.labels]
         tests.append(_test(f"hold exactly {h} session{'s' if h > 1 else ''}", "holding period",
                            [r.labels[h] for r in sel], [r.spy_labels.get(h) for r in sel], [h] * len(sel)))
-    # Reference: insider buying held to the same bar (not a new slice dimension, but it is tested too).
-    ins = [r for r in rules if r.catalyst == "insider_buy_cluster"]
-    tests.append(_test("insider buying (reference)", "catalyst", [r.trade_return for r in ins],
-                       [r.spy_return for r in ins], [r.trade_sessions or 5 for r in ins]))
+    # Every catalyst on the same bar (insider buying included); these count toward the correction too.
+    add("catalyst", lambda r: r.catalyst)
 
     m = len(tests)
     alpha_corr = ALPHA / m
@@ -177,6 +183,7 @@ def analyse(rows: Sequence, meta: dict[str, dict], closes: dict[tuple[str, objec
         t["p_bonferroni"] = min(1.0, t["p_value"] * m) if t["p_value"] is not None else None
         t["min_detectable_excess_pct"] = (round(v, 3) if (v := min_detectable_excess(
             t["sd_excess_pct"] or 0, t["n"], alpha_corr)) is not None else None)
+        t["trades_needed"] = trades_needed(t["mean_excess_pct"], t["sd_excess_pct"], alpha_corr)
         t["candidate"] = (t["n"] >= MIN_TRADES and t["beats_spy"] and t["p_bonferroni"] is not None
                           and t["p_bonferroni"] < ALPHA)
     big = [t for t in tests if t["n"] >= MIN_TRADES]
@@ -198,7 +205,30 @@ def analyse(rows: Sequence, meta: dict[str, dict], closes: dict[tuple[str, objec
                       "not show up, and anything that looked good would most likely be noise.")
         else:
             plain += ". The data is too small to trust any slicing."
-    return {"rules_trades": len(rules), "comparisons": m, "alpha_per_test": alpha_corr, "min_trades": MIN_TRADES,
+    cats = [t for t in tests if t["dimension"] == "catalyst" and t["p_value"] is not None]
+    closest = None
+    if cats:
+        c = min(cats, key=lambda t: (t["p_value"], -(t["mean_excess_pct"] or 0)))
+        misses = []
+        if c["n"] < MIN_TRADES:
+            misses.append(f"{c['n']} trades (needs {MIN_TRADES})")
+        if not c["beats_spy"]:
+            misses.append("did not beat the S&P 500 over the same days on win rate, return and Sharpe")
+        if c["p_bonferroni"] is None or c["p_bonferroni"] >= ALPHA:
+            misses.append(f"p = {c['p_value']:.3f}, {c['p_bonferroni']:.3f} after correction (needs < {ALPHA})")
+        need = c["trades_needed"]
+        closest = {"catalyst": c["slice"], "n": c["n"], "mean_excess_pct": c["mean_excess_pct"],
+                   "p_value": c["p_value"], "p_bonferroni": c["p_bonferroni"],
+                   "min_detectable_excess_pct": c["min_detectable_excess_pct"], "trades_needed": need,
+                   "passes": c["candidate"], "misses": misses,
+                   "plain": (f"Closest catalyst: {c['slice']} ({c['n']} trades, {c['mean_excess_pct']:+.2f}% per trade "
+                             f"vs the S&P 500, p = {c['p_value']:.3f}, corrected {c['p_bonferroni']:.3f}). "
+                             + ("It passes." if c["candidate"] else "It fails: " + "; ".join(misses) + ". ")
+                             + (f"If that edge were real, about {need} trades would be needed to confirm it at the "
+                                f"corrected threshold." if need else
+                                "Its average edge over the S&P 500 is not positive, so more trades would not help."))}
+    return {"closest_catalyst": closest,
+            "rules_trades": len(rules), "comparisons": m, "alpha_per_test": alpha_corr, "min_trades": MIN_TRADES,
             "test": "one-sided sign-flip permutation on per-trade excess return vs the S&P 500 over the same days",
             "correction": "Bonferroni", "overall_mean_excess_pct": round(overall_ex, 4) if overall_ex is not None
             else None, "candidates": cands, "slices": tests, "plain": plain}
