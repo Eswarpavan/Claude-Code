@@ -9,7 +9,6 @@ import pytest
 from catalystedge.adapters.prices.finnhub_quote import FinnhubQuote
 from catalystedge.adapters.prices.stooq import StooqEOD
 from catalystedge.adapters.prices.tiingo import MONTHLY_SYMBOL_CAP, TiingoEOD
-from catalystedge.adapters.prices.yahoo import YahooEOD
 from catalystedge.clock import FrozenClock
 from catalystedge.core import calendar
 from catalystedge.core.http import BudgetExhausted, HttpClient
@@ -105,25 +104,27 @@ def test_tiingo_hourly_budget():
         t.daily("AAPL", D(2026, 3, 1), D(2026, 3, 2))
 
 
-def test_yahoo_parses_chart_json():
-    ts = int(dt.datetime(2026, 9, 24, 13, 30, tzinfo=UTC).timestamp())
-    body = {"chart": {"result": [{"meta": {"gmtoffset": -14400}, "timestamp": [ts],
-                                  "indicators": {"quote": [{"open": [10], "high": [11], "low": [9], "close": [10.5],
-                                                            "volume": [500]}], "adjclose": [{"adjclose": [10.4]}]}}]}}
-    bars = YahooEOD(client(lambda req: httpx.Response(200, json=body))).daily("AAPL", D(2026, 9, 24), D(2026, 9, 24))
-    assert bars[0].date == D(2026, 9, 24) and bars[0].close == 10.5
-
-
-def test_yahoo_declares_itself_no_browser_spoofing():
+def test_price_adapters_declare_themselves_no_browser_spoofing():
     seen = []
 
     def h(req):
         seen.append(req.headers["user-agent"])
         return httpx.Response(429)
 
-    svc = PriceService([YahooEOD(client(h))], FrozenClock(AFTER_CLOSE))
+    svc = PriceService([TiingoEOD(client(h), "k")], FrozenClock(AFTER_CLOSE))
     svc.daily("AAPL", D(2026, 9, 24), D(2026, 9, 24))
-    assert seen and all(ua.startswith("CatalystEdge/") for ua in seen)
+    assert seen and all(ua.startswith("CatalystEdge/") and "Mozilla" not in ua for ua in seen)
+
+
+def test_no_unofficial_yahoo_source():
+    """Yahoo's chart endpoint is unofficial and its terms do not allow automated use: it must stay out."""
+    from catalystedge.config import Settings
+    from catalystedge.prices import build_price_adapters
+    from catalystedge.sources import SOURCES
+
+    assert "yahoo_eod" not in SOURCES
+    keys = [a.source_key for a in build_price_adapters(Settings(_env_file=None), client(lambda r: httpx.Response(500)))]
+    assert keys == ["tiingo_eod", "stooq_eod"]
 
 
 def test_stooq_parses_csv_and_needs_key():
@@ -166,9 +167,9 @@ def bar(day, **kw):
 
 def test_fallback_chain_uses_next_source_on_failure():
     primary = Fixed("tiingo_eod", error=BudgetExhausted("tiingo_eod", "hourly budget"))
-    backup = Fixed("yahoo_eod", bars=[bar(D(2026, 9, 24))])
+    backup = Fixed("stooq_eod", bars=[bar(D(2026, 9, 24))])
     r = PriceService([primary, backup], FrozenClock(AFTER_CLOSE)).daily("AAPL", D(2026, 9, 24), D(2026, 9, 24))
-    assert r.source == "yahoo_eod" and "hourly" in r.errors["tiingo_eod"]
+    assert r.source == "stooq_eod" and "hourly" in r.errors["tiingo_eod"]
 
 
 def test_insane_and_non_session_bars_are_rejected():

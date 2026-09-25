@@ -109,7 +109,7 @@ portfolio). The progress bar at the top takes a few minutes the first time.
 - **Finnhub news**, **Tiingo prices** and **SEC EDGAR** show a green **ok** after the first refresh.
 - **Benzinga** and **Investing.com** show **disabled**. That's intentional; they're placeholders.
 - **Marketaux** and **Alpha Vantage** show **disabled** unless you added their optional keys.
-- **Yahoo**, **Stooq**, **openFDA** and **ClinicalTrials.gov** should work on your computer. They were only
+- **Stooq** (backup prices, needs its optional key), **openFDA** and **ClinicalTrials.gov** should work on your computer. They were only
   blocked in the build environment.
 - **Sentiment models**: **FinBERT** first shows **downloading** (about 0.5 GB, first run only), then **ready**.
 

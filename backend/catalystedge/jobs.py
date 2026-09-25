@@ -284,7 +284,7 @@ def job_prices(ctx: Context, refresh_id: Any = None, symbols: list[str] | None =
             stored += store_bars(s, res.bars, now)
             _update_adv(s, sym)
     with _session(ctx) as s:
-        for src in ("tiingo_eod", "yahoo_eod", "stooq_eod"):
+        for src in ("tiingo_eod", "stooq_eod"):
             if src in used:
                 _record_source(s, ctx, src, "ok", fetched=used[src], calls=used[src], refresh_id=refresh_id)
         if failures and not used:

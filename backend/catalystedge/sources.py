@@ -65,7 +65,6 @@ SOURCES: dict[str, SourceSpec] = {
         # Finnhub /quote shares the news endpoint's 60/min key limit.
         SourceSpec("finnhub_quote", "price", True, False, 1.0, 1.2, 5000, 30, 86400, rate_group="finnhub"),
         # Unofficial fallbacks (FRAGILE): no published limits; stay very polite.
-        SourceSpec("yahoo_eod", "price", False, True, 0.8, 2.0, 300, 3600, 86400),
         SourceSpec("stooq_eod", "price", False, True, 0.8, 2.0, 200, 3600, 86400),
         SourceSpec("benzinga_news", "news", True, False, 0.75, 1.0, None, 600, 900, enabled_by_default=False,
                    note="disabled stub: revisit after Phase 1"),

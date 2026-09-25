@@ -19,7 +19,6 @@ from sqlalchemy.orm import Session
 from catalystedge.adapters.prices.base import Bar, PriceAdapter
 from catalystedge.adapters.prices.stooq import StooqEOD
 from catalystedge.adapters.prices.tiingo import TiingoEOD
-from catalystedge.adapters.prices.yahoo import YahooEOD
 from catalystedge.clock import Clock, ensure_utc
 from catalystedge.config import Settings
 from catalystedge.core import calendar
@@ -30,7 +29,8 @@ from catalystedge.db.models import PriceDaily
 def build_price_adapters(settings: Settings, http: HttpClient) -> list[PriceAdapter]:
     import os
 
-    return [TiingoEOD(http, settings.tiingo_api_key), YahooEOD(http), StooqEOD(http, os.environ.get("STOOQ_API_KEY"))]
+    # Yahoo's chart endpoint was removed: it is unofficial and its terms do not allow automated use.
+    return [TiingoEOD(http, settings.tiingo_api_key), StooqEOD(http, os.environ.get("STOOQ_API_KEY"))]
 
 
 @dataclass

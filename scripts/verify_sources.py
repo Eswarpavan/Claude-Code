@@ -434,19 +434,6 @@ def probe_fred(c: Client, key: str, today: dt.date) -> SourceResult:
     return res
 
 
-def probe_yahoo(c: Client, today: dt.date) -> SourceResult:
-    res = SourceResult("yahoo (FRAGILE)", "ok")
-    r = c.get("yahoo", "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1d")
-    if is_blocked(r):
-        res.status, res.note = "blocked", fail_reason(r)
-        return res
-    res.checks.append(Check("Unofficial chart endpoint", "works but rate-limits unpredictably",
-                            f"HTTP {r.status}", "confirmed" if r.status in (200, 429) else "differs"))
-    if r.status >= 400:
-        res.status = "failed"
-    return res
-
-
 def probe_stooq(c: Client, key: str, today: dt.date) -> SourceResult:
     res = SourceResult("stooq (FRAGILE)", "ok")
     params = {"s": "aapl.us", "i": "d"}
@@ -520,7 +507,6 @@ def run(env: dict[str, str], only: set[str] | None, fetch: Fetcher = urllib_fetc
         ("openfda", None, lambda: probe_openfda(c, k("OPENFDA_API_KEY", ""), today)),
         ("clinicaltrials", None, lambda: probe_clinicaltrials(c, today)),
         ("fred", "FRED_API_KEY", lambda: probe_fred(c, k("FRED_API_KEY"), today)),
-        ("yahoo", None, lambda: probe_yahoo(c, today)),
         ("stooq", None, lambda: probe_stooq(c, k("STOOQ_API_KEY", ""), today)),
         ("resend", "RESEND_API_KEY", lambda: probe_resend(c, k("RESEND_API_KEY"), today)),
         ("huggingface", None, lambda: probe_huggingface(c, today)),
@@ -589,7 +575,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--env-file", default=".env", type=Path)
     ap.add_argument("--only", help="comma-separated: finnhub,marketaux,alphavantage,tiingo,sec,"
-                                   "openfda,clinicaltrials,fred,yahoo,stooq,resend,huggingface")
+                                   "openfda,clinicaltrials,fred,stooq,resend,huggingface")
     ap.add_argument("--out", default="reports", type=Path)
     args = ap.parse_args(argv)
 

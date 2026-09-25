@@ -232,7 +232,7 @@ then discarded.
 | Source | Used for | Free limits | Official? | Fragility | Fallback | Verified via |
 |---|---|---|---|---|---|---|
 | **Tiingo EOD** (free "Starter") | **primary EOD** (adjusted OHLCV, includes delisted tickers, which avoids survivorship bias) | **50 req/h, 1,000 req/day, 500 unique symbols/month** (Tiingo sends no rate-limit headers, so these stay as published) | Official | Stable | Yahoo → Stooq | ✔ live 2026-09-24: key works, AAPL history from 1980-12-31; tiingo.com pricing |
-| **Yahoo Finance via `yfinance`** | EOD fallback, sector/industry, market cap | none published; aggressive **429 / `YFRateLimitError`** blocks | **Unofficial** (wraps undocumented endpoints) | **FRAGILE** | Tiingo → Stooq; cached sector data | yfinance GitHub issues #2480, #2289 |
+| ~~Yahoo Finance~~ | **removed 2026-09-25**: the chart endpoint is unofficial and Yahoo's terms do not allow automated use | – | **Unofficial** (wraps undocumented endpoints) | **FRAGILE** | Tiingo → Stooq; cached sector data | yfinance GitHub issues #2480, #2289 |
 | **Stooq CSV** | second EOD fallback (bulk history for backtests) | since ≈ Apr 2026 needs an **apikey (obtained via captcha)**; daily hit limit (size **⚠**) | Unofficial public CSV | **FRAGILE** | Tiingo → Yahoo | stooq.com / community reports |
 | **Alpha Vantage `TIME_SERIES_DAILY`** | spot-check fallback only | 25/day total; full history may need premium **⚠ re-check** | Official | Stable but tiny quota | n/a | alphavantage.co |
 | **Finnhub `/quote`** | today's open for 09:35 fills; last price for marking | 60/min | Official | Stable | wait for EOD bar | ✔ live 2026-09-24 (`o` field present) |

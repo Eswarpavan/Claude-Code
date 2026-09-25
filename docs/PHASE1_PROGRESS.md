@@ -24,7 +24,7 @@ Guides: `docs/WINDOWS_LOCAL.md` (run on Windows with Docker Desktop) and `docs/D
 - Create the accounts (Oracle, Neon, Upstash, Vercel, DuckDNS, Resend) and follow `docs/DEPLOY_FREE.md`;
   then run `verify-deployment` on the server (step 7) to prove the scheduler, refresh and an email work live.
 - Optional network domains for this sandbox: `clinicaltrials.gov`, `api.fda.gov`,
-  `query1.finance.yahoo.com`, `query2.finance.yahoo.com`, `stooq.com`.
+  `stooq.com`. (Yahoo is no longer used: its price endpoint was unofficial and has been removed.)
 - Optional keys: `MARKETAUX_API_KEY`, `ALPHAVANTAGE_API_KEY`.
 - Replace the Finnhub and Tiingo keys that were pasted into chat earlier.
 
