@@ -98,6 +98,15 @@ def cap_bucket(cap: float | None) -> str:
     return next(name for lo, name in CAP_BUCKETS if cap >= lo)
 
 
+def move_band(r) -> str:
+    """End-of-day data only: the move by the decision-day close, not intraday."""
+    m = ((getattr(r, "features", None) or {}).get("price") or {}).get("reaction_pct")
+    if m is None:
+        return "unknown"
+    return ("reversed (< 0%)" if m < 0 else "0-5% very early" if m <= 5 else "5-10% early" if m <= 10
+            else "10-15% borderline" if m <= 15 else "> 15% extended")
+
+
 def row_sector(r, meta: dict[str, dict]) -> str:
     return sector_of((meta.get(r.event.symbol) or {}).get("sic"))
 
@@ -168,6 +177,8 @@ def analyse(rows: Sequence, meta: dict[str, dict], closes: dict[tuple[str, objec
             tests.append(_test(name, dim, [r.trade_return for r in sel], [r.spy_return for r in sel],
                                [r.trade_sessions or 5 for r in sel]))
 
+    # The early-move hypothesis (unproven until it passes): move since the catalyst by the decision close.
+    add("move since catalyst (by the close)", move_band)
     add("sector", lambda r: row_sector(r, meta))
     add("market cap", lambda r: cap_bucket(row_cap(r, meta, closes)))
     for h in (1, 3, 5, 10):

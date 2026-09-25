@@ -330,13 +330,70 @@ def execute_orders(session: Session, acct: PaperAccount, day: dt.date,
     return report
 
 
+def catalyst_band(move_pct: float | None) -> str | None:
+    """Move since the catalyst (vs the pre-news close)."""
+    if move_pct is None:
+        return None
+    if move_pct < 0:
+        return "reversed"
+    return "very_early" if move_pct <= 5 else "early" if move_pct <= 10 else "borderline" if move_pct <= 15 \
+        else "extended"
+
+
+def fill_check(sig: Signal | None, raw_open: float, s: PaperSettings) -> dict:
+    """The two separate re-checks at the next-day open, each logged as its own reason:
+      gap_up_priced_in          open > max_gap_up_pct above the decision-day close (the signal price)
+      extended_since_catalyst   open > max_move_since_catalyst_pct above the pre-news close
+      reversed_since_catalyst   open below the pre-news close (the news move has fully reversed)"""
+    price = (sig.features or {}).get("price") or {} if sig else {}
+    ref = float(sig.entry_ref_price) if sig else raw_open
+    pre = price.get("pre_event_close")
+    gap = (raw_open / ref - 1) * 100
+    move = (raw_open / pre - 1) * 100 if pre else None
+    reasons, text = [], []
+    if gap > s.max_gap_up_pct:
+        reasons.append("gap_up_priced_in")
+        text.append(f"gap_up_priced_in: opened {gap:.1f}% above the signal price")
+    if move is not None and move > s.max_move_since_catalyst_pct:
+        reasons.append("extended_since_catalyst")
+        text.append(f"extended_since_catalyst: opened {move:.1f}% above the pre-news close")
+    if move is not None and move < 0:
+        reasons.append("reversed_since_catalyst")
+        text.append(f"reversed_since_catalyst: opened {move:.1f}% below the pre-news close")
+    return {"gap_pct": round(gap, 2), "move_at_decision_pct": price.get("reaction_pct"),
+            "band_at_decision": catalyst_band(price.get("reaction_pct")),
+            "move_at_fill_pct": round(move, 2) if move is not None else None, "band_at_fill": catalyst_band(move),
+            "reasons": reasons, "text": "; ".join(text)}
+
+
+def _record_fill_check(session, acct, order, check: dict, skipped: bool) -> None:
+    """Keep the outcome on the buy option so it shows in the Portfolio's list and feeds the qualify-at-fill rate."""
+    if not order.signal_id:
+        return
+    cand = session.scalar(select(BuyCandidate).where(
+        BuyCandidate.account_id == acct.id, BuyCandidate.signal_id == order.signal_id,
+        BuyCandidate.decision_date == order.decision_date))
+    if cand is None:
+        cand = BuyCandidate(account_id=acct.id, signal_id=order.signal_id, decision_date=order.decision_date,
+                            decision="skipped" if skipped else "bought",
+                            skip_reasons=list(check["reasons"]) if skipped else [], details={})
+        session.add(cand)
+    cand.details = {**(cand.details or {}), "fill_check": {**check, "fill_date": order.execute_on.isoformat(),
+                                                           "skipped": skipped}}
+    if skipped:
+        cand.decision = "skipped"
+        cand.skip_reasons = list(dict.fromkeys([*(cand.skip_reasons or []), *check["reasons"]]))
+
+
 def _fill_buy(session, acct, order, raw, adv, costs, s, report) -> None:
     sig = session.get(Signal, order.signal_id) if order.signal_id else None
     ref = float(sig.entry_ref_price) if sig else raw
-    gap_pct = (raw / ref - 1) * 100
-    if gap_pct > s.max_gap_up_pct:
+    check = fill_check(sig, raw, s)
+    gap_pct = check["gap_pct"]
+    if check["reasons"]:
         order.status = "rejected"
-        order.reject_reason = f"gap_up_priced_in: opened {gap_pct:.1f}% above the signal price"
+        order.reject_reason = check["text"]
+        _record_fill_check(session, acct, order, check, skipped=True)
         report.cancelled.append(order)
         return
     price, spread, slip = costs.fill_price(raw, "buy", adv)
@@ -361,9 +418,11 @@ def _fill_buy(session, acct, order, raw, adv, costs, s, report) -> None:
         why={"signal_id": order.signal_id, "rule_id": sig.rule_id if sig else None,
              "reason": sig.reason if sig else "manual", "confidence": sig.confidence if sig else None,
              "calibrated": bool(sig.calibrated) if sig else False, "entry_gap_pct": round(gap_pct, 2),
+             "move_since_catalyst_at_fill_pct": check["move_at_fill_pct"],
              "costs_bps": {"half_spread": spread, "slippage": slip}},
     )
     session.add(pos)
+    _record_fill_check(session, acct, order, check, skipped=False)
     acct.cash = _d(float(acct.cash) - float(qty) * price - costs.fee_per_order)
     order.status = "filled"
     report.filled.append(order)

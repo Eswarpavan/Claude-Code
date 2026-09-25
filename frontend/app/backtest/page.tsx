@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalibrationChart } from "@/components/calibration-chart";
 import { CalibrationBanner } from "@/components/calibration-banner";
 import { BacktestSummary, CatalystTable } from "@/components/evidence";
+import { FillCheckCard } from "@/components/fill-check";
 
 type Snapshot = { id: number; created_at: string | null; basis: string; event_family: string; model_version: string | null; n: number;
   buckets: Bucket[] | unknown; brier: number | null; ece: number | null; verdict: string };
@@ -49,6 +50,7 @@ export default function BacktestPage() {
       <CalibrationBanner />
       <BacktestSummary />
       <CatalystTable />
+      <FillCheckCard />
       {error && <p className="text-sm text-critical">{error.message}</p>}
       {data && (
         <>

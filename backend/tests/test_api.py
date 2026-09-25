@@ -318,3 +318,26 @@ def test_top_signals_warn_when_confidence_ranks_backwards(clean):
         s.commit()
     chk = c.get("/api/signals/top").json()["confidence_check"]
     assert chk["reliable"] is False and "does not rank signals" in chk["text"]
+
+
+def test_fill_check_rate_live_and_backtest(clean):
+    from catalystedge.db.models import BuyCandidate
+    from catalystedge.paper import engine as paper
+
+    ids = [seed(clean, f"F{i}", 70) for i in range(4)]
+    with sessionmaker(clean)() as s:
+        acct = paper.get_account(s)
+        outcomes = [("very_early", False, []), ("very_early", True, ["extended_since_catalyst"]),
+                    ("extended", True, ["extended_since_catalyst"]), ("reversed", True, ["reversed_since_catalyst"])]
+        for sid, (band, skipped, reasons) in zip(ids, outcomes, strict=True):
+            s.add(BuyCandidate(account_id=acct.id, signal_id=sid, decision_date=dt.date(2026, 9, 24),
+                               decision="skipped" if skipped else "bought", skip_reasons=reasons,
+                               details={"fill_check": {"band_at_decision": "very_early", "band_at_fill": band,
+                                                       "move_at_fill_pct": 1.0, "skipped": skipped,
+                                                       "reasons": reasons}}))
+        s.commit()
+    body = client(clean).get("/api/fill-check").json()
+    live = body["live"]
+    assert live["n"] == 4 and live["qualify_at_fill_pct"] == 25.0 and live["enough_data"] is False
+    assert live["skipped_by_catalyst_rule_pct"] == 75.0 and live["skipped_by_gap_rule_pct"] == 0.0
+    assert "End-of-day data only" in body["limitation"]

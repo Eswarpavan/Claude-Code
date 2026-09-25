@@ -9,6 +9,7 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
 from catalystedge.db.models import (
+    BuyCandidate,
     CalibrationSnapshot,
     Event,
     PaperFill,
@@ -307,3 +308,47 @@ def test_performance_and_spy_line(db):
     assert perf.spy_return_pct == pytest.approx((100 / (500 * 1.001) * 510 / 100 - 1) * 100, abs=0.01)
     assert "not yet meaningful" in perf.note
     assert pos.why["calibrated"] is False
+
+
+# ----------------------------------------------------------------------------- next-open re-check (8b)
+
+
+def _catalyst_signal(db, symbol, pre_close, decision_close, reaction):
+    sig = make_signal(db, symbol=symbol, ref=decision_close, stop=decision_close * 0.94,
+                      target=decision_close * 1.06)
+    sig.features = {"price": {"pre_event_close": pre_close, "reaction_pct": reaction, "last_close": decision_close}}
+    db.flush()
+    return sig
+
+
+@pytest.mark.parametrize("pre,close,open_px,reasons", [
+    (100.0, 103.0, 104.0, []),                                                 # 4% since news: fills
+    (100.0, 112.0, 116.0, ["extended_since_catalyst"]),                         # +16% since news, +3.6% gap
+    (100.0, 103.0, 99.0, ["reversed_since_catalyst"]),                          # below the pre-news price
+    (100.0, 103.0, 109.0, ["gap_up_priced_in"]),                                # +5.8% gap, +9% since news
+    (100.0, 110.0, 117.0, ["gap_up_priced_in", "extended_since_catalyst"]),    # both, logged separately
+])
+def test_next_open_recheck_logs_each_reason_separately(db, pre, close, open_px, reasons):
+    acct = get_account(db)
+    sig = _catalyst_signal(db, "CAT1", pre, close, (close / pre - 1) * 100)
+    manual_buy(db, acct, sig, dt.datetime.combine(THU, dt.time(20, 30), UTC))
+    execute_orders(db, acct, FRI, opens({("CAT1", FRI): open_px}), LIQUID)
+    order = db.scalars(select(PaperOrder).where(PaperOrder.symbol == "CAT1")).one()
+    cand = db.scalars(select(BuyCandidate).where(BuyCandidate.signal_id == sig.id)).one()
+    fc = cand.details["fill_check"]
+    assert fc["reasons"] == reasons and fc["move_at_fill_pct"] == pytest.approx((open_px / pre - 1) * 100, abs=0.01)
+    if reasons:
+        assert order.status == "rejected" and cand.decision == "skipped"
+        assert all(r in cand.skip_reasons for r in reasons)
+        assert all(r in order.reject_reason for r in reasons)
+    else:
+        assert order.status == "filled" and fc["skipped"] is False and fc["band_at_fill"] == "very_early"
+        pos = db.scalars(select(PaperPosition).where(PaperPosition.symbol == "CAT1")).one()
+        assert pos.why["move_since_catalyst_at_fill_pct"] == pytest.approx(4.0, abs=0.01)
+
+
+def test_catalyst_bands():
+    from catalystedge.paper.engine import catalyst_band
+
+    assert [catalyst_band(x) for x in (-1, 0, 5, 7, 12, 20, None)] == \
+        ["reversed", "very_early", "very_early", "early", "borderline", "extended", None]

@@ -31,6 +31,7 @@ COLUMNS = [
     "tfm_compared", "in_rules_without_timesfm", "in_timesfm_filter", "in_timesfm_feature",
     "cost_pct", "trade_return_pct", "spy_return_pct",
     "sector", "market_cap_usd", "cap_bucket",
+    "catalyst_price", "move_at_decision_pct", "move_at_fill_pct", "gap_at_fill_pct",
     *[f"hold{h}_pct" for h in (1, 3, 5, 10)], *[f"spy_hold{h}_pct" for h in (1, 3, 5, 10)],
 ]
 
@@ -43,6 +44,58 @@ STRATEGIES = (("Rules (confidence >= 65)", "in_rules"), ("Naive: every positive 
 
 def _r(x, nd=4):
     return "" if x is None else round(float(x), nd)
+
+
+def _move_cols(r) -> dict:
+    """Move since the catalyst (vs the pre-news close): at the decision close, and at the next-day open fill.
+    End-of-day data only: 'at decision' is the move by the close, not intraday."""
+    p = (r.features or {}).get("price") or {}
+    pre, last = p.get("pre_event_close"), p.get("last_close")
+    return {"catalyst_price": _r(pre), "move_at_decision_pct": _r(p.get("reaction_pct"), 3),
+            "move_at_fill_pct": _r((r.entry_price / pre - 1) * 100, 3) if pre else "",
+            "gap_at_fill_pct": _r((r.entry_price / last - 1) * 100, 3) if last else ""}
+
+
+def fill_check(rows: Sequence[dict], max_gap: float = 5.0, max_move: float = 15.0) -> dict:
+    """Of the signals that were fresh (0-5% since the catalyst by the decision close), how many still
+    qualify at the next-day open? Same two re-checks as the paper account."""
+    def one(sel):
+        n = len(sel)
+        cats = {"still_0_5": 0, "moved_5_15": 0, "extended": 0, "reversed": 0}
+        gap_skip = move_skip = either = 0
+        for r in sel:
+            m, g = _num(r.get("move_at_fill_pct")), _num(r.get("gap_at_fill_pct"))
+            cats["reversed" if m < 0 else "still_0_5" if m <= 5 else "moved_5_15" if m <= max_move
+                 else "extended"] += 1
+            gs, ms = g is not None and g > max_gap, m < 0 or m > max_move
+            gap_skip += gs
+            move_skip += ms
+            either += gs or ms
+        pct = (lambda k: round(100 * k / n, 1)) if n else (lambda k: None)
+        return {"n": n, **{f"{k}_pct": pct(v) for k, v in cats.items()},
+                "skipped_by_gap_rule_pct": pct(gap_skip), "skipped_by_catalyst_rule_pct": pct(move_skip),
+                "qualify_at_fill_pct": pct(n - either)}
+
+    def fresh(r):
+        m = _num(r.get("move_at_decision_pct"))
+        return m is not None and 0 <= m <= 5 and r.get("move_at_fill_pct") not in ("", None)
+
+    oos = [r for r in rows if str(r.get("out_of_sample")) == "1" and fresh(r)]
+    rules = [r for r in oos if str(r.get("in_rules")) == "1"]
+    out = {"all_fresh_events": one(oos), "fresh_rules_signals": one(rules),
+           "limitation": "End-of-day data only: 'fresh' means 0-5% by the decision-day close, not within the "
+                         "first hour; intraday moves before the close are not visible here."}
+    q = out["fresh_rules_signals"]["qualify_at_fill_pct"]
+    if q is None:
+        out["plain"] = "No fresh (0-5%) rules signals in this period."
+    elif q < 50:
+        out["plain"] = (f"Only {q:.0f}% of fresh 0-5% signals still qualified at the next-day open. Most had "
+                        "already moved out of range or reversed overnight, so 'buy tomorrow only' and 'catch it "
+                        "early' are in structural tension; better news sourcing alone will not fix that.")
+    else:
+        out["plain"] = (f"{q:.0f}% of fresh 0-5% signals still qualified at the next-day open; most were still "
+                        "buyable the next morning.")
+    return out
 
 
 def trade_rows(wf, fc: dict | None, row_ctx: dict | None = None) -> list[dict]:
@@ -82,6 +135,7 @@ def trade_rows(wf, fc: dict | None, row_ctx: dict | None = None) -> list[dict]:
             "trade_return_pct": "" if r.trade_return is None else float(r.trade_return),
             "spy_return_pct": "" if r.spy_return is None else float(r.spy_return),
             **{k: (row_ctx or {}).get(i, {}).get(k, "") for k in ("sector", "market_cap_usd", "cap_bucket")},
+            **_move_cols(r),
             **{f"hold{h}_pct": r.labels.get(h, "") for h in (1, 3, 5, 10)},
             **{f"spy_hold{h}_pct": r.spy_labels.get(h, "") for h in (1, 3, 5, 10)},
         })
@@ -215,7 +269,7 @@ def diagnostics(rows: Sequence[dict], top: int = 10) -> dict:
              "Higher-confidence trades did not do worse on both win rate and average return.")
     plain += (f" With only {t['n']} trades the top-{top} row alone proves nothing either way; the 65-80 vs 80+ "
               "comparison has more trades.")
-    return {"groups": out, "worse": worse, "plain": plain,
+    return {"groups": out, "worse": worse, "plain": plain, "fill_check": fill_check(rows),
             "note": "Diagnostic only: not counted toward the bar or the Bonferroni correction."}
 
 
@@ -230,7 +284,26 @@ def _diag_md(d: dict) -> list[str]:
         n, hit, mean, sh = _fmt(g["strategy"])
         _, shit, smean, ssh = _fmt(g["spy_same_days"])
         out.append(f"| {name} | {n} | {hit} | {mean} | {sh} | {shit} · {smean} · {ssh} |")
-    return out + ["", f"**{d['plain']}**", ""]
+    out += ["", f"**{d['plain']}**", ""]
+    fc = d.get("fill_check") or {}
+    if fc:
+        out += ["## Diagnostic: do fresh signals still qualify at the next-day open?", "",
+                f"*{fc['limitation']}* Same two re-checks as the paper account: skip if the open is more than 5% "
+                "above the decision-day close (gap rule), or more than 15% above / below the pre-news close "
+                "(catalyst rule).", "",
+                "| Group | Fresh signals | Qualify at fill | Still 0-5% | Moved 5-15% | Extended >15% | Reversed <0 "
+                "| Skipped by gap rule | Skipped by catalyst rule |", "|---|---|---|---|---|---|---|---|---|"]
+        for name, key in (("Rules signals", "fresh_rules_signals"), ("All positive events", "all_fresh_events")):
+            g = fc[key]
+
+            def f(k, g=g):
+                return f"{g[k]:.1f}%" if g.get(k) is not None else "–"
+
+            out.append(f"| {name} | {g['n']} | {f('qualify_at_fill_pct')} | {f('still_0_5_pct')} | "
+                       f"{f('moved_5_15_pct')} | {f('extended_pct')} | {f('reversed_pct')} | "
+                       f"{f('skipped_by_gap_rule_pct')} | {f('skipped_by_catalyst_rule_pct')} |")
+        out += ["", f"**{fc['plain']}**", ""]
+    return out
 
 
 def _shap_md(sh: dict) -> list[str]:

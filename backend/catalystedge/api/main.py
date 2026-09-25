@@ -437,6 +437,40 @@ def _router():
                                   "catalysts; those are calibrated from live outcomes only.",
         }
 
+    @r.get("/api/fill-check", dependencies=[Depends(auth)])
+    def fill_check_rate(s: Session = Depends(db)) -> dict:
+        """Of fresh 0-5% signals, how many still qualified at the next-day open (live and in the backtest)."""
+        import json as _json
+
+        from catalystedge.signals.catalyst_status import BASELINE
+        from catalystedge.signals.report import latest_backtest
+
+        acct = paper.get_account(s)
+        checks = [c.details["fill_check"] for c in s.scalars(select(BuyCandidate).where(
+            BuyCandidate.account_id == acct.id)) if (c.details or {}).get("fill_check")]
+        fresh = [c for c in checks
+                 if c.get("band_at_decision") == "very_early" and c.get("move_at_fill_pct") is not None]
+        n = len(fresh)
+
+        def pct(k: int) -> float | None:
+            return round(100 * k / n, 1) if n else None
+
+        live = {"n": n, "qualify_at_fill_pct": pct(sum(not c["skipped"] for c in fresh)),
+                "still_0_5_pct": pct(sum(c["band_at_fill"] == "very_early" for c in fresh)),
+                "moved_5_15_pct": pct(sum(c["band_at_fill"] in ("early", "borderline") for c in fresh)),
+                "extended_pct": pct(sum(c["band_at_fill"] == "extended" for c in fresh)),
+                "reversed_pct": pct(sum(c["band_at_fill"] == "reversed" for c in fresh)),
+                "skipped_by_gap_rule_pct": pct(sum("gap_up_priced_in" in c["reasons"] for c in fresh)),
+                "skipped_by_catalyst_rule_pct": pct(sum(bool({"extended_since_catalyst", "reversed_since_catalyst"}
+                                                             & set(c["reasons"])) for c in fresh)),
+                "enough_data": n >= 30}
+        bt = latest_backtest(s)
+        backtest = (((bt.report or {}).get("diagnostics") or {}).get("fill_check") if bt else None) \
+            or _json.loads(BASELINE.read_text()).get("fill_check")
+        return {"live": live, "backtest": backtest,
+                "limitation": "End-of-day data only: 'fresh' means 0-5% since the catalyst by the decision-day "
+                              "close, not intraday. Fills are always at the next day's open, never the same day."}
+
     @r.get("/api/llm", dependencies=[Depends(auth)])
     def llm_status() -> dict:
         from catalystedge.ml.llm import build_explainer
@@ -575,6 +609,12 @@ SKIP_EXPLANATIONS = {
     "cash_floor": "Buying would dip below the cash floor.",
     "below_min_order": "Order would be smaller than the minimum.",
     "invalid_stop": "The stop-loss is not below the entry price.",
+    "gap_up_priced_in": "Skipped at the next open: it opened more than 5% above the previous close (the "
+                        "signal price), so the move was already priced in.",
+    "extended_since_catalyst": "Skipped at the next open: it was already more than 15% above the price before "
+                               "the news (EXTENDED).",
+    "reversed_since_catalyst": "Skipped at the next open: it had fallen below the price before the news, so "
+                               "the positive reaction had reversed.",
 }
 
 

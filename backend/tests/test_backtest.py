@@ -206,3 +206,21 @@ def test_confidence_diagnostic_flags_backwards_confidence():
     assert "top 10 vs the rest" in d["worse"] and "80+ vs 65-80" in d["worse"] and "rebuilt" in d["plain"]
     sane = [row(90, 2.0) for _ in range(20)] + [row(70, 0.5) for _ in range(40)]
     assert raw.diagnostics(sane)["worse"] == []
+
+
+def test_fill_check_counts_fresh_signals_that_still_qualify():
+    from catalystedge.backtest import raw
+
+    def row(dec, fill, gap):
+        return {"out_of_sample": "1", "in_rules": "1", "move_at_decision_pct": str(dec),
+                "move_at_fill_pct": str(fill), "gap_at_fill_pct": str(gap)}
+
+    rows = [row(2, 3, 1), row(4, 8, 4), row(1, 20, 6), row(3, -1, -4),     # qualify, qualify, both rules, reversed
+            row(12, 13, 1)]                                                 # not fresh at the decision: excluded
+    g = raw.fill_check(rows)["fresh_rules_signals"]
+    assert g["n"] == 4 and g["qualify_at_fill_pct"] == 50.0
+    assert (g["still_0_5_pct"], g["moved_5_15_pct"], g["extended_pct"], g["reversed_pct"]) == (25.0, 25.0, 25.0, 25.0)
+    assert g["skipped_by_gap_rule_pct"] == 25.0 and g["skipped_by_catalyst_rule_pct"] == 50.0
+    assert "End-of-day data only" in raw.fill_check(rows)["limitation"]
+    most_gone = [row(2, 20, 6)] * 3 + [row(2, 3, 1)]
+    assert "structural tension" in raw.fill_check(most_gone)["plain"]

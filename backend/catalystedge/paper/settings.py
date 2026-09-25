@@ -19,6 +19,7 @@ class PaperSettings:
     auto_buy_min_closed_trades: int = 30
     time_stop_sessions: int = 10
     max_gap_up_pct: float = 5.0           # skip a buy if the open gaps up more than this over the signal price
+    max_move_since_catalyst_pct: float = 15.0   # skip if the fill is this far above the pre-news close (EXTENDED)
     min_price: float = 3.0
     min_adv_usd: float = 2e6
 
