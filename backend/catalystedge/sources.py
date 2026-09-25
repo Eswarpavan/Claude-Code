@@ -72,6 +72,9 @@ SOURCES: dict[str, SourceSpec] = {
         SourceSpec("globenewswire_rss", "news", True, False, 0.95, 2.0, 400, 240, 300, primary=True),
         SourceSpec("prnewswire_rss", "news", True, False, 0.95, 2.0, 400, 240, 300, primary=True),
         SourceSpec("businesswire_rss", "news", True, False, 0.95, 2.0, 400, 240, 300, primary=True),
+        # Nasdaq Trader halts RSS (official). The feed is small and changes during market hours: cache 60 s,
+        # >= 5 s between requests; polled with the event sources.
+        SourceSpec("nasdaq_halts", "event", True, False, 1.0, 5.0, 2000, 60, 120, primary=True),
         SourceSpec("benzinga_news", "news", True, False, 0.75, 1.0, None, 600, 900, enabled_by_default=False,
                    note="disabled stub: revisit after Phase 1"),
         SourceSpec("investing_rss", "news", True, False, 0.5, 60.0, None, 1800, 1800, enabled_by_default=False,

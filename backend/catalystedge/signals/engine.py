@@ -215,6 +215,12 @@ def generate_signals(session: Session, now: dt.datetime, *,
         if flags:
             feats["filing_flags"] = flags
             r.risk_notes.extend(risk_notes(flags))
+        from catalystedge.events.halts import halt_flags, halt_note
+
+        halts = halt_flags(session, symbol, now)
+        if halts:
+            feats["halts"] = halts
+            r.risk_notes.append(halt_note(halts))
         cstat = (catalyst_status or {}).get(catalyst, {})
         if cstat.get("status") == "untested":
             r.risk_notes.append(f"Unproven catalyst: {cstat.get('why', 'not enough history')}; "
