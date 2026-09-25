@@ -110,6 +110,7 @@ export function TickerHover({ signal, children }: { signal: SignalT; children: R
               <p className="text-subtle">Information only: the early-move idea has not passed the backtest.</p>
             </div>
           )}
+          {signal.short_interest && <p className="text-xs text-subtle">{signal.short_interest.text} Context only.</p>}
           {signal.verification && (
             <p className="text-xs">
               <span className="font-medium text-subtle">Source check: </span>

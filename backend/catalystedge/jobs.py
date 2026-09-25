@@ -95,7 +95,7 @@ def build_context(settings: Settings | None = None, clock: Clock | None = None) 
 
     http = HttpClient(kv=kv, clock=clock, slots=RedisSlots(settings.redis_url) if settings.redis_url else FileSlots())
     for secret in (settings.finnhub_api_key, settings.marketaux_api_key, settings.alphavantage_api_key,
-                   settings.tiingo_api_key, settings.sam_gov_api_key):
+                   settings.tiingo_api_key, settings.sam_gov_api_key, settings.finra_client_secret):
         http.register_secret(secret)
     engine = make_engine(settings.database_url)
     return Context(settings, sessionmaker(engine, expire_on_commit=False), http, kv, clock)
@@ -328,11 +328,13 @@ def job_signals(ctx: Context) -> dict:
         shown = [c.signal for c in result.displayed if c.signal is not None]
         queued = sum(queue_high_confidence(s, sig) for sig in shown)
     market = job_market_check(ctx, [sig.id for sig in shown])
+    short = job_short_interest(ctx, [sig.id for sig in shown])
     llm = job_llm_notes(ctx, [sig.id for sig in shown])
     if queued:
         job_email(ctx)      # send 80%+ alerts now instead of waiting for the next scheduled email run
     return {"as_of": result.as_of_date.isoformat(), "candidates": len(result.candidates), "displayed": len(shown),
-            "alerts_queued": queued, "warnings": result.warnings, "llm": llm, "market_check": market}
+            "alerts_queued": queued, "warnings": result.warnings, "llm": llm, "market_check": market,
+            "short_interest": short}
 
 
 def job_market_check(ctx: Context, signal_ids: list[int]) -> dict:
@@ -347,6 +349,27 @@ def job_market_check(ctx: Context, signal_ids: list[int]) -> dict:
             return annotate(sigs, ctx.http, ctx.settings.tiingo_api_key, ctx.clock.now())
     except Exception as e:
         log.warning("market check skipped: %s", type(e).__name__)
+        return {"error": type(e).__name__}
+
+
+def job_short_interest(ctx: Context, signal_ids: list[int]) -> dict:
+    """FINRA short interest for shown signals (context only). Never breaks the signal job."""
+    from catalystedge.events.short_interest import ingest_short_interest, short_interest_note
+
+    if not signal_ids:
+        return {"checked": 0}
+    try:
+        with _session(ctx) as s:
+            sigs = list(s.scalars(select(Signal).where(Signal.id.in_(signal_ids))))
+            rep = ingest_short_interest(s, ctx.http, [x.symbol for x in sigs], ctx.settings.finra_client_id,
+                                        ctx.settings.finra_client_secret)
+            for sig in sigs:
+                note = short_interest_note(s, sig.symbol)
+                if note:
+                    sig.features = {**(sig.features or {}), "short_interest": note}
+            return {"status": rep.status, "stored": rep.stored, "errors": rep.errors}
+    except Exception as e:
+        log.warning("short interest skipped: %s", type(e).__name__)
         return {"error": type(e).__name__}
 
 

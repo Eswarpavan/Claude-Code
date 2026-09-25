@@ -33,6 +33,7 @@ export type SignalT = {
   timesfm?: TimesFMTag | null;
   llm_why?: { text: string; model: string; label: string } | null;
   verification?: "primary" | "verified" | "unverified" | null;
+  short_interest?: { settlement_date: string; short_shares: number; days_to_cover: number | null; text: string } | null;
   market_check?: {
     catalyst_price: number; current_price: number | null; price_source: string; as_of: string | null;
     move_since_catalyst_pct: number | null; extended_status: string | null; extended_label: string;
