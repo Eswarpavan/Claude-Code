@@ -477,6 +477,12 @@ def _router():
                 "limitation": "End-of-day data only: 'fresh' means 0-5% since the catalyst by the decision-day "
                               "close, not intraday. Fills are always at the next day's open, never the same day."}
 
+    @r.get("/api/macro", dependencies=[Depends(auth)])
+    def macro(s: Session = Depends(db)) -> dict:
+        from catalystedge.events.macro import macro_context
+
+        return macro_context(s, state.clock.now())
+
     @r.get("/api/llm", dependencies=[Depends(auth)])
     def llm_status() -> dict:
         from catalystedge.ml.llm import build_explainer

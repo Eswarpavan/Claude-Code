@@ -4,6 +4,7 @@ import * as React from "react";
 import useSWR from "swr";
 import { CalibrationBanner } from "@/components/calibration-banner";
 import { FilteredByTimesFM } from "@/components/timesfm";
+import { MacroCard } from "@/components/macro-card";
 import { RefreshBar } from "@/components/refresh-bar";
 import { SignalCard } from "@/components/signal-card";
 import { Select } from "@/components/ui/input";
@@ -98,6 +99,7 @@ export default function SignalsPage() {
         {data?.signals.map((s, i) => <SignalCard key={s.id} signal={s} rank={i + 1} />)}
       </div>
       <FilteredByTimesFM />
+      <MacroCard />
     </div>
   );
 }

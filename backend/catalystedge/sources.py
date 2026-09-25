@@ -87,6 +87,10 @@ SOURCES: dict[str, SourceSpec] = {
         SourceSpec("sam_gov", "event", True, False, 1.0, 5.0, 100, 21600, 21600, primary=True),
         # FINRA short interest (official API): twice-monthly data, so one request per shown symbol per day.
         SourceSpec("finra", "event", True, False, 1.0, 1.0, 200, 86400, 86400, primary=True),
+        # Macro context (official): Fed and BLS RSS every 30-60 min; FRED calendar (free key) 4x a day.
+        SourceSpec("federal_reserve", "macro", True, False, 1.0, 5.0, 200, 1800, 1800, primary=True),
+        SourceSpec("bls", "macro", True, False, 1.0, 5.0, 100, 3600, 3600, primary=True),
+        SourceSpec("fred", "macro", True, False, 1.0, 1.0, 100, 21600, 21600, primary=True),
         SourceSpec("benzinga_news", "news", True, False, 0.75, 1.0, None, 600, 900, enabled_by_default=False,
                    note="disabled stub: revisit after Phase 1"),
         SourceSpec("investing_rss", "news", True, False, 0.5, 60.0, None, 1800, 1800, enabled_by_default=False,

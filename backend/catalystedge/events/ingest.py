@@ -14,6 +14,7 @@ from catalystedge.events.fda import ingest_fda
 from catalystedge.events.filings import ingest_8k, ingest_form4
 from catalystedge.events.gov_contracts import ingest_dod, ingest_sam, ingest_usaspending
 from catalystedge.events.halts import ingest_halts
+from catalystedge.events.macro import ingest_fed_bls, ingest_fred_calendar
 from catalystedge.events.sec_forms import ingest_sec_forms
 from catalystedge.events.trials import ingest_trials
 from catalystedge.ml.sentiment import SentimentModel
@@ -47,4 +48,6 @@ def ingest_all(session: Session, http: HttpClient, settings: Settings, universe:
     run("dod_contracts", lambda: ingest_dod(session, http, universe, now))
     run("usaspending", lambda: ingest_usaspending(session, http, universe, now))
     run("sam_gov", lambda: ingest_sam(session, http, settings.sam_gov_api_key, universe, now))
+    run("macro_feeds", lambda: ingest_fed_bls(session, http, now))
+    run("fred_calendar", lambda: ingest_fred_calendar(session, http, settings.fred_api_key, now))
     return reports

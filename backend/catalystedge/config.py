@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     fda_press_rss_url: str = Field(
         "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/press-releases/rss.xml",
         alias="FDA_PRESS_RSS_URL")
+    fred_api_key: str | None = Field(None, alias="FRED_API_KEY")                  # free, fred.stlouisfed.org
     finra_client_id: str | None = Field(None, alias="FINRA_API_CLIENT_ID")        # optional, FINRA API Console
     finra_client_secret: str | None = Field(None, alias="FINRA_API_CLIENT_SECRET")
     sam_gov_api_key: str | None = Field(None, alias="SAM_GOV_API_KEY")        # free at api.data.gov

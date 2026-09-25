@@ -95,7 +95,8 @@ def build_context(settings: Settings | None = None, clock: Clock | None = None) 
 
     http = HttpClient(kv=kv, clock=clock, slots=RedisSlots(settings.redis_url) if settings.redis_url else FileSlots())
     for secret in (settings.finnhub_api_key, settings.marketaux_api_key, settings.alphavantage_api_key,
-                   settings.tiingo_api_key, settings.sam_gov_api_key, settings.finra_client_secret):
+                   settings.tiingo_api_key, settings.sam_gov_api_key, settings.finra_client_secret,
+                   settings.fred_api_key):
         http.register_secret(secret)
     engine = make_engine(settings.database_url)
     return Context(settings, sessionmaker(engine, expire_on_commit=False), http, kv, clock)
