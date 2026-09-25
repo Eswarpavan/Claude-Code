@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     sec_user_agent: str | None = Field(None, alias="SEC_USER_AGENT")
 
     tiingo_news_enabled: bool = Field(False, alias="TIINGO_NEWS_ENABLED")
+    sam_gov_api_key: str | None = Field(None, alias="SAM_GOV_API_KEY")        # free at api.data.gov
     # Official newswire RSS feeds (primary sources). Set a URL empty to switch that wire off.
     globenewswire_rss_url: str = Field(
         "https://www.globenewswire.com/RssFeed/orgclass/1/feedTitle/GlobeNewswire%20-%20News%20about%20Public%20Companies",

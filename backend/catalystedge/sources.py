@@ -75,6 +75,11 @@ SOURCES: dict[str, SourceSpec] = {
         # Nasdaq Trader halts RSS (official). The feed is small and changes during market hours: cache 60 s,
         # >= 5 s between requests; polled with the event sources.
         SourceSpec("nasdaq_halts", "event", True, False, 1.0, 5.0, 2000, 60, 120, primary=True),
+        # Government contracts (official). DoD announces daily ~5 pm ET: cache 30 min. USAspending lags weeks:
+        # once every 12 h is plenty. SAM.gov (free api.data.gov key): 1,000 requests/day; we use a handful.
+        SourceSpec("dod_contracts", "event", True, False, 1.0, 5.0, 200, 1800, 1800, primary=True),
+        SourceSpec("usaspending", "event", True, False, 1.0, 5.0, 50, 43200, 43200, primary=True),
+        SourceSpec("sam_gov", "event", True, False, 1.0, 5.0, 100, 21600, 21600, primary=True),
         SourceSpec("benzinga_news", "news", True, False, 0.75, 1.0, None, 600, 900, enabled_by_default=False,
                    note="disabled stub: revisit after Phase 1"),
         SourceSpec("investing_rss", "news", True, False, 0.5, 60.0, None, 1800, 1800, enabled_by_default=False,

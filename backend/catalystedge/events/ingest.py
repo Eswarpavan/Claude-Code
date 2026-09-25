@@ -12,6 +12,7 @@ from catalystedge.events.common import IngestReport
 from catalystedge.events.earnings import ingest_earnings
 from catalystedge.events.fda import ingest_fda
 from catalystedge.events.filings import ingest_8k, ingest_form4
+from catalystedge.events.gov_contracts import ingest_dod, ingest_sam, ingest_usaspending
 from catalystedge.events.halts import ingest_halts
 from catalystedge.events.sec_forms import ingest_sec_forms
 from catalystedge.events.trials import ingest_trials
@@ -43,4 +44,7 @@ def ingest_all(session: Session, http: HttpClient, settings: Settings, universe:
     run("openfda", lambda: ingest_fda(session, http, universe, now))
     run("clinicaltrials", lambda: ingest_trials(session, http, universe, now))
     run("nasdaq_halts", lambda: ingest_halts(session, http))
+    run("dod_contracts", lambda: ingest_dod(session, http, universe, now))
+    run("usaspending", lambda: ingest_usaspending(session, http, universe, now))
+    run("sam_gov", lambda: ingest_sam(session, http, settings.sam_gov_api_key, universe, now))
     return reports

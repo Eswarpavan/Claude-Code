@@ -104,15 +104,21 @@ class HttpClient:
                  headers: Mapping[str, str] | None = None, *, ttl_s: int | None = None) -> str:
         return self._get(source, url, params, headers, ttl_s, as_json=False)
 
+    def post_json(self, source: str, url: str, body: Mapping[str, Any], headers: Mapping[str, str] | None = None,
+                  *, ttl_s: int | None = None) -> Any:
+        """For read-only search APIs that take a JSON body (USAspending). Same budgets, cache and redaction."""
+        return self._get(source, url, None, headers, ttl_s, as_json=True, json_body=dict(body))
+
     def _get(self, source: str, url: str, params: Mapping[str, Any] | None, headers: Mapping[str, str] | None,
-             ttl_s: int | None, *, as_json: bool) -> Any:
+             ttl_s: int | None, *, as_json: bool, json_body: dict | None = None) -> Any:
         spec = self.specs[source]
         params = dict(params or {})
         for k in SECRET_PARAMS & params.keys():
             self.register_secret(str(params[k]))
         stats = self.stats.setdefault(source, CallStats())
 
-        cache_key = self._cache_key(source, url, params)
+        cache_key = self._cache_key(source, url, {**params, **({"_body": json.dumps(json_body, sort_keys=True)}
+                                                            if json_body is not None else {})})
         ttl = spec.cache_ttl_s if ttl_s is None else ttl_s
         if ttl > 0 and (hit := self.kv.get(cache_key)) is not None:
             stats.cache_hits += 1
@@ -127,7 +133,10 @@ class HttpClient:
             self._space(source, spec)
             stats.http_calls += 1
             try:
-                resp = self._client.get(url, params=params, headers=self._headers(headers))
+                if json_body is not None:
+                    resp = self._client.post(url, json=json_body, headers=self._headers(headers))
+                else:
+                    resp = self._client.get(url, params=params, headers=self._headers(headers))
             except httpx.HTTPError as e:
                 last_error = ProviderError(source, self.redact(f"network error: {type(e).__name__}: {e}"))
                 if not last_attempt:
