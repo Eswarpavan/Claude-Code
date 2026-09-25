@@ -1,0 +1,1376 @@
+{
+ "generated_at": "2026-09-25T05:13:21.070335+00:00",
+ "universe": "106 of 106 symbols with prices; SEC 8-K/Form 4 + Finnhub earnings + openFDA",
+ "rows_total": 542,
+ "rows_out_of_sample": 368,
+ "period": [
+  "2025-10-01",
+  "2026-09-04"
+ ],
+ "folds": [
+  {
+   "test_start": "2024-10-01",
+   "n_train": 16,
+   "n_test": 34,
+   "weight": null,
+   "trained": false
+  },
+  {
+   "test_start": "2025-01-01",
+   "n_train": 43,
+   "n_test": 33,
+   "weight": null,
+   "trained": false
+  },
+  {
+   "test_start": "2025-04-01",
+   "n_train": 80,
+   "n_test": 51,
+   "weight": null,
+   "trained": false
+  },
+  {
+   "test_start": "2025-07-01",
+   "n_train": 131,
+   "n_test": 37,
+   "weight": null,
+   "trained": false
+  },
+  {
+   "test_start": "2025-10-01",
+   "n_train": 168,
+   "n_test": 97,
+   "weight": 0.5,
+   "trained": true
+  },
+  {
+   "test_start": "2026-01-01",
+   "n_train": 263,
+   "n_test": 80,
+   "weight": 0.25,
+   "trained": true
+  },
+  {
+   "test_start": "2026-04-01",
+   "n_train": 343,
+   "n_test": 107,
+   "weight": 0.25,
+   "trained": true
+  },
+  {
+   "test_start": "2026-07-01",
+   "n_train": 447,
+   "n_test": 84,
+   "weight": 0.25,
+   "trained": true
+  }
+ ],
+ "strategies": {
+  "all_events": {
+   "n": 368,
+   "hit_rate": 0.5136,
+   "mean_pct": 0.5301,
+   "median_pct": 0.1407,
+   "sharpe": 0.468
+  },
+  "rules": {
+   "n": 274,
+   "hit_rate": 0.5182,
+   "mean_pct": 0.4738,
+   "median_pct": 0.2782,
+   "sharpe": 0.417,
+   "p_value_vs_random_picks": 0.6035
+  },
+  "model": {
+   "n": 216,
+   "hit_rate": 0.5185,
+   "mean_pct": 0.3875,
+   "median_pct": 0.2408,
+   "sharpe": 0.346,
+   "p_value_vs_random_picks": 0.6829
+  },
+  "spy_same_days": {
+   "n": 368,
+   "hit_rate": 0.5027,
+   "mean_pct": 0.4307,
+   "median_pct": 0.0027,
+   "sharpe": 1.074
+  }
+ },
+ "verdict": {
+  "model_beats_baselines": false,
+  "rules_beat_baselines": false,
+  "model_enabled": false,
+  "plain": "Rules (>= 65): 274 trades, 52% winners, +0.47% average after costs. Buying every positive event: 51% winners, +0.53% average. S&P 500 over the same days: 50% up, +0.43% average. The ranking model did NOT beat all baselines, so it stays OFF (rules only). The rules themselves did not clearly beat both baselines in this test: treat signals as ideas to research, not proven edges."
+ },
+ "by_catalyst": {
+  "all_events": {
+   "fda_approval": {
+    "n": 59,
+    "hit_rate": 0.5085,
+    "mean_pct": 0.9807,
+    "median_pct": 0.3163,
+    "sharpe": 1.249
+   },
+   "positive_trial": {
+    "n": 4,
+    "hit_rate": 1.0,
+    "mean_pct": 12.9778,
+    "median_pct": 12.4941,
+    "sharpe": null
+   },
+   "guidance_raise": {
+    "n": 18,
+    "hit_rate": 0.5,
+    "mean_pct": -0.1711,
+    "median_pct": -0.7066,
+    "sharpe": -0.179
+   },
+   "earnings_beat": {
+    "n": 245,
+    "hit_rate": 0.5102,
+    "mean_pct": 0.2659,
+    "median_pct": 0.0378,
+    "sharpe": 0.226
+   },
+   "insider_buy_cluster": {
+    "n": 39,
+    "hit_rate": 0.4872,
+    "mean_pct": 0.5064,
+    "median_pct": -0.3245,
+    "sharpe": 0.442
+   },
+   "contract_win": {
+    "n": 1,
+    "hit_rate": 0.0,
+    "mean_pct": -6.0393,
+    "median_pct": -6.0393,
+    "sharpe": null
+   },
+   "m_and_a_target": {
+    "n": 2,
+    "hit_rate": 1.0,
+    "mean_pct": 4.7577,
+    "median_pct": 4.7577,
+    "sharpe": null
+   }
+  },
+  "rules": {
+   "fda_approval": {
+    "n": 50,
+    "hit_rate": 0.46,
+    "mean_pct": 0.5963,
+    "median_pct": -0.1683,
+    "sharpe": 0.748
+   },
+   "positive_trial": {
+    "n": 3,
+    "hit_rate": 1.0,
+    "mean_pct": 12.8598,
+    "median_pct": 11.6565,
+    "sharpe": null
+   },
+   "guidance_raise": {
+    "n": 14,
+    "hit_rate": 0.5,
+    "mean_pct": -0.3376,
+    "median_pct": -0.7066,
+    "sharpe": -0.402
+   },
+   "earnings_beat": {
+    "n": 173,
+    "hit_rate": 0.526,
+    "mean_pct": 0.2261,
+    "median_pct": 0.3206,
+    "sharpe": 0.187
+   },
+   "insider_buy_cluster": {
+    "n": 32,
+    "hit_rate": 0.5,
+    "mean_pct": 0.5479,
+    "median_pct": 0.7047,
+    "sharpe": 0.495
+   },
+   "m_and_a_target": {
+    "n": 2,
+    "hit_rate": 1.0,
+    "mean_pct": 4.7577,
+    "median_pct": 4.7577,
+    "sharpe": null
+   }
+  }
+ },
+ "by_catalyst_full_period": {
+  "fda_approval": {
+   "n": 146,
+   "hit_rate": 0.5342,
+   "mean_pct": 1.0423,
+   "median_pct": 0.7137,
+   "sharpe": 0.96
+  },
+  "positive_trial": {
+   "n": 12,
+   "hit_rate": 0.6667,
+   "mean_pct": 5.159,
+   "median_pct": 6.3068,
+   "sharpe": 3.99
+  },
+  "guidance_raise": {
+   "n": 34,
+   "hit_rate": 0.5588,
+   "mean_pct": 1.4983,
+   "median_pct": 2.2552,
+   "sharpe": 1.338
+  },
+  "earnings_beat": {
+   "n": 258,
+   "hit_rate": 0.5194,
+   "mean_pct": 0.444,
+   "median_pct": 0.191,
+   "sharpe": 0.364
+  },
+  "insider_buy_cluster": {
+   "n": 89,
+   "hit_rate": 0.5618,
+   "mean_pct": 1.3209,
+   "median_pct": 2.3437,
+   "sharpe": 1.066
+  },
+  "contract_win": {
+   "n": 1,
+   "hit_rate": 0.0,
+   "mean_pct": -6.0393,
+   "median_pct": -6.0393,
+   "sharpe": null
+  },
+  "m_and_a_target": {
+   "n": 2,
+   "hit_rate": 1.0,
+   "mean_pct": 4.7577,
+   "median_pct": 4.7577,
+   "sharpe": null
+  }
+ },
+ "catalyst_verdicts": {
+  "fda_approval": {
+   "status": "disabled",
+   "why": "did not beat the S&P 500 over the same days",
+   "rules": {
+    "n": 50,
+    "hit_rate": 0.46,
+    "mean_pct": 0.5963,
+    "median_pct": -0.1683,
+    "sharpe": 0.748
+   },
+   "spy_same_days": {
+    "n": 50,
+    "hit_rate": 0.5,
+    "mean_pct": 0.6256,
+    "median_pct": -0.0644,
+    "sharpe": 1.111
+   }
+  },
+  "positive_trial": {
+   "status": "untested",
+   "why": "only 3 out-of-sample trades (needs 30)",
+   "rules": {
+    "n": 3,
+    "hit_rate": 1.0,
+    "mean_pct": 12.8598,
+    "median_pct": 11.6565,
+    "sharpe": null
+   },
+   "spy_same_days": {
+    "n": 3,
+    "hit_rate": 0.6667,
+    "mean_pct": 0.9994,
+    "median_pct": 2.8533,
+    "sharpe": null
+   }
+  },
+  "guidance_raise": {
+   "status": "untested",
+   "why": "only 14 out-of-sample trades (needs 30)",
+   "rules": {
+    "n": 14,
+    "hit_rate": 0.5,
+    "mean_pct": -0.3376,
+    "median_pct": -0.7066,
+    "sharpe": -0.402
+   },
+   "spy_same_days": {
+    "n": 14,
+    "hit_rate": 0.5,
+    "mean_pct": 0.2043,
+    "median_pct": -0.0229,
+    "sharpe": 0.648
+   }
+  },
+  "earnings_beat": {
+   "status": "disabled",
+   "why": "did not beat the S&P 500 over the same days",
+   "rules": {
+    "n": 173,
+    "hit_rate": 0.526,
+    "mean_pct": 0.2261,
+    "median_pct": 0.3206,
+    "sharpe": 0.187
+   },
+   "spy_same_days": {
+    "n": 173,
+    "hit_rate": 0.5087,
+    "mean_pct": 0.5187,
+    "median_pct": 0.0243,
+    "sharpe": 1.315
+   }
+  },
+  "insider_buy_cluster": {
+   "status": "enabled",
+   "why": "beat the S&P 500 over the same days on hit rate, return and Sharpe",
+   "rules": {
+    "n": 32,
+    "hit_rate": 0.5,
+    "mean_pct": 0.5479,
+    "median_pct": 0.7047,
+    "sharpe": 0.495
+   },
+   "spy_same_days": {
+    "n": 32,
+    "hit_rate": 0.4062,
+    "mean_pct": -0.1985,
+    "median_pct": -0.216,
+    "sharpe": -0.545
+   }
+  },
+  "contract_win": {
+   "status": "untested",
+   "why": "only 0 out-of-sample trades (needs 30)",
+   "rules": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   },
+   "spy_same_days": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   }
+  },
+  "m_and_a_target": {
+   "status": "untested",
+   "why": "only 2 out-of-sample trades (needs 30)",
+   "rules": {
+    "n": 2,
+    "hit_rate": 1.0,
+    "mean_pct": 4.7577,
+    "median_pct": 4.7577,
+    "sharpe": null
+   },
+   "spy_same_days": {
+    "n": 2,
+    "hit_rate": 0.5,
+    "mean_pct": -0.2569,
+    "median_pct": -0.2569,
+    "sharpe": null
+   }
+  },
+  "upgrade": {
+   "status": "untested",
+   "why": "only 0 out-of-sample trades (needs 30)",
+   "rules": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   },
+   "spy_same_days": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   }
+  }
+ },
+ "confidence_buckets": {
+  "rules": [
+   {
+    "bucket": "0-50",
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   },
+   {
+    "bucket": "50-65.0",
+    "n": 11,
+    "hit_rate": 0.6364,
+    "mean_pct": 1.9755,
+    "median_pct": 2.0746,
+    "sharpe": 1.942
+   },
+   {
+    "bucket": "65.0-80.0",
+    "n": 127,
+    "hit_rate": 0.5433,
+    "mean_pct": 0.6617,
+    "median_pct": 0.3007,
+    "sharpe": 0.571
+   },
+   {
+    "bucket": "80.0-100",
+    "n": 230,
+    "hit_rate": 0.4913,
+    "mean_pct": 0.3883,
+    "median_pct": -0.078,
+    "sharpe": 0.348
+   }
+  ],
+  "model": [
+   {
+    "bucket": "0-50",
+    "n": 5,
+    "hit_rate": 0.6,
+    "mean_pct": 2.3879,
+    "median_pct": 2.9293,
+    "sharpe": 3.282
+   },
+   {
+    "bucket": "50-65.0",
+    "n": 69,
+    "hit_rate": 0.5217,
+    "mean_pct": 0.9525,
+    "median_pct": 1.6198,
+    "sharpe": 0.777
+   },
+   {
+    "bucket": "65.0-80.0",
+    "n": 193,
+    "hit_rate": 0.513,
+    "mean_pct": 0.4551,
+    "median_pct": 0.1253,
+    "sharpe": 0.388
+   },
+   {
+    "bucket": "80.0-100",
+    "n": 101,
+    "hit_rate": 0.505,
+    "mean_pct": 0.2927,
+    "median_pct": 0.013,
+    "sharpe": 0.294
+   }
+  ]
+ },
+ "priced_in_skip": {
+  "skipped": {
+   "n": 83,
+   "hit_rate": 0.4819,
+   "mean_pct": 0.5241,
+   "median_pct": -0.1012,
+   "sharpe": 0.471
+  },
+  "kept": {
+   "n": 285,
+   "hit_rate": 0.5228,
+   "mean_pct": 0.5318,
+   "median_pct": 0.3163,
+   "sharpe": 0.468
+  }
+ },
+ "costs": "round-trip spread + slippage by liquidity (5-60 bps each way), same as the paper account",
+ "caveats": [
+  "Survivorship bias: the universe is companies listed in 2026.",
+  "Earnings history on Finnhub's free plan covers only the last 4 quarters per company.",
+  "News headlines are not in the backtest (no licensed archive); SEC press releases stand in for them."
+ ],
+ "shap": {
+  "n_rows": 368,
+  "units": "log-odds of a winning trade",
+  "features": [
+   {
+    "feature": "atr20_pct",
+    "plain": "volatility",
+    "mean_abs_shap": 0.42354,
+    "share_pct": 14.5,
+    "mean_signed_shap": 0.08037
+   },
+   {
+    "feature": "mom20_pct",
+    "plain": "20-day momentum",
+    "mean_abs_shap": 0.33006,
+    "share_pct": 11.3,
+    "mean_signed_shap": 0.02426
+   },
+   {
+    "feature": "volume_ratio",
+    "plain": "volume surge",
+    "mean_abs_shap": 0.31467,
+    "share_pct": 10.8,
+    "mean_signed_shap": -0.02239
+   },
+   {
+    "feature": "mom5_pct",
+    "plain": "mom5 pct",
+    "mean_abs_shap": 0.2538,
+    "share_pct": 8.7,
+    "mean_signed_shap": 0.00187
+   },
+   {
+    "feature": "mom60_pct",
+    "plain": "60-day momentum",
+    "mean_abs_shap": 0.24575,
+    "share_pct": 8.4,
+    "mean_signed_shap": -0.07193
+   },
+   {
+    "feature": "c_materiality",
+    "plain": "materiality",
+    "mean_abs_shap": 0.24234,
+    "share_pct": 8.3,
+    "mean_signed_shap": 0.02368
+   },
+   {
+    "feature": "log_adv20",
+    "plain": "liquidity",
+    "mean_abs_shap": 0.19481,
+    "share_pct": 6.7,
+    "mean_signed_shap": -0.01921
+   },
+   {
+    "feature": "gap_pct",
+    "plain": "opening gap after the news",
+    "mean_abs_shap": 0.18546,
+    "share_pct": 6.3,
+    "mean_signed_shap": -0.01902
+   },
+   {
+    "feature": "rule_score",
+    "plain": "rule score",
+    "mean_abs_shap": 0.16514,
+    "share_pct": 5.6,
+    "mean_signed_shap": -0.00784
+   },
+   {
+    "feature": "reaction_atr",
+    "plain": "reaction atr",
+    "mean_abs_shap": 0.15017,
+    "share_pct": 5.1,
+    "mean_signed_shap": -0.00617
+   },
+   {
+    "feature": "reaction_pct",
+    "plain": "price move since the news",
+    "mean_abs_shap": 0.12785,
+    "share_pct": 4.4,
+    "mean_signed_shap": -0.02409
+   },
+   {
+    "feature": "above_sma50",
+    "plain": "above sma50",
+    "mean_abs_shap": 0.07432,
+    "share_pct": 2.5,
+    "mean_signed_shap": -0.01089
+   },
+   {
+    "feature": "from_earnings",
+    "plain": "source: earnings",
+    "mean_abs_shap": 0.03785,
+    "share_pct": 1.3,
+    "mean_signed_shap": -0.02554
+   },
+   {
+    "feature": "n_events",
+    "plain": "n events",
+    "mean_abs_shap": 0.03172,
+    "share_pct": 1.1,
+    "mean_signed_shap": -0.01344
+   },
+   {
+    "feature": "from_filing",
+    "plain": "source: filing",
+    "mean_abs_shap": 0.02709,
+    "share_pct": 0.9,
+    "mean_signed_shap": -0.01258
+   }
+  ],
+  "unused_features": [
+   "timesfm_er",
+   "c_liquidity",
+   "c_credibility",
+   "timesfm_width",
+   "is_contract_win",
+   "is_positive_trial",
+   "c_model_disagrees",
+   "is_m_and_a_target",
+   "from_news",
+   "is_upgrade"
+  ]
+ },
+ "timesfm": {
+  "rows_with_forecast": 368,
+  "rules_without_timesfm": {
+   "n": 274,
+   "hit_rate": 0.5182,
+   "mean_pct": 0.4738,
+   "median_pct": 0.2782,
+   "sharpe": 0.417
+  },
+  "rules_with_timesfm_filter": {
+   "n": 156,
+   "hit_rate": 0.4936,
+   "mean_pct": 0.0957,
+   "median_pct": -0.1188,
+   "sharpe": 0.08
+  },
+  "rules_with_timesfm_feature": {
+   "n": 274,
+   "hit_rate": 0.5146,
+   "mean_pct": 0.4364,
+   "median_pct": 0.2408,
+   "sharpe": 0.383
+  },
+  "all_events_forecast_positive": {
+   "n": 173,
+   "hit_rate": 0.4855,
+   "mean_pct": 0.0958,
+   "median_pct": -0.2,
+   "sharpe": 0.081
+  },
+  "all_events_forecast_not_positive": {
+   "n": 195,
+   "hit_rate": 0.5385,
+   "mean_pct": 0.9153,
+   "median_pct": 0.3206,
+   "sharpe": 0.844
+  },
+  "naive_all_events": {
+   "n": 368,
+   "hit_rate": 0.5136,
+   "mean_pct": 0.5301,
+   "median_pct": 0.1407,
+   "sharpe": 0.468
+  },
+  "spy_same_days": {
+   "n": 368,
+   "hit_rate": 0.5027,
+   "mean_pct": 0.4307,
+   "median_pct": 0.0027,
+   "sharpe": 1.074
+  },
+  "leakage_warning": "TimesFM 3.0 was pretrained on public time series that very likely include daily stock prices up to 2026. This backtest period overlaps that window, so TimesFM's results here may be optimistic (leakage). Trust live outcomes after its release date more.",
+  "spy_same_days_as": {
+   "rules_without_timesfm": {
+    "n": 274,
+    "hit_rate": 0.4964,
+    "mean_pct": 0.438,
+    "median_pct": -0.0597,
+    "sharpe": 1.034
+   },
+   "rules_with_timesfm_filter": {
+    "n": 156,
+    "hit_rate": 0.5385,
+    "mean_pct": 0.5318,
+    "median_pct": 0.3033,
+    "sharpe": 1.234
+   },
+   "rules_with_timesfm_feature": {
+    "n": 274,
+    "hit_rate": 0.4964,
+    "mean_pct": 0.4356,
+    "median_pct": -0.0597,
+    "sharpe": 1.028
+   }
+  },
+  "beats_spy": {
+   "rules_without_timesfm": false,
+   "rules_with_timesfm_filter": false,
+   "rules_with_timesfm_feature": false
+  },
+  "filter_helps": false,
+  "feature_helps": false,
+  "helps": false,
+  "plain": "The evidence says TimesFM is NOT helping here (it did not beat the same rules without it on hit rate, average return and Sharpe). You can keep it on, but it is not earning its place."
+ },
+ "n_events": 616,
+ "slices": {
+  "closest_catalyst": {
+   "catalyst": "insider_buy_cluster",
+   "n": 32,
+   "mean_excess_pct": 0.7464,
+   "p_value": 0.23998800059997,
+   "p_bonferroni": 1.0,
+   "min_detectable_excess_pct": 3.752,
+   "trades_needed": 809,
+   "passes": false,
+   "misses": [
+    "32 trades (needs 50)",
+    "p = 0.240, 1.000 after correction (needs < 0.05)"
+   ],
+   "plain": "Closest catalyst: insider_buy_cluster (32 trades, +0.75% per trade vs the S&P 500, p = 0.240, corrected 1.000). It fails: 32 trades (needs 50); p = 0.240, 1.000 after correction (needs < 0.05). If that edge were real, about 809 trades would be needed to confirm it at the corrected threshold."
+  },
+  "rules_trades": 274,
+  "comparisons": 21,
+  "alpha_per_test": 0.002380952380952381,
+  "min_trades": 50,
+  "test": "one-sided sign-flip permutation on per-trade excess return vs the S&P 500 over the same days",
+  "correction": "Bonferroni",
+  "overall_mean_excess_pct": 0.0358,
+  "candidates": [],
+  "slices": [
+   {
+    "slice": "Communication",
+    "dimension": "sector",
+    "n": 3,
+    "strategy": {
+     "n": 3,
+     "hit_rate": 0.6667,
+     "mean_pct": -2.1254,
+     "median_pct": 0.2557,
+     "sharpe": null
+    },
+    "spy_same_days": {
+     "n": 3,
+     "hit_rate": 0.0,
+     "mean_pct": -1.5665,
+     "median_pct": -1.4657,
+     "sharpe": null
+    },
+    "mean_excess_pct": -0.5589,
+    "sd_excess_pct": 4.7297,
+    "beats_spy": false,
+    "p_value": null,
+    "p_bonferroni": null,
+    "min_detectable_excess_pct": 10.006,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "Consumer",
+    "dimension": "sector",
+    "n": 25,
+    "strategy": {
+     "n": 25,
+     "hit_rate": 0.56,
+     "mean_pct": 0.9096,
+     "median_pct": 0.7758,
+     "sharpe": 0.872
+    },
+    "spy_same_days": {
+     "n": 25,
+     "hit_rate": 0.52,
+     "mean_pct": 0.9882,
+     "median_pct": 0.8369,
+     "sharpe": 2.016
+    },
+    "mean_excess_pct": -0.0786,
+    "sd_excess_pct": 5.4941,
+    "beats_spy": false,
+    "p_value": 0.5238738063096845,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 4.026,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "Energy",
+    "dimension": "sector",
+    "n": 13,
+    "strategy": {
+     "n": 13,
+     "hit_rate": 0.3077,
+     "mean_pct": -1.0046,
+     "median_pct": -2.3445,
+     "sharpe": -1.477
+    },
+    "spy_same_days": {
+     "n": 13,
+     "hit_rate": 0.6923,
+     "mean_pct": 1.2175,
+     "median_pct": 2.3273,
+     "sharpe": 3.146
+    },
+    "mean_excess_pct": -2.2221,
+    "sd_excess_pct": 5.4928,
+    "beats_spy": false,
+    "p_value": 0.9043047847607619,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 5.582,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "Financials",
+    "dimension": "sector",
+    "n": 36,
+    "strategy": {
+     "n": 36,
+     "hit_rate": 0.4444,
+     "mean_pct": -0.9772,
+     "median_pct": -0.8982,
+     "sharpe": -0.777
+    },
+    "spy_same_days": {
+     "n": 36,
+     "hit_rate": 0.4722,
+     "mean_pct": 0.4862,
+     "median_pct": -0.1714,
+     "sharpe": 1.286
+    },
+    "mean_excess_pct": -1.4634,
+    "sd_excess_pct": 6.4174,
+    "beats_spy": false,
+    "p_value": 0.9072546372681366,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 3.919,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "Health care",
+    "dimension": "sector",
+    "n": 133,
+    "strategy": {
+     "n": 133,
+     "hit_rate": 0.5639,
+     "mean_pct": 1.3356,
+     "median_pct": 1.2129,
+     "sharpe": 1.199
+    },
+    "spy_same_days": {
+     "n": 133,
+     "hit_rate": 0.5188,
+     "mean_pct": 0.5215,
+     "median_pct": 0.0486,
+     "sharpe": 1.149
+    },
+    "mean_excess_pct": 0.8141,
+    "sd_excess_pct": 6.7929,
+    "beats_spy": true,
+    "p_value": 0.08599570021498926,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 2.158,
+    "trades_needed": 935,
+    "candidate": false
+   },
+   {
+    "slice": "Industrials",
+    "dimension": "sector",
+    "n": 20,
+    "strategy": {
+     "n": 20,
+     "hit_rate": 0.4,
+     "mean_pct": -1.0266,
+     "median_pct": -2.5603,
+     "sharpe": -0.981
+    },
+    "spy_same_days": {
+     "n": 20,
+     "hit_rate": 0.5,
+     "mean_pct": 0.1135,
+     "median_pct": -0.1913,
+     "sharpe": 0.299
+    },
+    "mean_excess_pct": -1.1401,
+    "sd_excess_pct": 6.1956,
+    "beats_spy": false,
+    "p_value": 0.783660816959152,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 5.076,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "Technology",
+    "dimension": "sector",
+    "n": 44,
+    "strategy": {
+     "n": 44,
+     "hit_rate": 0.5227,
+     "mean_pct": 0.1048,
+     "median_pct": 0.1253,
+     "sharpe": 0.085
+    },
+    "spy_same_days": {
+     "n": 44,
+     "hit_rate": 0.4091,
+     "mean_pct": -0.1125,
+     "median_pct": -0.4704,
+     "sharpe": -0.352
+    },
+    "mean_excess_pct": 0.2173,
+    "sd_excess_pct": 7.0918,
+    "beats_spy": true,
+    "p_value": 0.41882905854707264,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 3.918,
+    "trades_needed": 14302,
+    "candidate": false
+   },
+   {
+    "slice": "Large (>= $10B)",
+    "dimension": "market cap",
+    "n": 210,
+    "strategy": {
+     "n": 210,
+     "hit_rate": 0.5143,
+     "mean_pct": 0.5489,
+     "median_pct": 0.191,
+     "sharpe": 0.506
+    },
+    "spy_same_days": {
+     "n": 210,
+     "hit_rate": 0.4857,
+     "mean_pct": 0.4803,
+     "median_pct": -0.0884,
+     "sharpe": 1.107
+    },
+    "mean_excess_pct": 0.0687,
+    "sd_excess_pct": 6.3677,
+    "beats_spy": false,
+    "p_value": 0.44342782860856955,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 1.61,
+    "trades_needed": 115357,
+    "candidate": false
+   },
+   {
+    "slice": "Mid ($2-10B)",
+    "dimension": "market cap",
+    "n": 43,
+    "strategy": {
+     "n": 43,
+     "hit_rate": 0.5581,
+     "mean_pct": 0.3837,
+     "median_pct": 3.0499,
+     "sharpe": 0.308
+    },
+    "spy_same_days": {
+     "n": 43,
+     "hit_rate": 0.5349,
+     "mean_pct": 0.2259,
+     "median_pct": 0.0486,
+     "sharpe": 0.581
+    },
+    "mean_excess_pct": 0.1578,
+    "sd_excess_pct": 7.5012,
+    "beats_spy": false,
+    "p_value": 0.4406779661016949,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 4.192,
+    "trades_needed": 30342,
+    "candidate": false
+   },
+   {
+    "slice": "Small ($300M-2B)",
+    "dimension": "market cap",
+    "n": 8,
+    "strategy": {
+     "n": 8,
+     "hit_rate": 0.625,
+     "mean_pct": -0.445,
+     "median_pct": 2.1352,
+     "sharpe": -0.261
+    },
+    "spy_same_days": {
+     "n": 8,
+     "hit_rate": 0.5,
+     "mean_pct": 0.1798,
+     "median_pct": 0.2168,
+     "sharpe": 0.495
+    },
+    "mean_excess_pct": -0.6249,
+    "sd_excess_pct": 8.3677,
+    "beats_spy": false,
+    "p_value": 0.5606219689015549,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 10.841,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "Unknown",
+    "dimension": "market cap",
+    "n": 13,
+    "strategy": {
+     "n": 13,
+     "hit_rate": 0.3846,
+     "mean_pct": 0.1244,
+     "median_pct": -0.3139,
+     "sharpe": 0.113
+    },
+    "spy_same_days": {
+     "n": 13,
+     "hit_rate": 0.5385,
+     "mean_pct": 0.6159,
+     "median_pct": 0.8369,
+     "sharpe": 1.595
+    },
+    "mean_excess_pct": -0.4915,
+    "sd_excess_pct": 6.6205,
+    "beats_spy": false,
+    "p_value": 0.5990700464976751,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 6.728,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "hold exactly 1 session",
+    "dimension": "holding period",
+    "n": 274,
+    "strategy": {
+     "n": 274,
+     "hit_rate": 0.4781,
+     "mean_pct": 0.0091,
+     "median_pct": -0.1701,
+     "sharpe": 0.05
+    },
+    "spy_same_days": {
+     "n": 274,
+     "hit_rate": 0.4526,
+     "mean_pct": -0.0612,
+     "median_pct": -0.1164,
+     "sharpe": -1.562
+    },
+    "mean_excess_pct": 0.0703,
+    "sd_excess_pct": 2.815,
+    "beats_spy": true,
+    "p_value": 0.3382830858457077,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 0.623,
+    "trades_needed": 21530,
+    "candidate": false
+   },
+   {
+    "slice": "hold exactly 3 sessions",
+    "dimension": "holding period",
+    "n": 274,
+    "strategy": {
+     "n": 274,
+     "hit_rate": 0.4599,
+     "mean_pct": 0.0672,
+     "median_pct": -0.303,
+     "sharpe": 0.128
+    },
+    "spy_same_days": {
+     "n": 274,
+     "hit_rate": 0.5219,
+     "mean_pct": 0.1746,
+     "median_pct": 0.1494,
+     "sharpe": 1.124
+    },
+    "mean_excess_pct": -0.1074,
+    "sd_excess_pct": 4.633,
+    "beats_spy": false,
+    "p_value": 0.6470676466176691,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 1.026,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "hold exactly 5 sessions",
+    "dimension": "holding period",
+    "n": 274,
+    "strategy": {
+     "n": 274,
+     "hit_rate": 0.5438,
+     "mean_pct": 0.3647,
+     "median_pct": 0.323,
+     "sharpe": 0.422
+    },
+    "spy_same_days": {
+     "n": 274,
+     "hit_rate": 0.6058,
+     "mean_pct": 0.3065,
+     "median_pct": 0.3423,
+     "sharpe": 1.217
+    },
+    "mean_excess_pct": 0.0582,
+    "sd_excess_pct": 6.1185,
+    "beats_spy": false,
+    "p_value": 0.4373781310934453,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 1.354,
+    "trades_needed": 148401,
+    "candidate": false
+   },
+   {
+    "slice": "hold exactly 10 sessions",
+    "dimension": "holding period",
+    "n": 274,
+    "strategy": {
+     "n": 274,
+     "hit_rate": 0.5401,
+     "mean_pct": 0.7564,
+     "median_pct": 0.6381,
+     "sharpe": 0.427
+    },
+    "spy_same_days": {
+     "n": 274,
+     "hit_rate": 0.4964,
+     "mean_pct": 0.506,
+     "median_pct": -0.0114,
+     "sharpe": 0.978
+    },
+    "mean_excess_pct": 0.2504,
+    "sd_excess_pct": 8.8944,
+    "beats_spy": false,
+    "p_value": 0.3247837608119594,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 1.969,
+    "trades_needed": 16942,
+    "candidate": false
+   },
+   {
+    "slice": "earnings_beat",
+    "dimension": "catalyst",
+    "n": 173,
+    "strategy": {
+     "n": 173,
+     "hit_rate": 0.526,
+     "mean_pct": 0.2261,
+     "median_pct": 0.3206,
+     "sharpe": 0.187
+    },
+    "spy_same_days": {
+     "n": 173,
+     "hit_rate": 0.5087,
+     "mean_pct": 0.5187,
+     "median_pct": 0.0243,
+     "sharpe": 1.315
+    },
+    "mean_excess_pct": -0.2926,
+    "sd_excess_pct": 6.9201,
+    "beats_spy": false,
+    "p_value": 0.7113644317784111,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 1.928,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "fda_approval",
+    "dimension": "catalyst",
+    "n": 50,
+    "strategy": {
+     "n": 50,
+     "hit_rate": 0.46,
+     "mean_pct": 0.5963,
+     "median_pct": -0.1683,
+     "sharpe": 0.748
+    },
+    "spy_same_days": {
+     "n": 50,
+     "hit_rate": 0.5,
+     "mean_pct": 0.6256,
+     "median_pct": -0.0644,
+     "sharpe": 1.111
+    },
+    "mean_excess_pct": -0.0293,
+    "sd_excess_pct": 5.7921,
+    "beats_spy": false,
+    "p_value": 0.5100244987750613,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 3.002,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "guidance_raise",
+    "dimension": "catalyst",
+    "n": 14,
+    "strategy": {
+     "n": 14,
+     "hit_rate": 0.5,
+     "mean_pct": -0.3376,
+     "median_pct": -0.7066,
+     "sharpe": -0.402
+    },
+    "spy_same_days": {
+     "n": 14,
+     "hit_rate": 0.5,
+     "mean_pct": 0.2043,
+     "median_pct": -0.0229,
+     "sharpe": 0.648
+    },
+    "mean_excess_pct": -0.5419,
+    "sd_excess_pct": 5.8882,
+    "beats_spy": false,
+    "p_value": 0.6299685015749212,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 5.767,
+    "trades_needed": null,
+    "candidate": false
+   },
+   {
+    "slice": "insider_buy_cluster",
+    "dimension": "catalyst",
+    "n": 32,
+    "strategy": {
+     "n": 32,
+     "hit_rate": 0.5,
+     "mean_pct": 0.5479,
+     "median_pct": 0.7047,
+     "sharpe": 0.495
+    },
+    "spy_same_days": {
+     "n": 32,
+     "hit_rate": 0.4062,
+     "mean_pct": -0.1985,
+     "median_pct": -0.216,
+     "sharpe": -0.545
+    },
+    "mean_excess_pct": 0.7464,
+    "sd_excess_pct": 5.7919,
+    "beats_spy": true,
+    "p_value": 0.23998800059997,
+    "p_bonferroni": 1.0,
+    "min_detectable_excess_pct": 3.752,
+    "trades_needed": 809,
+    "candidate": false
+   },
+   {
+    "slice": "m_and_a_target",
+    "dimension": "catalyst",
+    "n": 2,
+    "strategy": {
+     "n": 2,
+     "hit_rate": 1.0,
+     "mean_pct": 4.7577,
+     "median_pct": 4.7577,
+     "sharpe": null
+    },
+    "spy_same_days": {
+     "n": 2,
+     "hit_rate": 0.5,
+     "mean_pct": -0.2569,
+     "median_pct": -0.2569,
+     "sharpe": null
+    },
+    "mean_excess_pct": 5.0146,
+    "sd_excess_pct": 3.2932,
+    "beats_spy": false,
+    "p_value": null,
+    "p_bonferroni": null,
+    "min_detectable_excess_pct": 8.533,
+    "trades_needed": 6,
+    "candidate": false
+   },
+   {
+    "slice": "positive_trial",
+    "dimension": "catalyst",
+    "n": 3,
+    "strategy": {
+     "n": 3,
+     "hit_rate": 1.0,
+     "mean_pct": 12.8598,
+     "median_pct": 11.6565,
+     "sharpe": null
+    },
+    "spy_same_days": {
+     "n": 3,
+     "hit_rate": 0.6667,
+     "mean_pct": 0.9994,
+     "median_pct": 2.8533,
+     "sharpe": null
+    },
+    "mean_excess_pct": 11.8604,
+    "sd_excess_pct": 2.6515,
+    "beats_spy": false,
+    "p_value": null,
+    "p_bonferroni": null,
+    "min_detectable_excess_pct": 5.61,
+    "trades_needed": 1,
+    "candidate": false
+   }
+  ],
+  "plain": "No slice passes. 8 of 21 slices have at least 50 trades; after correcting for 21 comparisons (p < 0.0024 each), the smallest average edge over the S&P 500 that any of them could reliably detect is 0.62% per trade, while the rules as a whole beat the S&P 500 by only +0.04% per trade. The data is too small to trust any finer slicing: a real edge of a realistic size would not show up, and anything that looked good would most likely be noise."
+ },
+ "note": "106 of 106 symbols with prices; SEC 8-K/Form 4 + Finnhub earnings + openFDA",
+ "diagnostics": {
+  "groups": {
+   "Top 10 by confidence": {
+    "strategy": {
+     "n": 10,
+     "hit_rate": 0.5,
+     "mean_pct": -1.6944,
+     "median_pct": 0.279,
+     "sharpe": -1.43
+    },
+    "spy_same_days": {
+     "n": 10,
+     "hit_rate": 0.2,
+     "mean_pct": -1.1463,
+     "median_pct": -1.3324,
+     "sharpe": -3.527
+    },
+    "min_confidence": 99.0
+   },
+   "All other rules trades": {
+    "strategy": {
+     "n": 264,
+     "hit_rate": 0.5189,
+     "mean_pct": 0.556,
+     "median_pct": 0.2782,
+     "sharpe": 0.491
+    },
+    "spy_same_days": {
+     "n": 264,
+     "hit_rate": 0.5076,
+     "mean_pct": 0.498,
+     "median_pct": 0.0309,
+     "sharpe": 1.177
+    },
+    "min_confidence": 65.1
+   },
+   "Confidence 65-80": {
+    "strategy": {
+     "n": 120,
+     "hit_rate": 0.5417,
+     "mean_pct": 0.6492,
+     "median_pct": 0.3318,
+     "sharpe": 0.553
+    },
+    "spy_same_days": {
+     "n": 120,
+     "hit_rate": 0.5333,
+     "mean_pct": 0.4852,
+     "median_pct": 0.17,
+     "sharpe": 1.084
+    },
+    "min_confidence": 65.1
+   },
+   "Confidence 80+": {
+    "strategy": {
+     "n": 154,
+     "hit_rate": 0.5,
+     "mean_pct": 0.3372,
+     "median_pct": 0.0941,
+     "sharpe": 0.304
+    },
+    "spy_same_days": {
+     "n": 154,
+     "hit_rate": 0.4675,
+     "mean_pct": 0.4013,
+     "median_pct": -0.2587,
+     "sharpe": 0.992
+    },
+    "min_confidence": 80.0
+   }
+  },
+  "worse": [
+   "top 10 vs the rest",
+   "80+ vs 65-80"
+  ],
+  "plain": "Higher confidence did WORSE (lower win rate and lower average return) for: top 10 vs the rest; 80+ vs 65-80. The confidence score does not rank trades and must be rebuilt before it is used for anything, including 'top signals' displays. With only 10 trades the top-10 row alone proves nothing either way; the 65-80 vs 80+ comparison has more trades.",
+  "note": "Diagnostic only: not counted toward the bar or the Bonferroni correction."
+ },
+ "run_id": 2
+}

@@ -1,13 +1,156 @@
 {
-  "source": "walk-forward backtest of 2026-09-24 (106 companies, out of sample 2025-10-01 to 2026-09-04, after costs); see docs/PHASE1_PROGRESS.md",
-  "verdicts": {
-    "insider_buy_cluster": {"status": "enabled", "why": "beat the S&P 500 over the same days on hit rate, return and Sharpe (34 trades: thin evidence)"},
-    "earnings_beat": {"status": "disabled", "why": "did not beat the S&P 500 over the same days"},
-    "fda_approval": {"status": "disabled", "why": "did not beat the S&P 500 over the same days"},
-    "upgrade": {"status": "untested", "why": "not backtestable without a news archive"},
-    "contract_win": {"status": "untested", "why": "not backtestable without a news archive"},
-    "positive_trial": {"status": "untested", "why": "too few out-of-sample trades (needs 30)"},
-    "guidance_raise": {"status": "untested", "why": "too few out-of-sample trades (needs 30)"},
-    "m_and_a_target": {"status": "untested", "why": "too few out-of-sample trades (needs 30)"}
+ "source": "walk-forward backtest of 2026-09-25 (106 companies, out of sample 2025-10-01 to 2026-09-04, after costs); raw per-trade results in docs/backtest/trades.csv",
+ "verdicts": {
+  "insider_buy_cluster": {
+   "status": "enabled",
+   "why": "beat the S&P 500 over the same days on hit rate, return and Sharpe",
+   "rules": {
+    "n": 32,
+    "hit_rate": 0.5,
+    "mean_pct": 0.5479,
+    "median_pct": 0.7047,
+    "sharpe": 0.495
+   },
+   "spy_same_days": {
+    "n": 32,
+    "hit_rate": 0.4062,
+    "mean_pct": -0.1985,
+    "median_pct": -0.216,
+    "sharpe": -0.545
+   }
+  },
+  "earnings_beat": {
+   "status": "disabled",
+   "why": "did not beat the S&P 500 over the same days",
+   "rules": {
+    "n": 173,
+    "hit_rate": 0.526,
+    "mean_pct": 0.2261,
+    "median_pct": 0.3206,
+    "sharpe": 0.187
+   },
+   "spy_same_days": {
+    "n": 173,
+    "hit_rate": 0.5087,
+    "mean_pct": 0.5187,
+    "median_pct": 0.0243,
+    "sharpe": 1.315
+   }
+  },
+  "fda_approval": {
+   "status": "disabled",
+   "why": "did not beat the S&P 500 over the same days",
+   "rules": {
+    "n": 50,
+    "hit_rate": 0.46,
+    "mean_pct": 0.5963,
+    "median_pct": -0.1683,
+    "sharpe": 0.748
+   },
+   "spy_same_days": {
+    "n": 50,
+    "hit_rate": 0.5,
+    "mean_pct": 0.6256,
+    "median_pct": -0.0644,
+    "sharpe": 1.111
+   }
+  },
+  "upgrade": {
+   "status": "untested",
+   "why": "only 0 out-of-sample trades (needs 30)",
+   "rules": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   },
+   "spy_same_days": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   }
+  },
+  "contract_win": {
+   "status": "untested",
+   "why": "only 0 out-of-sample trades (needs 30)",
+   "rules": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   },
+   "spy_same_days": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   }
+  },
+  "positive_trial": {
+   "status": "untested",
+   "why": "only 3 out-of-sample trades (needs 30)",
+   "rules": {
+    "n": 3,
+    "hit_rate": 1.0,
+    "mean_pct": 12.8598,
+    "median_pct": 11.6565,
+    "sharpe": null
+   },
+   "spy_same_days": {
+    "n": 3,
+    "hit_rate": 0.6667,
+    "mean_pct": 0.9994,
+    "median_pct": 2.8533,
+    "sharpe": null
+   }
+  },
+  "guidance_raise": {
+   "status": "untested",
+   "why": "only 14 out-of-sample trades (needs 30)",
+   "rules": {
+    "n": 14,
+    "hit_rate": 0.5,
+    "mean_pct": -0.3376,
+    "median_pct": -0.7066,
+    "sharpe": -0.402
+   },
+   "spy_same_days": {
+    "n": 14,
+    "hit_rate": 0.5,
+    "mean_pct": 0.2043,
+    "median_pct": -0.0229,
+    "sharpe": 0.648
+   }
+  },
+  "m_and_a_target": {
+   "status": "untested",
+   "why": "only 2 out-of-sample trades (needs 30)",
+   "rules": {
+    "n": 2,
+    "hit_rate": 1.0,
+    "mean_pct": 4.7577,
+    "median_pct": 4.7577,
+    "sharpe": null
+   },
+   "spy_same_days": {
+    "n": 2,
+    "hit_rate": 0.5,
+    "mean_pct": -0.2569,
+    "median_pct": -0.2569,
+    "sharpe": null
+   }
   }
+ },
+ "confidence_check": {
+  "worse": [
+   "top 10 vs the rest",
+   "80+ vs 65-80"
+  ],
+  "plain": "Higher confidence did WORSE (lower win rate and lower average return) for: top 10 vs the rest; 80+ vs 65-80. The confidence score does not rank trades and must be rebuilt before it is used for anything, including 'top signals' displays. With only 10 trades the top-10 row alone proves nothing either way; the 65-80 vs 80+ comparison has more trades."
+ }
 }
