@@ -33,7 +33,11 @@ function Row({ s, rank, unreliable }: { s: TopSignal; rank: number; unreliable: 
           <div className="min-w-0">
             <p className="text-xs text-subtle">#{rank}</p>
             <p className="font-semibold">{s.symbol} <span className="font-normal text-muted">{s.company}</span></p>
-            <Badge variant="outline" className="mt-1">{title(s.catalyst)}</Badge>
+            <div className="mt-1 flex flex-wrap gap-1">
+              <Badge variant="outline">{title(s.catalyst)}</Badge>
+              {s.history?.status === "untested" && <Badge variant="warning" title={s.history.text}>unproven catalyst</Badge>}
+              {s.history?.status === "enabled" && <Badge variant="good" title={s.history.text}>catalyst passed the backtest bar</Badge>}
+            </div>
           </div>
           <div className="text-right">
             <p className="text-2xl font-semibold tabular">{s.confidence.toFixed(0)}</p>

@@ -155,7 +155,7 @@ export function CatalystTable() {
                     <TD>
                       {data.status?.[c] ? (
                         <Badge variant={STATUS_VARIANT[data.status[c].status] ?? "outline"} title={data.status[c].why}>
-                          {data.status[c].status === "untested" ? "on · unproven" : data.status[c].status === "enabled" ? "on" : "off"}
+                          {data.status[c].status === "untested" ? "unproven" : data.status[c].status === "enabled" ? "on" : "off"}
                         </Badge>
                       ) : "–"}
                     </TD>

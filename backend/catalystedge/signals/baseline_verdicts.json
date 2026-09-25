@@ -1,45 +1,12 @@
 {
  "source": "walk-forward backtest of 2026-09-25 (106 companies, out of sample 2025-10-01 to 2026-09-04, after costs); raw per-trade results in docs/backtest/trades.csv",
  "verdicts": {
-  "insider_buy_cluster": {
-   "status": "enabled",
-   "why": "beat the S&P 500 over the same days on hit rate, return and Sharpe",
-   "rules": {
-    "n": 32,
-    "hit_rate": 0.5,
-    "mean_pct": 0.5479,
-    "median_pct": 0.7047,
-    "sharpe": 0.495
-   },
-   "spy_same_days": {
-    "n": 32,
-    "hit_rate": 0.4062,
-    "mean_pct": -0.1985,
-    "median_pct": -0.216,
-    "sharpe": -0.545
-   }
-  },
-  "earnings_beat": {
-   "status": "disabled",
-   "why": "did not beat the S&P 500 over the same days",
-   "rules": {
-    "n": 173,
-    "hit_rate": 0.526,
-    "mean_pct": 0.2261,
-    "median_pct": 0.3206,
-    "sharpe": 0.187
-   },
-   "spy_same_days": {
-    "n": 173,
-    "hit_rate": 0.5087,
-    "mean_pct": 0.5187,
-    "median_pct": 0.0243,
-    "sharpe": 1.315
-   }
-  },
   "fda_approval": {
    "status": "disabled",
-   "why": "did not beat the S&P 500 over the same days",
+   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.510, 1.000 after correcting for 21 comparisons",
+   "n": 50,
+   "p_value": 0.5100244987750613,
+   "p_bonferroni": 1.0,
    "rules": {
     "n": 50,
     "hit_rate": 0.46,
@@ -55,45 +22,12 @@
     "sharpe": 1.111
    }
   },
-  "upgrade": {
-   "status": "untested",
-   "why": "only 0 out-of-sample trades (needs 30)",
-   "rules": {
-    "n": 0,
-    "hit_rate": null,
-    "mean_pct": null,
-    "median_pct": null,
-    "sharpe": null
-   },
-   "spy_same_days": {
-    "n": 0,
-    "hit_rate": null,
-    "mean_pct": null,
-    "median_pct": null,
-    "sharpe": null
-   }
-  },
-  "contract_win": {
-   "status": "untested",
-   "why": "only 0 out-of-sample trades (needs 30)",
-   "rules": {
-    "n": 0,
-    "hit_rate": null,
-    "mean_pct": null,
-    "median_pct": null,
-    "sharpe": null
-   },
-   "spy_same_days": {
-    "n": 0,
-    "hit_rate": null,
-    "mean_pct": null,
-    "median_pct": null,
-    "sharpe": null
-   }
-  },
   "positive_trial": {
    "status": "untested",
-   "why": "only 3 out-of-sample trades (needs 30)",
+   "why": "only 3 out-of-sample trades: too few to judge (needs 30 to judge, 50 to pass)",
+   "n": 3,
+   "p_value": null,
+   "p_bonferroni": null,
    "rules": {
     "n": 3,
     "hit_rate": 1.0,
@@ -111,7 +45,10 @@
   },
   "guidance_raise": {
    "status": "untested",
-   "why": "only 14 out-of-sample trades (needs 30)",
+   "why": "only 14 out-of-sample trades: too few to judge (needs 30 to judge, 50 to pass)",
+   "n": 14,
+   "p_value": 0.6299685015749212,
+   "p_bonferroni": 1.0,
    "rules": {
     "n": 14,
     "hit_rate": 0.5,
@@ -127,9 +64,75 @@
     "sharpe": 0.648
    }
   },
+  "earnings_beat": {
+   "status": "disabled",
+   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.711, 1.000 after correcting for 21 comparisons",
+   "n": 173,
+   "p_value": 0.7113644317784111,
+   "p_bonferroni": 1.0,
+   "rules": {
+    "n": 173,
+    "hit_rate": 0.526,
+    "mean_pct": 0.2261,
+    "median_pct": 0.3206,
+    "sharpe": 0.187
+   },
+   "spy_same_days": {
+    "n": 173,
+    "hit_rate": 0.5087,
+    "mean_pct": 0.5187,
+    "median_pct": 0.0243,
+    "sharpe": 1.315
+   }
+  },
+  "insider_buy_cluster": {
+   "status": "disabled",
+   "why": "failed the strict bar: 32 trades (needs 50), not significant after correction; p = 0.240, 1.000 after correcting for 21 comparisons",
+   "n": 32,
+   "p_value": 0.23998800059997,
+   "p_bonferroni": 1.0,
+   "rules": {
+    "n": 32,
+    "hit_rate": 0.5,
+    "mean_pct": 0.5479,
+    "median_pct": 0.7047,
+    "sharpe": 0.495
+   },
+   "spy_same_days": {
+    "n": 32,
+    "hit_rate": 0.4062,
+    "mean_pct": -0.1985,
+    "median_pct": -0.216,
+    "sharpe": -0.545
+   }
+  },
+  "contract_win": {
+   "status": "untested",
+   "why": "no backtest trades: needs a news archive to test, so it is judged on live outcomes (50 needed)",
+   "n": 0,
+   "p_value": null,
+   "p_bonferroni": null,
+   "rules": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   },
+   "spy_same_days": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   }
+  },
   "m_and_a_target": {
    "status": "untested",
-   "why": "only 2 out-of-sample trades (needs 30)",
+   "why": "only 2 out-of-sample trades: too few to judge (needs 30 to judge, 50 to pass)",
+   "n": 2,
+   "p_value": null,
+   "p_bonferroni": null,
    "rules": {
     "n": 2,
     "hit_rate": 1.0,
@@ -144,6 +147,27 @@
     "median_pct": -0.2569,
     "sharpe": null
    }
+  },
+  "upgrade": {
+   "status": "untested",
+   "why": "no backtest trades: needs a news archive to test, so it is judged on live outcomes (50 needed)",
+   "n": 0,
+   "p_value": null,
+   "p_bonferroni": null,
+   "rules": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   },
+   "spy_same_days": {
+    "n": 0,
+    "hit_rate": null,
+    "mean_pct": null,
+    "median_pct": null,
+    "sharpe": null
+   }
   }
  },
  "confidence_check": {
@@ -152,5 +176,6 @@
    "80+ vs 65-80"
   ],
   "plain": "Higher confidence did WORSE (lower win rate and lower average return) for: top 10 vs the rest; 80+ vs 65-80. The confidence score does not rank trades and must be rebuilt before it is used for anything, including 'top signals' displays. With only 10 trades the top-10 row alone proves nothing either way; the 65-80 vs 80+ comparison has more trades."
- }
+ },
+ "bar": "ON only with >= 50 trades that beat the S&P 500 over the same days (win rate, average return, Sharpe) and p < 0.05 after a Bonferroni correction; >= 30 trades and failed = OFF; fewer than 30 = unproven"
 }

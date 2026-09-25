@@ -173,6 +173,7 @@ def test_fresh_database_starts_from_the_real_backtest_verdicts(clean):
     with sessionmaker(clean)() as s:
         st = catalyst_status(s)
     assert st["earnings_beat"]["status"] == "disabled" and st["fda_approval"]["status"] == "disabled"
-    assert st["insider_buy_cluster"]["status"] == "enabled"
+    assert st["insider_buy_cluster"]["status"] == "disabled"          # strict bar: 32 trades, not significant
     assert st["contract_win"]["status"] == "untested"
+    assert not [c for c, v in st.items() if v["status"] == "enabled"]  # nothing passes the strict bar
     assert all(v["basis"] == "baseline backtest" for v in st.values())

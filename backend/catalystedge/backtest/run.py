@@ -85,6 +85,10 @@ def run_backtest(session: Session, *, cache_dir: Path, symbols: list[str], unive
     oos_rows = [wf.rows[i] for i in sorted(wf.probs)]
     report["slices"] = analyse(oos_rows, meta, closes) if meta else {
         "plain": "not run: company facts missing (python -m catalystedge.backtest.fetch meta)"}
+    if meta:
+        from catalystedge.backtest.slices import strict_catalyst_verdicts
+
+        report["catalyst_verdicts"] = strict_catalyst_verdicts(report["slices"], report.get("catalyst_verdicts"))
     row_ctx = {}
     for i, r in enumerate(wf.rows):
         c = row_cap(r, meta, closes)

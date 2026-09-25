@@ -16,7 +16,7 @@ const data: TopSignalsResponse = {
     { id: 2, symbol: "XYZ", company: "XYZ Inc", catalyst: "contract_win", confidence: 70, confidence_label: "UNCALIBRATED",
       headline: null,
       expected: { prior_return_pct: 2, basis: "prior", stop_pct: -4, target_pct: 5, holding_days: [3, 10] },
-      history: { ...base, catalyst: "contract_win", label: "contract win", n: 0, win_rate: null, avg_return_pct: null, enough_data: false,
+      history: { ...base, status: "untested", catalyst: "contract_win", label: "contract win", n: 0, win_rate: null, avg_return_pct: null, enough_data: false,
         text: "Contract win: not enough data yet (not backtestable without a news archive)." } },
   ],
 };
@@ -30,6 +30,7 @@ describe("Top signals", () => {
     expect(screen.getByText(/not enough data yet/)).toBeTruthy();
     expect(screen.getAllByText(/not a backtest result or a promise/).length).toBe(2);
     expect(document.body.textContent).not.toMatch(/guarantee|minimum profit/i);
+    expect(screen.getAllByText("unproven catalyst").length).toBe(1);
   });
 });
 

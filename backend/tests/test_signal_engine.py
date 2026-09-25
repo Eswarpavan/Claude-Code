@@ -250,27 +250,49 @@ def test_untested_catalyst_is_shown_as_unproven(db):
 
 
 def test_catalyst_status_uses_backtest_then_live(db):
+    """Strict bar: ON only with >= 50 trades beating the S&P 500, p < 0.05 after Bonferroni."""
     from catalystedge.db.models import BacktestRun, SignalOutcome
     from catalystedge.signals.catalyst_status import catalyst_status
 
-    assert catalyst_status(db)["upgrade"]["status"] == "untested"
+    fresh = catalyst_status(db)                                     # no backtest here: the shipped baseline
+    assert fresh["upgrade"]["status"] == "untested" and fresh["fda_approval"]["status"] == "disabled"
+    assert fresh["fda_approval"]["basis"] == "baseline backtest"
+    assert not [c for c, v in fresh.items() if v["status"] == "enabled"]
+    # a backtest from before the strict bar (no slice tests) is not trusted: the baseline still applies
     db.add(BacktestRun(started_at=NOW, finished_at=NOW, params={}, data_sources=[], event_families=[], status="done",
-                       report={"catalyst_verdicts": {"fda_approval": {"status": "disabled", "why": "lost to SPY"}}}))
+                       report={"catalyst_verdicts": {"fda_approval": {"status": "enabled", "why": "old rule"}}}))
     db.flush()
-    assert catalyst_status(db)["fda_approval"] == {"status": "disabled", "why": "lost to SPY", "basis": "backtest"}
-    # 30 live outcomes that beat SPY switch it back on
-    add_ticker(db, "LIVE")
-    for i in range(30):
-        sig = Signal(symbol="LIVE", as_of_date=AS_OF - dt.timedelta(days=i), catalyst_type="fda_approval",
-                     rule_id="R", rule_score=70, confidence=70, expected_return_pct=3, expected_return_basis="prior",
-                     holding_days_min=3, holding_days_max=10, entry_ref_price=Decimal("100"), stop_price=Decimal("95"),
-                     target_price=Decimal("106"), suggested_size_usd=Decimal("10"), risk_notes=[], reason="r",
-                     features={}, displayed=False)
-        db.add(sig)
-        db.flush()
-        db.add(SignalOutcome(signal_id=sig.id, horizon_days=10, entry_date=AS_OF, entry_price=Decimal("100"),
-                             exit_date=AS_OF + dt.timedelta(days=14), exit_price=Decimal("103"), return_pct=3.0,
-                             excess_vs_spy_pct=1.5, hit=True))
+    assert catalyst_status(db)["fda_approval"]["status"] == "disabled"
+    # a strict backtest where fda_approval passes every test switches it on
+    passing = {"slice": "fda_approval", "dimension": "catalyst", "n": 60, "candidate": True, "beats_spy": True,
+               "p_value": 0.0001, "p_bonferroni": 0.002, "strategy": {"n": 60}, "spy_same_days": {"n": 60}}
+    db.add(BacktestRun(started_at=NOW, finished_at=NOW + dt.timedelta(minutes=1), params={}, data_sources=[],
+                       event_families=[], status="done",
+                       report={"slices": {"comparisons": 21, "slices": [passing]}, "catalyst_verdicts": {}}))
     db.flush()
     st = catalyst_status(db)["fda_approval"]
-    assert st["status"] == "enabled" and st["basis"] == "live"
+    assert st["status"] == "enabled" and st["basis"] == "backtest"
+    assert catalyst_status(db)["earnings_beat"]["status"] == "untested"     # not in that run's tests
+    # live outcomes only take over at 50 signals, and must pass the same test
+    add_ticker(db, "LIVE")
+
+    def live(n, excess, start=0):
+        for i in range(start, start + n):
+            sig = Signal(symbol="LIVE", as_of_date=AS_OF - dt.timedelta(days=i + 1), catalyst_type="upgrade",
+                         rule_id="R", rule_score=70, confidence=70, expected_return_pct=3,
+                         expected_return_basis="prior", holding_days_min=3, holding_days_max=10,
+                         entry_ref_price=Decimal("100"), stop_price=Decimal("95"), target_price=Decimal("106"),
+                         suggested_size_usd=Decimal("10"), risk_notes=[], reason="r", features={}, displayed=False)
+            db.add(sig)
+            db.flush()
+            ret = 3.0 + (i % 5) * 0.2
+            db.add(SignalOutcome(signal_id=sig.id, horizon_days=10, entry_date=AS_OF, entry_price=Decimal("100"),
+                                 exit_date=AS_OF + dt.timedelta(days=14), exit_price=Decimal("103"), return_pct=ret,
+                                 excess_vs_spy_pct=excess(i), hit=ret > 0))
+        db.flush()
+
+    live(30, lambda i: 1.5 + (i % 3))
+    assert catalyst_status(db)["upgrade"]["status"] == "untested"            # 30 live signals: not enough
+    live(25, lambda i: 1.5 + (i % 3), start=30)
+    st = catalyst_status(db)["upgrade"]
+    assert st["status"] == "enabled" and st["basis"] == "live" and "passes the strict bar" in st["why"]

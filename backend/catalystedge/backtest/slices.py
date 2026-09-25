@@ -232,3 +232,45 @@ def analyse(rows: Sequence, meta: dict[str, dict], closes: dict[tuple[str, objec
             "test": "one-sided sign-flip permutation on per-trade excess return vs the S&P 500 over the same days",
             "correction": "Bonferroni", "overall_mean_excess_pct": round(overall_ex, 4) if overall_ex is not None
             else None, "candidates": cands, "slices": tests, "plain": plain}
+
+
+# ----------------------------------------------------------------------------- strict catalyst verdicts
+
+MIN_JUDGE = 30          # fewer trades than this: too little to judge either way -> 'untested' (unproven)
+
+
+def strict_catalyst_verdicts(slices_result: dict, base: dict | None = None) -> dict[str, dict]:
+    """The live on/off rule: a catalyst is ON only if it passes the full bar in the backtest's slice tests
+    (>= 50 trades, beats the S&P 500 over the same days, p < 0.05 after the Bonferroni correction).
+    Tested on >= 30 trades and failed -> OFF. Fewer than 30 -> unproven (shown with a warning)."""
+    from catalystedge.signals.priors import CATALYSTS
+
+    tests = {t["slice"]: t for t in (slices_result or {}).get("slices", []) if t["dimension"] == "catalyst"}
+    m = (slices_result or {}).get("comparisons")
+    out = {}
+    for c in CATALYSTS:
+        t, b = tests.get(c), (base or {}).get(c) or {}
+        n = t["n"] if t else ((b.get("rules") or {}).get("n") or 0)
+        detail = ""
+        if t and t["p_value"] is not None:
+            detail = f"; p = {t['p_value']:.3f}, {t['p_bonferroni']:.3f} after correcting for {m} comparisons"
+        if t and t["candidate"]:
+            status, why = "enabled", f"passed the full bar: {n} trades, beat the S&P 500{detail}"
+        elif n >= MIN_JUDGE:
+            misses = [f"{n} trades (needs {MIN_TRADES})"] if n < MIN_TRADES else []
+            if t and not t["beats_spy"]:
+                misses.append("did not beat the S&P 500 over the same days")
+            if t and (t["p_bonferroni"] is None or t["p_bonferroni"] >= ALPHA):
+                misses.append("not significant after correction")
+            status, why = "disabled", "failed the strict bar: " + ", ".join(misses or ["see report"]) + detail
+        elif n == 0:
+            status, why = "untested", ("no backtest trades: needs a news archive to test, so it is judged on "
+                                       f"live outcomes ({MIN_TRADES} needed)")
+        else:
+            status, why = "untested", (f"only {n} out-of-sample trades: too few to judge "
+                                       f"(needs {MIN_JUDGE} to judge, {MIN_TRADES} to pass)")
+        out[c] = {"status": status, "why": why, "n": n, "p_value": t["p_value"] if t else None,
+                  "p_bonferroni": t["p_bonferroni"] if t else None,
+                  "rules": b.get("rules") or (t["strategy"] if t else {"n": 0}),
+                  "spy_same_days": b.get("spy_same_days") or (t["spy_same_days"] if t else {"n": 0})}
+    return out
