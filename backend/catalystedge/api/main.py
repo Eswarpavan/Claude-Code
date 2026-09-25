@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from catalystedge.api.auth import check_password, issue_token, require_auth
 from catalystedge.clock import SystemClock
 from catalystedge.config import Settings, get_settings
+from catalystedge.connector_status import MANUAL_ONLY, connector_state
 from catalystedge.core import calendar
 from catalystedge.db.models import (
     BacktestRun,
@@ -525,7 +526,10 @@ def _router():
             "status": x.status, "last_success_at": x.last_success_at.isoformat() if x.last_success_at else None,
             "last_error": x.last_error, "budget_used_today": x.budget_used_today, "daily_budget": x.daily_budget,
             "items_last_run": latest[x.key].items_fetched if x.key in latest else None,
-            "note": SOURCES[x.key].note if x.key in SOURCES else ""} for x in rows],
+            "note": SOURCES[x.key].note if x.key in SOURCES else "",
+            "primary": bool(getattr(SOURCES.get(x.key), "primary", False)),
+            "state": connector_state(x.key, health(x), x.status, x.enabled, x.last_error)} for x in rows],
+            "manual_only": MANUAL_ONLY,
             "models": [m.__dict__ for m in ModelRegistry(state.settings).report()],
             "email": {"provider": (p.name if (p := build_provider(state.settings)) else None),
                       "recipient_configured": bool(state.settings.alert_email_to)}}

@@ -115,6 +115,8 @@ export type Portfolio = {
 export type Bucket = { bucket: string; n: number; avg_confidence: number | null; hit_rate: number | null; avg_return_pct: number | null };
 
 export type SourceRow = {
+  state?: string;
+  primary?: boolean;
   key: string;
   kind: string;
   official: boolean;

@@ -236,9 +236,37 @@ def job_events(ctx: Context, refresh_id: Any = None) -> dict:
         from catalystedge.events.jobs import poll_events  # type: ignore[import-not-found]
     except ImportError:
         return {"status": "not available yet"}
+    started = ctx.clock.now()
     with _session(ctx) as s:
-        return poll_events(s, ctx.http, ctx.settings, ctx.clock.now(), universe=ctx.universe(),
-                           model=ctx.sentiment_model())
+        out = poll_events(s, ctx.http, ctx.settings, ctx.clock.now(), universe=ctx.universe(),
+                          model=ctx.sentiment_model())
+        # Record each connector's result in Source Health (several reports can share one provider).
+        worst: dict[str, dict] = {}
+        rank = {"ok": 0, "disabled": 1, "partial": 2, "failed": 3}
+        for r in out.get("sources", []):
+            key = EVENT_REPORT_SOURCE.get(r["source"])
+            if key is None:
+                continue
+            cur = worst.setdefault(key, {"status": "ok", "fetched": 0, "errors": []})
+            cur["fetched"] += r.get("fetched", 0)
+            cur["errors"] += r.get("errors", [])
+            if rank.get(r["status"], 3) > rank[cur["status"]]:
+                cur["status"] = r["status"]
+        for key, v in worst.items():
+            status = "failed" if v["status"] == "partial" else v["status"]
+            stats = ctx.http.stats.get(key)
+            _record_source(s, ctx, key, status, fetched=v["fetched"], calls=stats.http_calls if stats else 0,
+                           error="; ".join(v["errors"])[:500] or None, refresh_id=refresh_id, started=started)
+        return out
+
+
+# Event ingest report name -> the provider it uses (sources.SOURCES key), for Source Health.
+EVENT_REPORT_SOURCE = {
+    "sec_8k": "sec_feed", "sec_form4": "sec_feed", "sec_forms": "sec_feed", "finnhub_earnings": "finnhub_earnings",
+    "openfda": "openfda", "clinicaltrials": "clinicaltrials", "nasdaq_halts": "nasdaq_halts",
+    "dod_contracts": "dod_contracts", "usaspending": "usaspending", "sam_gov": "sam_gov",
+    "macro_feeds": "federal_reserve", "fred_calendar": "fred",
+}
 
 
 # ----------------------------------------------------------------------------- prices
