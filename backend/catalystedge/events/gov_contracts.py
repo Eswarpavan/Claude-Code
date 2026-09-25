@@ -25,6 +25,7 @@ from catalystedge.core.http import HttpClient, SourceError
 from catalystedge.db.models import Ticker
 from catalystedge.events.common import IngestReport, add_event
 from catalystedge.pipeline.ticker_link import Universe, clean_name, link_tickers
+from catalystedge.pipeline.window import cutoff
 
 DOD_FEED = "https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=400&Site=945&max=10"
 USASPENDING = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
@@ -107,7 +108,7 @@ def ingest_dod(session: Session, http: HttpClient, universe: Universe, now: dt.d
     report.fetched = len(awards)
     for a in awards:
         at = a["published"]
-        if at is None or not (now - dt.timedelta(hours=48) < at <= now):
+        if at is None or not (cutoff(now) < at <= now):
             continue
         _record(session, universe, report, company=a["company"], amount=a["amount"], url=a["url"], at=at,
                 source_key="dod_contracts", agency="Defense Department")
@@ -149,7 +150,7 @@ def ingest_sam(session: Session, http: HttpClient, api_key: str | None, universe
         report.status, report.errors = "disabled", ["auth required: set SAM_GOV_API_KEY (free at api.data.gov)"]
         return report
     params = {"api_key": api_key, "ptype": "a", "limit": 100,
-              "postedFrom": (now.date() - dt.timedelta(days=2)).strftime("%m/%d/%Y"),
+              "postedFrom": cutoff(now).date().strftime("%m/%d/%Y"),
               "postedTo": now.date().strftime("%m/%d/%Y")}
     try:
         data = http.get_json("sam_gov", SAM, params)
