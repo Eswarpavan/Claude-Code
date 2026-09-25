@@ -5,6 +5,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { api } from "@/lib/api";
 import { pct, title, usd } from "@/lib/format";
 import type { Performance, Portfolio, Position } from "@/lib/types";
+import { TimesFMBadge } from "@/components/timesfm-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,7 +62,7 @@ function OpenTable({ rows, onSell }: { rows: Position[]; onSell: (id: number) =>
         {rows.map((p) => (
           <TR key={p.id}>
             <TD>
-              <p className="font-medium">{p.symbol}</p>
+              <p className="flex items-center gap-2 font-medium">{p.symbol}<TimesFMBadge tag={p.timesfm} /></p>
               <WhyThisTrade why={p.why} />
             </TD>
             <TD>{p.entry_date}</TD>
@@ -93,7 +94,7 @@ function ClosedTable({ rows }: { rows: Position[] }) {
       <TBody>
         {rows.map((p) => (
           <TR key={p.id}>
-            <TD><p className="font-medium">{p.symbol}</p><WhyThisTrade why={p.why} /></TD>
+            <TD><p className="flex items-center gap-2 font-medium">{p.symbol}<TimesFMBadge tag={p.timesfm} /></p><WhyThisTrade why={p.why} /></TD>
             <TD>{p.entry_date}</TD>
             <TD>{p.exit_date}</TD>
             <TD>{p.exit_reason ? title(p.exit_reason) : "–"}</TD>

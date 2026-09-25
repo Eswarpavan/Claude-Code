@@ -244,3 +244,32 @@ def test_evidence_catalysts_and_backtest_endpoints(clean):
     assert ev["label"] == "UNCALIBRATED" and "UNCALIBRATED" in ev["plain"]
     assert "live" in c.get("/api/catalysts", headers=h).json()
     assert c.get("/api/backtest/latest", headers=h).json()["run"] is None
+
+
+def test_trades_and_positions_are_tagged_with_timesfm(clean):
+    from catalystedge.paper import engine as paper
+
+    on = seed(clean, "ABC", 85)
+    off = seed(clean, "XYZ", 85)
+    tag = {"enabled": True, "mode": "filter", "confidence_delta": 0.0, "filtered": False, "note": None, "warning": None}
+    with sessionmaker(clean)() as s:
+        s.get(Signal, on).features = {"timesfm": tag}
+        s.commit()
+    c = client(clean)
+    for sid in (on, off):
+        assert c.post("/api/portfolio/buy", json={"signal_id": sid}).status_code == 200
+    fill_day = dt.date(2026, 9, 25)
+    with sessionmaker(clean)() as s:
+        paper.execute_orders(s, paper.get_account(s), fill_day, lambda sym, d: 100.0 if d == fill_day else None,
+                             lambda sym: 1e9)
+        s.commit()
+    by_symbol = {p["symbol"]: p for p in c.get("/api/portfolio").json()["open"]}
+    assert by_symbol["ABC"]["timesfm"]["mode"] == "filter"
+    assert by_symbol["XYZ"]["timesfm"] == {"enabled": False, "mode": None}
+    with sessionmaker(clean)() as s:
+        paper.submit_sell(s, s.get(api.PaperPosition, by_symbol["ABC"]["id"]), fill_day, "manual")
+        s.commit()
+    orders = c.get("/api/trades").json()["orders"]
+    sell = next(o for o in orders if o["side"] == "sell")
+    assert sell["signal_id"] == on and sell["timesfm"]["mode"] == "filter"   # sells inherit the entry tag
+    assert {o["symbol"]: o["timesfm"]["enabled"] for o in orders if o["side"] == "buy"} == {"ABC": True, "XYZ": False}

@@ -5,10 +5,13 @@ import { title, usd } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { TimesFMBadge } from "@/components/timesfm-badge";
+import type { TimesFMTag } from "@/lib/types";
 
 type Order = {
   id: number; symbol: string; side: string; origin: string; status: string; decision_date: string; execute_on: string;
   exit_reason: string | null; reject_reason: string | null;
+  signal_id: number | null; timesfm: Pick<TimesFMTag, "enabled" | "mode"> | null;
   fill: { date: string; raw_open: number; price: number; qty: number; half_spread_bps: number; slippage_bps: number } | null;
 };
 
@@ -26,7 +29,7 @@ export default function HistoryPage() {
         {data && data.orders.length > 0 && (
           <Table>
             <THead>
-              <TR><TH>Decided</TH><TH>Executes</TH><TH>Symbol</TH><TH>Side</TH><TH>Origin</TH><TH>Status</TH>
+              <TR><TH>Decided</TH><TH>Executes</TH><TH>Symbol</TH><TH>Side</TH><TH>Origin</TH><TH>TimesFM</TH><TH>Status</TH>
                 <TH className="text-right">Open</TH><TH className="text-right">Fill</TH><TH className="text-right">Shares</TH><TH>Costs (bps)</TH></TR>
             </THead>
             <TBody>
@@ -34,6 +37,7 @@ export default function HistoryPage() {
                 <TR key={o.id}>
                   <TD>{o.decision_date}</TD><TD>{o.execute_on}</TD><TD className="font-medium">{o.symbol}</TD>
                   <TD>{o.side}{o.exit_reason ? ` · ${title(o.exit_reason)}` : ""}</TD><TD>{o.origin}</TD>
+                  <TD>{o.timesfm ? <TimesFMBadge tag={o.timesfm} /> : "–"}</TD>
                   <TD>
                     <Badge variant={o.status === "filled" ? "good" : o.status === "pending" ? "default" : "warning"} title={o.reject_reason ?? undefined}>{o.status}</Badge>
                     {o.reject_reason && <p className="mt-1 text-xs text-subtle">{o.reject_reason}</p>}

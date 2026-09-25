@@ -71,6 +71,8 @@ export type Position = {
   realized_pnl: number | null;
   why: Record<string, unknown>;
   can_sell_from: string;
+  signal_id?: number | null;
+  timesfm?: Pick<TimesFMTag, "enabled" | "mode"> | null;
 };
 
 export type Performance = {

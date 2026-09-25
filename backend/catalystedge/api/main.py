@@ -115,6 +115,25 @@ def _f(x: Any) -> float | None:
     return float(x) if x is not None else None
 
 
+def timesfm_tags(s: Session, signal_ids: set[int]) -> dict[int, dict]:
+    """signal id -> TimesFM tag as it was when the signal was scored (off, feature or filter)."""
+    if not signal_ids:
+        return {}
+    rows = s.execute(select(Signal.id, Signal.features).where(Signal.id.in_(signal_ids))).all()
+    return {sid: (feats or {}).get("timesfm") or {"enabled": False, "mode": None} for sid, feats in rows}
+
+
+def position_signal_ids(s: Session, position_ids: set[int]) -> dict[int, int]:
+    """position id -> the signal its entry order came from."""
+    if not position_ids:
+        return {}
+    rows = s.execute(select(PaperPosition.id, PaperOrder.signal_id)
+                     .join(PaperFill, PaperFill.id == PaperPosition.entry_fill_id)
+                     .join(PaperOrder, PaperOrder.id == PaperFill.order_id)
+                     .where(PaperPosition.id.in_(position_ids), PaperOrder.signal_id.is_not(None))).all()
+    return dict(rows)
+
+
 def signal_json(s: Session, sig: Signal, now: dt.datetime, detail: bool = False) -> dict:
     t = s.get(Ticker, sig.symbol)
     events = s.scalars(select(Event).join(SignalEvent, SignalEvent.event_id == Event.id)
@@ -271,6 +290,11 @@ def _router():
         closes = {sym: float(c) for sym, c in s.execute(
             select(PriceDaily.symbol, PriceDaily.close).where(PriceDaily.date == day))}
 
+        positions = s.scalars(select(PaperPosition).where(PaperPosition.account_id == acct.id)
+                              .order_by(PaperPosition.entry_date.desc())).all()
+        pos_sig = position_signal_ids(s, {p.id for p in positions})
+        tags = timesfm_tags(s, set(pos_sig.values()))
+
         def pos_json(p: PaperPosition) -> dict:
             last = closes.get(p.symbol)
             value = float(p.qty) * last if last else None
@@ -280,10 +304,9 @@ def _router():
                     "unrealized_pnl": round(value - float(p.cost_basis), 2) if value is not None else None,
                     "status": p.status, "exit_date": p.exit_date.isoformat() if p.exit_date else None,
                     "exit_reason": p.exit_reason, "realized_pnl": _f(p.realized_pnl), "why": p.why,
-                    "can_sell_from": calendar.next_session(p.entry_date).isoformat()}
+                    "can_sell_from": calendar.next_session(p.entry_date).isoformat(),
+                    "signal_id": pos_sig.get(p.id), "timesfm": tags.get(pos_sig.get(p.id, -1))}
 
-        positions = s.scalars(select(PaperPosition).where(PaperPosition.account_id == acct.id)
-                              .order_by(PaperPosition.entry_date.desc())).all()
         pending = s.scalars(select(PaperOrder).where(PaperOrder.account_id == acct.id,
                                                      PaperOrder.status == "pending")).all()
         since = day - dt.timedelta(days=14)
@@ -334,7 +357,12 @@ def _router():
     def trades(s: Session = Depends(db), limit: int = Query(200, le=1000)) -> dict:
         rows = s.execute(select(PaperOrder, PaperFill).outerjoin(PaperFill, PaperFill.order_id == PaperOrder.id)
                          .order_by(PaperOrder.id.desc()).limit(limit)).all()
+        # Sells inherit the tag of the signal that opened the position.
+        pos_sig = position_signal_ids(s, {o.position_id for o, _ in rows if o.signal_id is None and o.position_id})
+        sig_of = {o.id: o.signal_id or pos_sig.get(o.position_id or -1) for o, _ in rows}
+        tags = timesfm_tags(s, {x for x in sig_of.values() if x})
         return {"orders": [{"id": o.id, "symbol": o.symbol, "side": o.side, "origin": o.origin, "status": o.status,
+                            "signal_id": sig_of[o.id], "timesfm": tags.get(sig_of[o.id] or -1),
                             "decision_date": o.decision_date.isoformat(), "execute_on": o.execute_on.isoformat(),
                             "exit_reason": o.exit_reason, "reject_reason": o.reject_reason,
                             "fill": {"date": f.fill_date.isoformat(), "raw_open": float(f.raw_open),
