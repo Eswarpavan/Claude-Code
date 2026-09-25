@@ -25,7 +25,8 @@ _LINK = re.compile(r'<link[^>]*href="([^"]+)"')
 _UPDATED = re.compile(r"<updated>(.*?)</updated>")
 _SUMMARY = re.compile(r"<summary[^>]*>(.*?)</summary>", re.S)
 _ACC = re.compile(r"accession-number=(\d{10}-\d{2}-\d{6})")
-_TITLE_PARTS = re.compile(r"^(?P<form>[\w/-]+) - (?P<name>.*) \((?P<cik>\d{10})\) \((?P<role>\w+)\)$")
+# Form names can contain spaces ("SCHEDULE 13D/A", "NT 10-K", "SC TO-T") and roles can be two words ("Filed by").
+_TITLE_PARTS = re.compile(r"^(?P<form>\S.*?) - (?P<name>.*) \((?P<cik>\d{10})\) \((?P<role>[^)]+)\)$")
 _ITEM = re.compile(r"Item (\d+\.\d+)")
 
 

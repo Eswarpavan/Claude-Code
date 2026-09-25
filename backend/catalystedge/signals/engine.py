@@ -201,6 +201,13 @@ def generate_signals(session: Session, now: dt.datetime, *,
             confidence, calib_id = cal
             calibrated = True
 
+        # Contradiction check: recent SEC filings that cut against the story. Flags only (untested as a filter).
+        from catalystedge.events.sec_forms import filing_flags, risk_notes
+
+        flags = filing_flags(session, symbol, now)
+        if flags:
+            feats["filing_flags"] = flags
+            r.risk_notes.extend(risk_notes(flags))
         cstat = (catalyst_status or {}).get(catalyst, {})
         if cstat.get("status") == "untested":
             r.risk_notes.append(f"Unproven catalyst: {cstat.get('why', 'not enough history')}; "

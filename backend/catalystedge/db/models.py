@@ -169,11 +169,48 @@ class Filing(Base):
     accession: Mapped[str] = mapped_column(String(25), primary_key=True)
     cik: Mapped[str] = mapped_column(String(10), index=True)
     symbol: Mapped[str | None] = mapped_column(String(12), index=True)
-    form_type: Mapped[str] = mapped_column(String(12))
+    form_type: Mapped[str] = mapped_column(String(24))
     items: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list, server_default=text("'{}'"))
     accepted_at: Mapped[dt.datetime] = mapped_column(TZ, index=True)  # == available_at
     url: Mapped[str] = mapped_column(Text)
     title: Mapped[str | None] = mapped_column(Text)
+
+
+class TradingHalt(Base):
+    """Nasdaq Trader's official halts feed (all U.S. exchanges, including LULD pauses)."""
+    __tablename__ = "trading_halts"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    symbol: Mapped[str] = mapped_column(String(12), index=True)
+    halted_at: Mapped[dt.datetime] = mapped_column(TZ)
+    reason_code: Mapped[str | None] = mapped_column(String(12))
+    market: Mapped[str | None] = mapped_column(String(24))
+    resumed_at: Mapped[dt.datetime | None] = mapped_column(TZ)
+    source_url: Mapped[str] = mapped_column(Text)
+    __table_args__ = (UniqueConstraint("symbol", "halted_at", name="uq_halts_symbol_time"),)
+
+
+class ShortInterest(Base):
+    """FINRA equity short interest (twice-monthly settlement dates)."""
+    __tablename__ = "short_interest"
+    symbol: Mapped[str] = mapped_column(String(12), primary_key=True)
+    settlement_date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    short_shares: Mapped[int] = mapped_column(BigInteger)
+    avg_daily_volume: Mapped[int | None] = mapped_column(BigInteger)
+    days_to_cover: Mapped[float | None] = mapped_column(Float)
+    source: Mapped[str] = mapped_column(String(24))
+
+
+class MacroRelease(Base):
+    """Federal Reserve / BLS / FRED releases: market context only, never a stock catalyst."""
+    __tablename__ = "macro_releases"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    source: Mapped[str] = mapped_column(String(24))
+    title: Mapped[str] = mapped_column(Text)
+    url: Mapped[str] = mapped_column(Text)
+    published_at: Mapped[dt.datetime] = mapped_column(TZ, index=True)
+    kind: Mapped[str | None] = mapped_column(String(24))
+    data: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    __table_args__ = (UniqueConstraint("source", "url", name="uq_macro_source_url"),)
 
 
 class InsiderTransaction(Base):
@@ -289,9 +326,13 @@ class Event(Base):
     reasons: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list, server_default=text("'{}'"))
     classifier_version: Mapped[str] = mapped_column(String(20))
     llm_notes: Mapped[str | None] = mapped_column(Text)
+    # primary = from the original source (SEC, newswire, company, agency); verified = an aggregator headline
+    # matched to a primary source; unverified = aggregator/discovery only
+    verification: Mapped[str | None] = mapped_column(String(12))
+    original_url: Mapped[str | None] = mapped_column(Text)
     __table_args__ = (
         CheckConstraint(_in("event_type", EVENT_TYPES), name="ck_events_type"),
-        CheckConstraint(_in("origin", ("news", "filing", "fda", "trial", "earnings")), name="ck_events_origin"),
+        CheckConstraint(_in("origin", ("news", "filing", "fda", "trial", "earnings", "gov")), name="ck_events_origin"),
         CheckConstraint(_in("polarity", POLARITIES), name="ck_events_polarity"),
         UniqueConstraint("symbol", "news_item_id", "event_type", name="uq_events_news"),
     )

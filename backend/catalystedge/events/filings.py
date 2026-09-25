@@ -68,8 +68,8 @@ def _feed_window(http: HttpClient, ua: str, form: str, now: dt.datetime, report:
 def _store_filing(session: Session, e: sec.FeedEntry, symbol: str | None, title: str | None) -> bool:
     res = session.execute(insert(Filing).values(
         accession=e.accession, cik=e.cik, symbol=symbol, form_type=e.form, items=list(e.items),
-        accepted_at=e.accepted_at, url=e.index_url, title=title).on_conflict_do_nothing())
-    return bool(res.rowcount)
+        accepted_at=e.accepted_at, url=e.index_url, title=title).on_conflict_do_nothing().returning(Filing.accession))
+    return res.scalar_one_or_none() is not None
 
 
 def ingest_8k(session: Session, http: HttpClient, ua: str, universe: Universe, now: dt.datetime,

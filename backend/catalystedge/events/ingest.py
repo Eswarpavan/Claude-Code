@@ -12,6 +12,7 @@ from catalystedge.events.common import IngestReport
 from catalystedge.events.earnings import ingest_earnings
 from catalystedge.events.fda import ingest_fda
 from catalystedge.events.filings import ingest_8k, ingest_form4
+from catalystedge.events.sec_forms import ingest_sec_forms
 from catalystedge.events.trials import ingest_trials
 from catalystedge.ml.sentiment import SentimentModel
 from catalystedge.pipeline.ticker_link import Universe
@@ -33,9 +34,10 @@ def ingest_all(session: Session, http: HttpClient, settings: Settings, universe:
     if ua:
         run("sec_8k", lambda: ingest_8k(session, http, ua, universe, now, model))
         run("sec_form4", lambda: ingest_form4(session, http, ua, universe, now))
+        run("sec_forms", lambda: ingest_sec_forms(session, http, ua, universe, now))
     else:
         reports += [IngestReport(n, status="disabled", errors=["SEC_USER_AGENT not set"])
-                    for n in ("sec_8k", "sec_form4")]
+                    for n in ("sec_8k", "sec_form4", "sec_forms")]
     run("finnhub_earnings", lambda: ingest_earnings(session, http, settings.finnhub_api_key, universe, now))
     run("openfda", lambda: ingest_fda(session, http, universe, now))
     run("clinicaltrials", lambda: ingest_trials(session, http, universe, now))
