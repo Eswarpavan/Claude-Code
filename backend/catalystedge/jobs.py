@@ -91,7 +91,9 @@ def build_context(settings: Settings | None = None, clock: Clock | None = None) 
     settings = settings or get_settings()
     clock = clock or SystemClock()
     kv: KV = RedisKV(settings.redis_url) if settings.redis_url else InMemoryKV(clock)
-    http = HttpClient(kv=kv, clock=clock)
+    from catalystedge.core.ratelimit import FileSlots, RedisSlots
+
+    http = HttpClient(kv=kv, clock=clock, slots=RedisSlots(settings.redis_url) if settings.redis_url else FileSlots())
     for secret in (settings.finnhub_api_key, settings.marketaux_api_key, settings.alphavantage_api_key,
                    settings.tiingo_api_key):
         http.register_secret(secret)

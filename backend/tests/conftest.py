@@ -15,6 +15,12 @@ def _db_url() -> str | None:
     return os.environ.get("TEST_DATABASE_URL")
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _private_rate_slots(tmp_path_factory):
+    """Tests must not share SEC rate slots with real downloads running on the same machine."""
+    os.environ["CATALYSTEDGE_RATE_DIR"] = str(tmp_path_factory.mktemp("rate"))
+
+
 @pytest.fixture(scope="session")
 def engine():
     url = _db_url()

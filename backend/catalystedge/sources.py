@@ -30,6 +30,7 @@ class SourceSpec:
     note: str = ""
     hourly_budget: int | None = None   # max calls per UTC hour (Tiingo free: 50/h)
     rate_group: str | None = None      # sources sharing one provider key share spacing and budgets
+    shared_spacing: bool = False       # limit is per IP/key: spacing shared by every process (core.ratelimit)
 
     @property
     def group(self) -> str:
@@ -48,9 +49,11 @@ SOURCES: dict[str, SourceSpec] = {
         # Power plan only (free key gets HTTP 403, confirmed live): 10,000/h. Off unless TIINGO_NEWS_ENABLED=true.
         SourceSpec("tiingo_news", "news", True, False, 0.7, 1.0, 1000, 600, 900, enabled_by_default=False),
         # SEC fair-access policy: max 10 requests/s with a declared User-Agent. We use at most ~6/s.
-        SourceSpec("sec_edgar", "event", True, False, 1.0, 0.15, None, 86400, 600, rate_group="sec"),
+        SourceSpec("sec_edgar", "event", True, False, 1.0, 0.15, None, 86400, 600, rate_group="sec",
+                   shared_spacing=True),
         # The "latest filings" Atom feed changes every minute: short cache, same SEC rate group.
-        SourceSpec("sec_feed", "event", True, False, 1.0, 0.15, None, 240, 600, rate_group="sec"),
+        SourceSpec("sec_feed", "event", True, False, 1.0, 0.15, None, 240, 600, rate_group="sec",
+                   shared_spacing=True),
         # Finnhub earnings calendar (actual vs estimate); shares the 60/min key limit.
         SourceSpec("finnhub_earnings", "event", True, False, 1.0, 1.2, 200, 1800, 3600, rate_group="finnhub"),
         # openFDA: 240/min, 1,000/day per IP without a key. We spend at most 300/day.

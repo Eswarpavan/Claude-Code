@@ -24,6 +24,7 @@ import httpx
 
 from catalystedge.clock import Clock, SystemClock
 from catalystedge.core.kv import KV, InMemoryKV
+from catalystedge.core.ratelimit import FileSlots, SlotStore
 from catalystedge.sources import SOURCES, SourceSpec
 
 USER_AGENT = "CatalystEdge/0.1 (personal research; contact via SEC_USER_AGENT)"
@@ -77,6 +78,7 @@ class HttpClient:
     timeout_s: float = 20.0
     user_agent: str = USER_AGENT
     stats: dict[str, CallStats] = field(default_factory=dict)
+    slots: SlotStore | None = None      # cross-process spacing for shared_spacing sources (default: lock files)
     _last_call: dict[str, float] = field(default_factory=dict)
     _secrets: set[str] = field(default_factory=set)
 
@@ -201,6 +203,13 @@ class HttpClient:
             raise BudgetExhausted(source, f"daily budget of {spec.daily_budget} calls used")
 
     def _space(self, source: str, spec: SourceSpec) -> None:
+        if spec.shared_spacing:
+            if self.slots is None:
+                self.slots = FileSlots()
+            wait = self.slots.reserve(spec.group, spec.min_interval_s)
+            if wait > 0:
+                self.sleep(wait)
+            return
         now = time.monotonic()
         wait = spec.min_interval_s - (now - self._last_call.get(spec.group, -1e12))
         if wait > 0:
