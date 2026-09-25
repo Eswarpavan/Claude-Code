@@ -2,39 +2,31 @@
 
 *Last updated 2026-09-24. Read this first when continuing in a new session.*
 
-## Current status (session 018K, app + infrastructure: finished)
+## Current status (session 018K, updated 2026-09-25)
 
-Everything in the spec is built and tested except the items listed under "Waiting on" below.
-Tests: **412 backend** (Postgres 16) + **9 frontend** passing; ruff, eslint and typecheck are clean; CI is green.
+Everything in the spec is built. Tests: **438 backend** (Postgres 16) + **18 frontend** passing; ruff,
+eslint and typecheck are clean; CI is green. Both sessions' work is merged on `claude/adoring-dirac-ohiyp8`.
 
 | Part | Status |
 |---|---|
-| Prices: Tiingo EOD (45/h, 900/day budget), Finnhub quote at the open; Yahoo/Stooq fallbacks | done (Yahoo and Stooq are blocked by this sandbox's network) |
-| Paper account: $100, fractional shares, fills at the next open, no same-day sells (code + DB trigger + test), gap handling, costs by liquidity | done, 21 tests |
-| Auto-buy | **OFF** by default and locked until 30 closed trades or a validated backtest |
-| Outcomes tracker at 1/3/10 sessions, net of costs, vs SPY | done |
-| Email alerts (Resend / SendGrid / SMTP), daily cap, retries, digest | done; needs `RESEND_API_KEY` + `ALERT_EMAIL_TO` to send |
-| Scheduler (Celery beat, New York time), independent of the UI | done, verified in Docker Compose |
-| Refresh on open + SSE progress, cooldown, joins a running refresh | done |
-| API (FastAPI) + password login (required in cloud mode) | done, 13 tests |
-| Dashboard (Next.js, dark theme): Signals, Portfolio, History, News, Backtest, Sources, Settings | done; screenshots in `docs/screenshots/` |
-| Docker Compose (local) and cloud compose + Caddy | done, all services healthy |
-| Key safety | `.env` is gitignored; repo + history scanned, no keys found; errors and logs redact keys |
+| Prices, paper account ($100, next-open fills, no same-day sells), outcomes, email alerts, scheduler, refresh + SSE, API + login, dashboard, Docker | done and tested (details in earlier commits) |
+| TimesFM toggle | done: Settings toggle, header indicator, feature/filter modes, fallback when unavailable, signals **and paper trades/positions tagged** (History and Portfolio badges), with/without comparison on the Backtest page |
+| Ollama explanations | done, **off by default** (`LLM_ENABLED=false`); adds text only (`features.llm_why`), never changes scores; fails safe when Ollama is missing; Settings shows its status; README has setup |
+| Deployment checks | worker heartbeat in `/health`; `POST /api/notifications/test` + Settings "Send test email"; `python -m catalystedge verify-deployment` checks a live deployment end to end |
+| Cloud compose | refuses to start without `APP_PASSWORD`; email runs follow the news schedule so Neon's free 100 CU-hours are not exceeded; Neon `postgresql://` strings work as pasted |
+| Backtest verdicts | shipped in `signals/baseline_verdicts.json` and used when a database has no backtest (fresh PC or Neon): earnings_beat and fda_approval **off**, insider_buy_cluster on, the rest on-but-unproven |
+| Auto-buy | **OFF**, locked until 30 closed trades or a calibrated backtest; confidence **UNCALIBRATED** |
 
-Live check on real data (2026-09-24): 1,896 headlines → 841 events → 4 candidates → 2 shown
-(TSLA contract win 73, LLY FDA approval 71, both UNCALIBRATED); paper account logged both as
-"skipped: auto-buy off". Tiingo used 4 calls.
+Guides: `docs/WINDOWS_LOCAL.md` (run on Windows with Docker Desktop) and `docs/DEPLOY_FREE.md`
+(Oracle + Neon + Upstash + Vercel, click by click, with the live check).
 
-### Waiting on
-- **Backtest on real data** (session 01Ny): code done, data download is resumable (commands below).
-  The ranking model stays disabled until it beats SPY and the rule baseline after costs.
-- **Network domains** the user can allow: `clinicaltrials.gov`, `api.fda.gov`,
-  `query1.finance.yahoo.com`, `query2.finance.yahoo.com`, `stooq.com` (optional).
-- **Optional keys:** `MARKETAUX_API_KEY`, `ALPHAVANTAGE_API_KEY`, `RESEND_API_KEY` + `ALERT_EMAIL_TO`.
-- **Stubs by design:** Benzinga, Investing.com (disabled); local LLM (Ollama) not implemented.
-
-### How to continue
-`docker compose up -d`, open http://localhost:3000. Developer commands are in `README.md`.
+### Only the user can do
+- Create the accounts (Oracle, Neon, Upstash, Vercel, DuckDNS, Resend) and follow `docs/DEPLOY_FREE.md`;
+  then run `verify-deployment` on the server (step 7) to prove the scheduler, refresh and an email work live.
+- Optional network domains for this sandbox: `clinicaltrials.gov`, `api.fda.gov`,
+  `query1.finance.yahoo.com`, `query2.finance.yahoo.com`, `stooq.com`.
+- Optional keys: `MARKETAUX_API_KEY`, `ALPHAVANTAGE_API_KEY`.
+- Replace the Finnhub and Tiingo keys that were pasted into chat earlier.
 
 ## Where we are (updated ~09:45 UTC, session 01Ny)
 

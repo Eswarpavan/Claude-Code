@@ -20,7 +20,8 @@ Auto-buy stays **off** until that evidence exists.
 | Signal engine, ranking model, calibration, backtest | `backend/catalystedge/signals/` and related |
 | Paper account, outcomes, email alerts | `backend/catalystedge/paper/`, `outcomes/`, `notify/` |
 | Design and data sources | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| $0 online deployment | [docs/DEPLOY_FREE.md](docs/DEPLOY_FREE.md) |
+| Step-by-step on Windows | [docs/WINDOWS_LOCAL.md](docs/WINDOWS_LOCAL.md) |
+| $0 online deployment (alerts while your PC is off) | [docs/DEPLOY_FREE.md](docs/DEPLOY_FREE.md) |
 | Progress log | [docs/PHASE1_PROGRESS.md](docs/PHASE1_PROGRESS.md) |
 
 ## Run it on your computer
