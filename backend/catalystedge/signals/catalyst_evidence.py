@@ -28,6 +28,23 @@ def _source() -> tuple[dict, str | None]:
     return data.get("verdicts", {}), data.get("source")
 
 
+def confidence_check(session: Session) -> dict | None:
+    """Did higher confidence mean better trades in the backtest? (the confidence diagnostic)"""
+    bt = latest_backtest(session)
+    d = ((bt.report or {}).get("diagnostics") or {}) if bt else {}
+    if not d:
+        d = json.loads(BASELINE.read_text()).get("confidence_check") or {}
+    if not d:
+        return None
+    worse = d.get("worse") or []
+    return {"reliable": not worse, "worse": worse,
+            "text": ("In the backtest, higher-confidence signals did worse than lower-confidence ones ("
+                     + "; ".join(worse) + "). The confidence number does not rank signals: do not treat a higher "
+                     "number as a better trade. Look at the catalyst's history below instead.") if worse else
+            "In the backtest, higher-confidence signals did not do worse than lower-confidence ones; confidence "
+            "is still UNCALIBRATED, so it is not a probability."}
+
+
 def catalyst_evidence(session: Session) -> dict[str, dict]:
     bt = latest_backtest(session)
     verdicts = ((bt.report or {}).get("catalyst_verdicts") or {}) if bt else {}

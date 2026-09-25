@@ -24,7 +24,7 @@ function History({ h }: { h: TopSignal["history"] }) {
   );
 }
 
-function Row({ s, rank }: { s: TopSignal; rank: number }) {
+function Row({ s, rank, unreliable }: { s: TopSignal; rank: number; unreliable: boolean }) {
   const e = s.expected;
   return (
     <Card>
@@ -38,6 +38,7 @@ function Row({ s, rank }: { s: TopSignal; rank: number }) {
           <div className="text-right">
             <p className="text-2xl font-semibold tabular">{s.confidence.toFixed(0)}</p>
             <p className="text-xs text-subtle">confidence · {s.confidence_label}</p>
+            {unreliable && <p className="text-xs text-warning-fg">does not rank trades (backtest)</p>}
           </div>
         </div>
         {s.headline && (
@@ -67,13 +68,19 @@ export default function TopSignalsPage() {
         <p className="text-sm text-muted">The 10 highest-confidence signals right now, each next to what its catalyst type has actually done in the backtest (after costs). No profit is promised.</p>
       </div>
       <CalibrationBanner />
+      {data?.confidence_check && !data.confidence_check.reliable && (
+        <div role="alert" className="rounded-md border border-warning-fg/40 bg-warning-bg p-3 text-sm text-warning-fg">
+          <p className="font-medium">The confidence number is not a reliable ranking.</p>
+          <p>{data.confidence_check.text}</p>
+        </div>
+      )}
       {error && <p className="text-sm text-critical">{error.message}</p>}
       {!data && !error && <p className="text-sm text-muted">Loading…</p>}
       {data && data.signals.length === 0 && <p className="text-sm text-muted">No signals at or above 65 right now. That is normal on quiet news days.</p>}
       {data && data.signals.length > 0 && (
         <>
           <p className="text-xs text-subtle">As of the {data.as_of_date} close.</p>
-          <div className="grid gap-3 lg:grid-cols-2">{data.signals.map((s, i) => <Row key={s.id} s={s} rank={i + 1} />)}</div>
+          <div className="grid gap-3 lg:grid-cols-2">{data.signals.map((s, i) => <Row key={s.id} s={s} rank={i + 1} unreliable={data.confidence_check?.reliable === false} />)}</div>
         </>
       )}
     </div>

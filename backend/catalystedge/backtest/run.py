@@ -93,6 +93,9 @@ def run_backtest(session: Session, *, cache_dir: Path, symbols: list[str], unive
     report["generated_at"] = dt.datetime.now(dt.UTC).isoformat()
     report["note"] = note
 
+    from catalystedge.backtest.raw import diagnostics, trade_rows
+
+    report["diagnostics"] = diagnostics(trade_rows(wf, fc))
     run = BacktestRun(started_at=started, finished_at=dt.datetime.now(dt.UTC),
                       params={"symbols": len(symbols), "display_min": DISPLAY_MIN, "embargo_days": 14,
                               "label": "paper-exit trade net > 0"},

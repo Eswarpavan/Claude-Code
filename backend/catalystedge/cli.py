@@ -317,10 +317,11 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def cmd_backtest_summary(args: argparse.Namespace) -> int:
-    from catalystedge.backtest.raw import STRATEGIES, VARIANTS, _table, read_csv
+    from catalystedge.backtest.raw import STRATEGIES, VARIANTS, _diag_md, _table, diagnostics, read_csv
 
     rows = read_csv(Path(args.csv))
-    print("\n".join(["TimesFM variants:", *_table(rows, VARIANTS), "", "Strategies:", *_table(rows, STRATEGIES)]))
+    print("\n".join(["TimesFM variants:", *_table(rows, VARIANTS), "", "Strategies:", *_table(rows, STRATEGIES),
+                     "", *_diag_md(diagnostics(rows))]))
     return 0
 
 

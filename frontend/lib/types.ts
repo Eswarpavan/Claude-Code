@@ -190,4 +190,5 @@ export type TopSignal = {
   expected: { prior_return_pct: number; basis: string; stop_pct: number; target_pct: number; holding_days: [number, number] };
   history: CatalystHistory | null;
 };
-export type TopSignalsResponse = { as_of_date: string | null; signals: TopSignal[]; note: string };
+export type ConfidenceCheck = { reliable: boolean; worse: string[]; text: string };
+export type TopSignalsResponse = { as_of_date: string | null; signals: TopSignal[]; note: string; confidence_check?: ConfidenceCheck | null };

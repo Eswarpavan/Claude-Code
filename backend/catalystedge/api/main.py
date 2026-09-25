@@ -277,7 +277,7 @@ def _router():
     @r.get("/api/signals/top", dependencies=[Depends(auth)])
     def top_signals(s: Session = Depends(db), limit: int = Query(10, ge=1, le=25)) -> dict:
         """The highest-confidence current signals, each with what its catalyst type has done historically."""
-        from catalystedge.signals.catalyst_evidence import catalyst_evidence
+        from catalystedge.signals.catalyst_evidence import catalyst_evidence, confidence_check
 
         now = state.clock.now()
         latest = s.scalar(select(func.max(Signal.as_of_date)).where(Signal.displayed.is_(True)))
@@ -300,6 +300,7 @@ def _router():
                 "history": ev.get(sig.catalyst_type),
             })
         return {"as_of_date": latest.isoformat() if latest else None, "signals": out,
+                "confidence_check": confidence_check(s),
                 "note": "No profit is promised. Each signal shows what its catalyst type actually did in the "
                         "backtest (after costs), next to the S&P 500 over the same days."}
 

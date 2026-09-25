@@ -171,6 +171,7 @@ def markdown(rows: Sequence[dict], report: dict, csv_rel: str, json_rel: str) ->
     if tfm.get("leakage_warning"):
         lines += [f"> Caveat: {tfm['leakage_warning']}", ""]
     lines += ["## All strategies (out of sample)", "", *_table(rows, STRATEGIES), ""]
+    lines += _diag_md(diagnostics(rows))
     lines += _shap_md(report.get("shap") or {}) + _slices_md(report.get("slices") or {})
     lines += [
               "## Out-of-sample trades", "",
@@ -185,6 +186,51 @@ def markdown(rows: Sequence[dict], report: dict, csv_rel: str, json_rel: str) ->
         lines.append(f"| {r['decision_date']} | {r['symbol']} | {r['catalyst']} | {float(r['rule_score']):.0f} | "
                      f"{fc} | {flags} | {float(r['trade_return_pct']):+.2f}% | {spy} | {r['exit_reason']} |")
     return "\n".join(lines) + "\n"
+
+
+def diagnostics(rows: Sequence[dict], top: int = 10) -> dict:
+    """Does higher confidence mean better trades? NOT part of the bar or the significance tests.
+
+    Confidence here = the confidence the app would show (rule score; the ranking model is off). Top N is
+    across the whole out-of-sample period, ties broken by date."""
+    rules = [r for r in rows if str(r["in_rules"]) == "1" and r["trade_return_pct"] not in ("", None)]
+    ranked = sorted(rules, key=lambda r: (-float(r["rule_score"]), r["decision_date"], r["symbol"]))
+    groups = {f"Top {top} by confidence": ranked[:top], "All other rules trades": ranked[top:],
+              "Confidence 65-80": [r for r in rules if float(r["rule_score"]) < 80],
+              "Confidence 80+": [r for r in rules if float(r["rule_score"]) >= 80]}
+    out = {}
+    for name, sel in groups.items():
+        holds = [int(r["sessions"] or 5) for r in sel]
+        out[name] = {"strategy": stats([_num(r["trade_return_pct"]) for r in sel], holds),
+                     "spy_same_days": stats([_num(r["spy_return_pct"]) for r in sel], holds),
+                     "min_confidence": min((float(r["rule_score"]) for r in sel), default=None)}
+    t, rest = out[f"Top {top} by confidence"]["strategy"], out["All other rules trades"]["strategy"]
+    hi, lo = out["Confidence 80+"]["strategy"], out["Confidence 65-80"]["strategy"]
+    worse = [name for name, (a, b) in ((f"top {top} vs the rest", (t, rest)), ("80+ vs 65-80", (hi, lo)))
+             if a["n"] and b["n"] and a["mean_pct"] is not None and b["mean_pct"] is not None
+             and a["hit_rate"] < b["hit_rate"] and a["mean_pct"] < b["mean_pct"]]
+    plain = (("Higher confidence did WORSE (lower win rate and lower average return) for: " + "; ".join(worse)
+              + ". The confidence score does not rank trades and must be rebuilt before it is used for anything, "
+                "including 'top signals' displays.") if worse else
+             "Higher-confidence trades did not do worse on both win rate and average return.")
+    plain += (f" With only {t['n']} trades the top-{top} row alone proves nothing either way; the 65-80 vs 80+ "
+              "comparison has more trades.")
+    return {"groups": out, "worse": worse, "plain": plain,
+            "note": "Diagnostic only: not counted toward the bar or the Bonferroni correction."}
+
+
+def _diag_md(d: dict) -> list[str]:
+    if not d.get("groups"):
+        return []
+    out = ["## Diagnostic: does higher confidence mean better trades?", "",
+           f"{d['note']} Confidence = the rule score the app shows (the ranking model is off).", "",
+           "| Group | Trades | Win rate | Avg return / trade | Sharpe | S&P 500, same days: win · avg · Sharpe |",
+           "|---|---|---|---|---|---|"]
+    for name, g in d["groups"].items():
+        n, hit, mean, sh = _fmt(g["strategy"])
+        _, shit, smean, ssh = _fmt(g["spy_same_days"])
+        out.append(f"| {name} | {n} | {hit} | {mean} | {sh} | {shit} · {smean} · {ssh} |")
+    return out + ["", f"**{d['plain']}**", ""]
 
 
 def _shap_md(sh: dict) -> list[str]:
@@ -240,6 +286,7 @@ def export(wf, fc: dict | None, report: dict, out_dir: Path, md_path: Path,
     rows = trade_rows(wf, fc, row_ctx)
     csv_path, json_path = out_dir / "trades.csv", out_dir / "report.json"
     write_csv(rows, csv_path)
+    report = {**report, "diagnostics": diagnostics(read_csv(csv_path))}
     json_path.write_text(json.dumps(report, indent=1, default=str))
     rel = lambda p: str(p.resolve().relative_to(md_path.parent.resolve()))  # noqa: E731
     md_path.write_text(markdown(read_csv(csv_path), report, rel(csv_path), rel(json_path)))

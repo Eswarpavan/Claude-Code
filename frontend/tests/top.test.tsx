@@ -32,3 +32,12 @@ describe("Top signals", () => {
     expect(document.body.textContent).not.toMatch(/guarantee|minimum profit/i);
   });
 });
+
+describe("Top signals confidence warning", () => {
+  it("says plainly when the backtest shows confidence ranks backwards", () => {
+    const bad = { ...data, confidence_check: { reliable: false, worse: ["80+ vs 65-80"], text: "Higher-confidence signals did worse." } };
+    render(<SWRConfig value={{ provider: () => new Map(), fallback: { "/api/signals/top": bad } }}><TopSignalsPage /></SWRConfig>);
+    expect(screen.getByRole("alert").textContent).toMatch(/not a reliable ranking/);
+    expect(screen.getAllByText("does not rank trades (backtest)").length).toBe(2);
+  });
+});

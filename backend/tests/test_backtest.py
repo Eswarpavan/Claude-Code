@@ -189,3 +189,20 @@ def test_raw_export_reproduces_the_report_exactly(data, tmp_path):
     assert raw.summarize(back, "in_naive_all_events")["spy_same_days"] == rep["strategies"]["spy_same_days"]
     md = files["md"].read_text()
     assert "TimesFM feature mode" in md and "backtest/trades.csv" in md and "Ollama" in md
+
+
+def test_confidence_diagnostic_flags_backwards_confidence():
+    from catalystedge.backtest import raw
+
+    def row(score, ret):
+        return {"in_rules": "1", "trade_return_pct": str(ret), "spy_return_pct": "0.2", "rule_score": str(score),
+                "sessions": "5", "decision_date": "2026-01-02", "symbol": f"S{score}"}
+
+    backwards = [row(90 + i % 9, -1.0 + (i % 3) * 0.1) for i in range(20)] + \
+                [row(66 + i % 10, 1.0 + (i % 3) * 0.1) for i in range(40)]
+    d = raw.diagnostics(backwards)
+    assert d["groups"]["Top 10 by confidence"]["strategy"]["n"] == 10
+    assert d["groups"]["Top 10 by confidence"]["min_confidence"] >= 90
+    assert "top 10 vs the rest" in d["worse"] and "80+ vs 65-80" in d["worse"] and "rebuilt" in d["plain"]
+    sane = [row(90, 2.0) for _ in range(20)] + [row(70, 0.5) for _ in range(40)]
+    assert raw.diagnostics(sane)["worse"] == []

@@ -305,3 +305,16 @@ def test_top_signals_show_catalyst_history_not_promises(clean):
     e = top[0]["expected"]
     assert e["basis"] == "prior" and e["stop_pct"] == -6.0 and e["target_pct"] == 6.0
     assert "No profit is promised" in body["note"] and top[0]["confidence_label"] == "UNCALIBRATED"
+
+
+def test_top_signals_warn_when_confidence_ranks_backwards(clean):
+    from catalystedge.db.models import BacktestRun
+
+    seed(clean, "ABC", 85)
+    c = client(clean)
+    with sessionmaker(clean)() as s:
+        s.add(BacktestRun(started_at=NOW, finished_at=NOW, params={}, data_sources=[], event_families=[],
+                          status="done", report={"diagnostics": {"worse": ["80+ vs 65-80"], "groups": {}}}))
+        s.commit()
+    chk = c.get("/api/signals/top").json()["confidence_check"]
+    assert chk["reliable"] is False and "does not rank signals" in chk["text"]
