@@ -32,6 +32,8 @@ def build_news_adapters(settings: Settings, http: HttpClient) -> list[NewsAdapte
                 enabled=bool(settings.prnewswire_rss_url) and not fixtures),
         RssNews(http, "businesswire_rss", settings.businesswire_rss_url, "Business Wire",
                 enabled=bool(settings.businesswire_rss_url) and not fixtures),
+        RssNews(http, "fda_press_rss", settings.fda_press_rss_url, "U.S. FDA",
+                enabled=bool(settings.fda_press_rss_url) and not fixtures),
         BenzingaNews(http),
         InvestingRss(http),
     ]

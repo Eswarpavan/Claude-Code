@@ -113,3 +113,15 @@ def test_sec_filing_verifies_earlier_aggregator_event(db):
     assert ev.verification == "primary"
     db.refresh(agg)
     assert agg.verification == "verified" and agg.original_url == "https://www.sec.gov/Archives/x-index.htm"
+
+
+def test_fda_press_feed_is_a_primary_source():
+    from catalystedge.adapters.news.registry import build_news_adapters
+    from catalystedge.config import Settings
+    from catalystedge.sources import SOURCES
+
+    clock = FrozenClock(NOW)
+    http = HttpClient(transport=httpx.MockTransport(lambda r: httpx.Response(500)), kv=InMemoryKV(clock), clock=clock)
+    fda = [a for a in build_news_adapters(Settings(_env_file=None), http) if a.source_key == "fda_press_rss"]
+    assert fda and fda[0].enabled and SOURCES["fda_press_rss"].primary and SOURCES["fda_press_rss"].credibility == 1.0
+
