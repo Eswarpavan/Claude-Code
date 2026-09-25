@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     daily_digest: bool = Field(False, alias="DAILY_DIGEST")
 
     # API / UI
+    # Optional local LLM (Ollama): writes a plain-English "why" only; never changes scores. Off by default.
+    llm_enabled: bool = Field(False, alias="LLM_ENABLED")
+    ollama_url: str = Field("http://localhost:11434", alias="OLLAMA_URL")
+    ollama_model: str = Field("qwen3:4b", alias="OLLAMA_MODEL")
+    llm_timeout_s: float = Field(30.0, alias="LLM_TIMEOUT_S")
+
     app_password: str | None = Field(None, alias="APP_PASSWORD")
     app_secret: str | None = Field(None, alias="APP_SECRET")      # signs login tokens; random if unset
     cors_origins: str = Field("http://localhost:3000", alias="CORS_ORIGINS")

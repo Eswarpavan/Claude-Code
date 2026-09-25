@@ -97,6 +97,13 @@ export function TickerHover({ signal, children }: { signal: SignalT; children: R
           <div>
             <p className="mb-1 text-xs font-medium text-subtle">Why</p>
             <p>{signal.reason}</p>
+            {signal.llm_why && (
+              <div className="mt-2 rounded-md border border-border p-2">
+                <p className="text-xs font-medium text-subtle">In plain English (local AI)</p>
+                <p className="text-sm">{signal.llm_why.text}</p>
+                <p className="mt-1 text-xs text-subtle">{signal.llm_why.label}</p>
+              </div>
+            )}
             {signal.rule_components && (
               <p className="mt-1 text-xs text-subtle tabular">
                 {Object.entries(signal.rule_components)

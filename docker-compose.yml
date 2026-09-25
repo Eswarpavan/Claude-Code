@@ -18,6 +18,10 @@ x-backend: &backend
     CELERY_BROKER_URL: redis://redis:6379/1
     MODELS_DIR: /models
     CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    # Optional local AI explanations (LLM_ENABLED=true in .env). Default: Ollama installed on this computer.
+    OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
   volumes:
     - models:/models
   restart: unless-stopped
@@ -103,7 +107,17 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Optional: run Ollama in Docker instead of installing it (`docker compose --profile llm up -d`,
+  # then set OLLAMA_URL=http://ollama:11434 in .env). Needs about 4 GB of free memory for qwen3:4b.
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["llm"]
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:
   models:
+  ollama:

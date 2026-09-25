@@ -160,6 +160,7 @@ def signal_json(s: Session, sig: Signal, now: dt.datetime, detail: bool = False)
         "sentiment_model": senti[0].get("model") if senti else None,
         "model_disagrees": bool((sig.features or {}).get("model_disagrees")),
         "timesfm": (sig.features or {}).get("timesfm"),
+        "llm_why": (sig.features or {}).get("llm_why"),
         "reaction_since_news_pct": ((sig.features or {}).get("price") or {}).get("reaction_pct"),
         "rule_components": (sig.features or {}).get("rule_components"),
     }
@@ -397,6 +398,24 @@ def _router():
             "news_backtest_note": "News APIs on free plans keep too little history to backtest news-only "
                                   "catalysts; those are calibrated from live outcomes only.",
         }
+
+    @r.get("/api/llm", dependencies=[Depends(auth)])
+    def llm_status() -> dict:
+        from catalystedge.ml.llm import build_explainer
+
+        st = state.settings
+        base = {"enabled": st.llm_enabled, "model": st.ollama_model,
+                "what_it_does": "Adds a plain-English explanation to each shown signal. It never changes the "
+                                "confidence, the catalyst or whether a signal is shown.",
+                "how_to_turn_on": "Install Ollama, run `ollama pull " + st.ollama_model + "`, set LLM_ENABLED=true "
+                                  "in .env and restart (see README)."}
+        ex = build_explainer(st)
+        if ex is None:
+            return {**base, "status": "off"}
+        try:
+            return {**base, "status": ex.status()}
+        finally:
+            ex.close()
 
     @r.get("/api/sources", dependencies=[Depends(auth)])
     def sources(s: Session = Depends(db)) -> dict:

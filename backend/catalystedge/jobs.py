@@ -36,6 +36,7 @@ from catalystedge.db.models import (
     PriceDaily,
     RefreshRun,
     Signal,
+    SignalEvent,
     Source,
     SourceRun,
     Ticker,
@@ -306,8 +307,37 @@ def job_signals(ctx: Context) -> dict:
                                   **engine_kwargs(s, now, Path(ctx.settings.models_dir)))
         shown = [c.signal for c in result.displayed if c.signal is not None]
         queued = sum(queue_high_confidence(s, sig) for sig in shown)
+    llm = job_llm_notes(ctx, [sig.id for sig in shown])
     return {"as_of": result.as_of_date.isoformat(), "candidates": len(result.candidates), "displayed": len(shown),
-            "alerts_queued": queued, "warnings": result.warnings}
+            "alerts_queued": queued, "warnings": result.warnings, "llm": llm}
+
+
+def job_llm_notes(ctx: Context, signal_ids: list[int]) -> dict:
+    """Optional Ollama explanations for displayed signals, in its own transaction after scoring and
+    alerts, so an unreachable or failing LLM can never affect them."""
+    from catalystedge.ml.llm import annotate_signals, build_explainer
+
+    explainer = build_explainer(ctx.settings)
+    if explainer is None or not signal_ids:
+        return {"status": "off" if explainer is None else "nothing to explain"}
+    try:
+        with _session(ctx) as s:
+            sigs = list(s.scalars(select(Signal).where(Signal.id.in_(signal_ids))))
+
+            def headlines(sig: Signal) -> list[str]:
+                return list(s.scalars(select(Event.headline).join(SignalEvent, SignalEvent.event_id == Event.id)
+                                      .where(SignalEvent.signal_id == sig.id).order_by(Event.available_at.desc())))
+
+            def company(sym: str) -> str | None:
+                t = s.get(Ticker, sym)
+                return t.name if t else None
+
+            return annotate_signals(sigs, explainer, ctx.kv, company_of=company, headlines_of=headlines)
+    except Exception as e:
+        log.warning("llm notes skipped: %s", type(e).__name__)
+        return {"status": f"error: {type(e).__name__}"}
+    finally:
+        explainer.close()
 
 
 def job_timesfm(ctx: Context) -> dict:

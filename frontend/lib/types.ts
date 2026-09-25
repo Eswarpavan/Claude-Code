@@ -31,6 +31,7 @@ export type SignalT = {
   features?: Record<string, unknown>;
   shap?: { base: number; top: { feature: string; contribution: number; plain: string }[] } | null;
   timesfm?: TimesFMTag | null;
+  llm_why?: { text: string; model: string; label: string } | null;
   rule_components?: Record<string, number> | null;
   reaction_since_news_pct?: number | null;
 };

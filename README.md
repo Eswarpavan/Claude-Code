@@ -55,6 +55,26 @@ It downloads FinBERT (first time only), scores recent headlines with FinBERT and
 word-list fallback side by side, and prints accuracy on hand-labelled headlines. To send the result
 back: copy everything it printed and paste it into the chat. It contains no keys or personal data.
 
+## Optional: plain-English explanations from a local AI (Ollama)
+
+Off by default. When on, each shown signal gets a short explanation written by an AI model that
+runs **on your own computer**; nothing is sent to an outside AI service. It only adds text: it never
+changes a confidence score, a catalyst, whether a signal is shown, or any trade. If Ollama is not
+running, the app works exactly as before and Settings says "Ollama is not running".
+
+1. Install Ollama from **https://ollama.com/download** (Windows: run the installer; it starts by itself).
+2. Open a terminal (Windows: PowerShell) and download the model (about 2.5 GB, needs ~4 GB free memory):
+   ```bash
+   ollama pull qwen3:4b
+   ```
+   On a computer with 8 GB of memory or less, use `llama3.2:3b` instead and set `OLLAMA_MODEL=llama3.2:3b`.
+3. In `.env`, set `LLM_ENABLED=true`.
+4. Restart: `docker compose up -d`.
+5. **Settings → Local AI explanations** should say **On and working**. Explanations appear in a
+   signal's hover card under "In plain English (local AI)" after the next refresh.
+
+To turn it off, set `LLM_ENABLED=false` and run `docker compose up -d` again.
+
 ## Keeping your API keys safe
 
 1. Put keys **only** in the `.env` file on your machine (or the host's secret settings, e.g. the

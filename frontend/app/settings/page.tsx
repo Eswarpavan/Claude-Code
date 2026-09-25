@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { TimesFMSettings } from "@/components/timesfm";
+import { LLMSettings } from "@/components/llm-settings";
 
 type Paper = { auto_buy: boolean; auto_buy_threshold: number; risk_per_trade: number; max_position_pct: number; max_open_positions: number;
   cash_floor_pct: number; time_stop_sessions: number; start_cash: number };
@@ -64,6 +65,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       <TimesFMSettings />
+      <LLMSettings />
       <Card>
         <CardHeader><CardTitle>Paper account ({"$"}{p.start_cash} start)</CardTitle></CardHeader>
         <CardContent>
