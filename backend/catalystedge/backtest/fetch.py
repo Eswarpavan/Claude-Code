@@ -48,6 +48,28 @@ def run_sec(symbols: list[str]) -> None:
                 time.sleep(30)
 
 
+def run_meta(symbols: list[str]) -> None:
+    """SEC industry code + shares-outstanding history per company (for sector / market-cap slices)."""
+    from catalystedge import jobs
+    from catalystedge.backtest.slices import fetch_meta
+
+    ctx = jobs.build_context()
+    ua = ctx.settings.sec_user_agent
+    if not ua:
+        sys.exit("SEC_USER_AGENT not set")
+    universe = ctx.universe()
+    for sym in symbols:
+        c = universe.by_symbol.get(sym)
+        if c is None or not c.cik:
+            print(f"{sym}: not in SEC list, skipped", flush=True)
+            continue
+        try:
+            m = fetch_meta(ctx.http, ua, sym, c.cik, cache_dir())
+            print(f"{sym}: SIC {m['sic']} ({m['sic_description']}), {len(m['shares'])} share counts", flush=True)
+        except SourceError as e:
+            print(f"{sym}: {ctx.http.redact(str(e))[:120]}", flush=True)
+
+
 def run_prices(symbols: list[str]) -> None:
     from sqlalchemy import func, select
 
@@ -154,4 +176,4 @@ def run_fda(symbols: list[str]) -> None:
 if __name__ == "__main__":
     part = sys.argv[1] if len(sys.argv) > 1 else "sec"
     syms = sys.argv[2].split(",") if len(sys.argv) > 2 else list(DEFAULT_UNIVERSE)
-    {"sec": run_sec, "prices": run_prices, "earnings": run_earnings, "fda": run_fda}[part](syms)
+    {"sec": run_sec, "prices": run_prices, "earnings": run_earnings, "fda": run_fda, "meta": run_meta}[part](syms)

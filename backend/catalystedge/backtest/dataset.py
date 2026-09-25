@@ -76,6 +76,7 @@ class Row:
     trade_sessions: int | None = None
     spy_return: float | None = None
     cost_pct: float = 0.0
+    spy_labels: dict[int, float] = field(default_factory=dict)   # h -> S&P 500 over the same fixed hold
 
     @property
     def catalyst(self) -> str:
@@ -147,6 +148,9 @@ def build_rows(events: list[HistEvent], bars_by_symbol: dict[str, list[Bar]], sp
             k = entry_i + h - 1
             if k < len(bars):
                 row.labels[h] = (bars[k].close / entry_bar.open - 1) * 100 - cost
+                if entry_bar.date in spy_ix and bars[k].date in spy_ix:
+                    row.spy_labels[h] = (spy[spy_ix[bars[k].date]].close / spy[spy_ix[entry_bar.date]].open - 1) \
+                        * 100 - costs.round_trip_pct(1e10)
         if f is not None:
             _, stop, target, _ = levels(prior, f)
             t = simulate_trade(bars, entry_i, stop, target, cost)

@@ -140,6 +140,7 @@ class WalkForward:
     rule_cal: dict[int, float] = field(default_factory=dict)       # row index -> OOF calibrated rule prob
     weights: dict[int, float] = field(default_factory=dict)        # row index -> blend weight used
     folds: list[FoldResult] = field(default_factory=list)
+    shap: dict[int, list[float]] = field(default_factory=dict)     # row index -> OOF TreeSHAP (+ bias last)
 
 
 def _xy(rows: Sequence[Row]) -> tuple[np.ndarray, np.ndarray]:
@@ -181,6 +182,7 @@ def run_walk_forward(rows: list[Row], min_train: int = MIN_TRAIN) -> WalkForward
         model.fit(Xtr, ytr)
         Xte, _ = _xy([usable[i] for i in test])
         p = model.predict_proba(Xte)[:, 1]
+        contrib = model.booster_.predict(Xte, pred_contrib=True)      # exact TreeSHAP, log-odds
         iso = _fit_isotonic([usable[i].rule_score for i in train], ytr.tolist())
         cal = iso.predict(np.array([usable[i].rule_score for i in test], dtype=float))
         # Blend weight chosen on earlier folds' out-of-sample rows only.
@@ -190,6 +192,7 @@ def run_walk_forward(rows: list[Row], min_train: int = MIN_TRAIN) -> WalkForward
             wf.probs[i] = float(p[j])
             wf.rule_cal[i] = float(cal[j])
             wf.weights[i] = w
+            wf.shap[i] = [float(x) for x in contrib[j]]
         wf.folds.append(FoldResult(start, end, len(train), len(test), w, True))
     return wf
 
@@ -282,9 +285,29 @@ def build_report(wf: WalkForward, universe_note: str,
             "News headlines are not in the backtest (no licensed archive); SEC press releases stand in for them.",
         ],
     }
+    report["shap"] = shap_importance(wf)
     if tfm_forecasts is not None:
         report["timesfm"] = _timesfm_section(rows, oos, wf, tfm_forecasts, strategies, tfm_leakage_note)
     return report
+
+
+def shap_importance(wf: WalkForward, top: int = 15) -> dict:
+    """What the walk-forward LightGBM models actually weighted, measured on the rows each model had NOT
+    seen (out of fold): mean |SHAP| per feature, and the mean signed SHAP (direction)."""
+    from catalystedge.ml.ranker import _plain
+
+    idx = sorted(wf.shap)
+    if not idx:
+        return {"n_rows": 0, "features": []}
+    m = np.array([wf.shap[i][:-1] for i in idx], dtype=float)
+    mean_abs, mean_signed = np.abs(m).mean(axis=0), m.mean(axis=0)
+    total = float(mean_abs.sum()) or 1.0
+    order = np.argsort(-mean_abs)
+    feats = [{"feature": FEATURES[k], "plain": _plain(FEATURES[k], 1.0).split(" raised")[0],
+              "mean_abs_shap": round(float(mean_abs[k]), 5), "share_pct": round(100 * float(mean_abs[k]) / total, 1),
+              "mean_signed_shap": round(float(mean_signed[k]), 5)} for k in order[:top] if mean_abs[k] > 0]
+    return {"n_rows": len(idx), "units": "log-odds of a winning trade", "features": feats,
+            "unused_features": [FEATURES[k] for k in order if mean_abs[k] == 0]}
 
 
 MIN_CATALYST_TRADES = 30

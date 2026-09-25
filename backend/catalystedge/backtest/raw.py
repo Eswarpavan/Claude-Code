@@ -30,6 +30,8 @@ COLUMNS = [
     "in_rules", "in_naive_all_events", "in_rules_plus_model",
     "tfm_compared", "in_rules_without_timesfm", "in_timesfm_filter", "in_timesfm_feature",
     "cost_pct", "trade_return_pct", "spy_return_pct",
+    "sector", "market_cap_usd", "cap_bucket",
+    *[f"hold{h}_pct" for h in (1, 3, 5, 10)], *[f"spy_hold{h}_pct" for h in (1, 3, 5, 10)],
 ]
 
 VARIANTS = (("Rules + FinBERT (TimesFM off)", "in_rules_without_timesfm"),
@@ -43,7 +45,7 @@ def _r(x, nd=4):
     return "" if x is None else round(float(x), nd)
 
 
-def trade_rows(wf, fc: dict | None) -> list[dict]:
+def trade_rows(wf, fc: dict | None, row_ctx: dict | None = None) -> list[dict]:
     rows, oos = wf.rows, sorted(wf.probs)
     oos_set = set(oos)
     have, base, filt, feat, deltas = timesfm_variants(rows, oos, fc) if fc else ([], [], [], [], {})
@@ -79,6 +81,9 @@ def trade_rows(wf, fc: dict | None) -> list[dict]:
             # full precision, so every statistic recomputed from the CSV matches the report exactly
             "trade_return_pct": "" if r.trade_return is None else float(r.trade_return),
             "spy_return_pct": "" if r.spy_return is None else float(r.spy_return),
+            **{k: (row_ctx or {}).get(i, {}).get(k, "") for k in ("sector", "market_cap_usd", "cap_bucket")},
+            **{f"hold{h}_pct": r.labels.get(h, "") for h in (1, 3, 5, 10)},
+            **{f"spy_hold{h}_pct": r.spy_labels.get(h, "") for h in (1, 3, 5, 10)},
         })
     return out
 
@@ -165,7 +170,9 @@ def markdown(rows: Sequence[dict], report: dict, csv_rel: str, json_rel: str) ->
     ]
     if tfm.get("leakage_warning"):
         lines += [f"> Caveat: {tfm['leakage_warning']}", ""]
-    lines += ["## All strategies (out of sample)", "", *_table(rows, STRATEGIES), "",
+    lines += ["## All strategies (out of sample)", "", *_table(rows, STRATEGIES), ""]
+    lines += _shap_md(report.get("shap") or {}) + _slices_md(report.get("slices") or {})
+    lines += [
               "## Out-of-sample trades", "",
               "`R` = rules trade, `F` = TimesFM filter keeps it, `T` = TimesFM feature mode trades it.", "",
               "| Decision | Symbol | Catalyst | Score | TimesFM fc | Flags | Return | S&P same days | Exit |",
@@ -180,8 +187,54 @@ def markdown(rows: Sequence[dict], report: dict, csv_rel: str, json_rel: str) ->
     return "\n".join(lines) + "\n"
 
 
-def export(wf, fc: dict | None, report: dict, out_dir: Path, md_path: Path) -> dict[str, Path]:
-    rows = trade_rows(wf, fc)
+def _shap_md(sh: dict) -> list[str]:
+    if not sh.get("features"):
+        return []
+    out = ["## What the LightGBM model weighted (SHAP)", "",
+           f"Mean absolute SHAP value per feature on {sh['n_rows']} out-of-sample rows (each quarter's model "
+           f"scored rows it had not trained on), in {sh.get('units', 'log-odds')}. The model is **disabled**: "
+           "it did not beat the baselines, so these weights are shown for transparency only.", "",
+           "| Feature | Meaning | Mean abs SHAP | Share of total | Average direction |", "|---|---|---|---|---|"]
+    for f in sh["features"]:
+        d = "raises win odds" if f["mean_signed_shap"] > 0 else "lowers win odds"
+        out.append(f"| `{f['feature']}` | {f['plain']} | {f['mean_abs_shap']:.4f} | {f['share_pct']:.1f}% | {d} |")
+    if sh.get("unused_features"):
+        out += ["", "Never used by any fold's model: " + ", ".join(f"`{x}`" for x in sh["unused_features"]) + "."]
+    return out + [""]
+
+
+def _slices_md(sl: dict) -> list[str]:
+    if not sl.get("slices"):
+        return ["## Slices", "", sl.get("plain", "not run"), ""]
+    out = ["## Slices by sector, market cap and holding period", "",
+           f"Rules trades out of sample: {sl['rules_trades']}. Bar for a candidate: at least {sl['min_trades']} "
+           f"trades, beats the S&P 500 over the same days on win rate, average return and Sharpe, and "
+           f"p < 0.05 after a {sl['correction']} correction for {sl['comparisons']} comparisons "
+           f"(p < {sl['alpha_per_test']:.4f} each; {sl['test']}).", "",
+           f"**Verdict: {sl['plain']}**", "",
+           "| Dimension | Slice | Trades | Win rate | Avg / trade | Sharpe | S&P same days avg | Excess | p | "
+           "p (corrected) | Smallest detectable excess | Candidate |",
+           "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for t in sl["slices"]:
+        n, hit, mean, sh = _fmt(t["strategy"])
+        sp = t["spy_same_days"]
+        spm = f"{sp['mean_pct']:+.2f}%" if sp["n"] else "–"
+        ex = f"{t['mean_excess_pct']:+.2f}%" if t["mean_excess_pct"] is not None else "–"
+        p = f"{t['p_value']:.3f}" if t["p_value"] is not None else "–"
+        pc = f"{t['p_bonferroni']:.3f}" if t["p_bonferroni"] is not None else "–"
+        mde = f"{t['min_detectable_excess_pct']:.2f}%" if t["min_detectable_excess_pct"] is not None else "–"
+        flag = "**yes**" if t["candidate"] else ("no" if t["n"] >= sl["min_trades"] else f"no (< {sl['min_trades']})")
+        out.append(f"| {t['dimension']} | {t['slice']} | {n} | {hit} | {mean} | {sh} | {spm} | {ex} | {p} | {pc} | "
+                   f"{mde} | {flag} |")
+    out += ["", "The realised holding period of each stop/target exit is not a slice: it is only known after "
+            "the trade ends, so filtering on it would use the future. The holding-period rows instead apply a "
+            "fixed hold, decided before entry, to the same rules entries.", ""]
+    return out
+
+
+def export(wf, fc: dict | None, report: dict, out_dir: Path, md_path: Path,
+           row_ctx: dict | None = None) -> dict[str, Path]:
+    rows = trade_rows(wf, fc, row_ctx)
     csv_path, json_path = out_dir / "trades.csv", out_dir / "report.json"
     write_csv(rows, csv_path)
     json_path.write_text(json.dumps(report, indent=1, default=str))

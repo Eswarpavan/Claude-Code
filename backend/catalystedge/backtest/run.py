@@ -78,6 +78,18 @@ def run_backtest(session: Session, *, cache_dir: Path, symbols: list[str], unive
     note = f"{len(bars) - 1} of {len(symbols)} symbols with prices; SEC 8-K/Form 4 + Finnhub earnings + openFDA"
     report = build_report(wf, note, fc, timesfm_leakage_note)
     report["n_events"] = len(events)
+    from catalystedge.backtest.slices import analyse, cap_bucket, load_meta, row_cap, row_sector
+
+    meta = load_meta(cache_dir)
+    closes = {(sym, b.date): b.close for sym, bs in bars.items() for b in bs}
+    oos_rows = [wf.rows[i] for i in sorted(wf.probs)]
+    report["slices"] = analyse(oos_rows, meta, closes) if meta else {
+        "plain": "not run: company facts missing (python -m catalystedge.backtest.fetch meta)"}
+    row_ctx = {}
+    for i, r in enumerate(wf.rows):
+        c = row_cap(r, meta, closes)
+        row_ctx[i] = {"sector": row_sector(r, meta), "market_cap_usd": round(c) if c else "",
+                      "cap_bucket": cap_bucket(c)}
     report["generated_at"] = dt.datetime.now(dt.UTC).isoformat()
     report["note"] = note
 
@@ -116,6 +128,6 @@ def run_backtest(session: Session, *, cache_dir: Path, symbols: list[str], unive
     if raw_out is not None:
         from catalystedge.backtest.raw import export
 
-        files = export(wf, fc, report, raw_out, raw_md or raw_out.parent / "BACKTEST_RAW.md")
+        files = export(wf, fc, report, raw_out, raw_md or raw_out.parent / "BACKTEST_RAW.md", row_ctx)
         log("raw results: " + ", ".join(str(p) for p in files.values()))
     return report
