@@ -18,6 +18,7 @@ of the stop/target exit is NOT a slice: it is only known after the trade ends.
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import math
 import random
@@ -118,6 +119,45 @@ def row_cap(r, meta: dict[str, dict], closes: dict) -> float | None:
     return sh * px if sh and px else None
 
 
+FLAG_DAYS = 30
+
+
+def load_filings(cache: Path) -> dict[str, list[tuple[str, dt.datetime, str]]]:
+    """symbol -> [(form, accepted_at UTC, 8-K items)] from the filings_<SYM>.json cache."""
+    out = {}
+    for p in cache.glob("filings_*.json"):
+        rows = []
+        for form, filed, accepted, items in json.loads(p.read_text()):
+            try:
+                at = dt.datetime.fromisoformat(accepted.replace("Z", "+00:00")) if accepted else \
+                    dt.datetime.combine(dt.date.fromisoformat(filed), dt.time(23, 59), dt.UTC)
+            except ValueError:
+                continue
+            rows.append((form, at if at.tzinfo else at.replace(tzinfo=dt.UTC), items or ""))
+        out[p.stem.removeprefix("filings_")] = rows
+    return out
+
+
+def filing_flag(r, filings: dict) -> str:
+    """Point in time: a share-sale filing (same definition as the live flag: 424B1/B4/B5/B7, S-1/F-1, 8-K Item
+    3.02) or a late-filing notice (NT 10-K/10-Q) accepted in the 30 days up to the decision-day close."""
+    from catalystedge.events.sec_forms import classify_form
+    from catalystedge.signals.engine import ET
+
+    rows = filings.get(r.event.symbol)
+    if rows is None:
+        return "unknown"
+    close = dt.datetime.combine(r.decision_date, dt.time(16, 0), ET).astimezone(dt.UTC)
+    since = close - dt.timedelta(days=FLAG_DAYS)
+    for form, at, items in rows:
+        if not (since < at <= close):
+            continue
+        kind = classify_form(form)
+        if (kind and kind.kind in ("dilution", "late_filing")) or (form.startswith("8-K") and "3.02" in items):
+            return "offering or late filing in prior 30 days"
+    return "no offering or late filing"
+
+
 def load_meta(cache: Path) -> dict[str, dict]:
     return {p.stem.removeprefix("meta_"): json.loads(p.read_text()) for p in cache.glob("meta_*.json")}
 
@@ -164,7 +204,8 @@ def _test(name: str, dim: str, rets: list[float], spys: list[float], holds: list
             "p_value": sign_flip_p(ex) if len(ex) >= 5 else None}
 
 
-def analyse(rows: Sequence, meta: dict[str, dict], closes: dict[tuple[str, object], float]) -> dict:
+def analyse(rows: Sequence, meta: dict[str, dict], closes: dict[tuple[str, object], float],
+            filings: dict | None = None) -> dict:
     """rows: out-of-sample walk-forward rows; the rules strategy (score >= 65, not skipped) is sliced."""
     rules = [r for r in rows if r.rule_score >= DISPLAY_MIN and not r.skip_reason and r.trade_return is not None]
     tests: list[dict] = []
@@ -179,6 +220,9 @@ def analyse(rows: Sequence, meta: dict[str, dict], closes: dict[tuple[str, objec
 
     # The early-move hypothesis (unproven until it passes): move since the catalyst by the decision close.
     add("move since catalyst (by the close)", move_band)
+    if filings:
+        # The live contradiction flag, tested before it may ever filter a signal (point in time).
+        add("SEC filing flag (30 days)", lambda r: filing_flag(r, filings))
     add("sector", lambda r: row_sector(r, meta))
     add("market cap", lambda r: cap_bucket(row_cap(r, meta, closes)))
     for h in (1, 3, 5, 10):

@@ -30,7 +30,7 @@ COLUMNS = [
     "in_rules", "in_naive_all_events", "in_rules_plus_model",
     "tfm_compared", "in_rules_without_timesfm", "in_timesfm_filter", "in_timesfm_feature",
     "cost_pct", "trade_return_pct", "spy_return_pct",
-    "sector", "market_cap_usd", "cap_bucket",
+    "sector", "market_cap_usd", "cap_bucket", "filing_flag_30d",
     "catalyst_price", "move_at_decision_pct", "move_at_fill_pct", "gap_at_fill_pct",
     *[f"hold{h}_pct" for h in (1, 3, 5, 10)], *[f"spy_hold{h}_pct" for h in (1, 3, 5, 10)],
 ]
@@ -134,7 +134,8 @@ def trade_rows(wf, fc: dict | None, row_ctx: dict | None = None) -> list[dict]:
             # full precision, so every statistic recomputed from the CSV matches the report exactly
             "trade_return_pct": "" if r.trade_return is None else float(r.trade_return),
             "spy_return_pct": "" if r.spy_return is None else float(r.spy_return),
-            **{k: (row_ctx or {}).get(i, {}).get(k, "") for k in ("sector", "market_cap_usd", "cap_bucket")},
+            **{k: (row_ctx or {}).get(i, {}).get(k, "") for k in ("sector", "market_cap_usd", "cap_bucket",
+                                                                    "filing_flag_30d")},
             **_move_cols(r),
             **{f"hold{h}_pct": r.labels.get(h, "") for h in (1, 3, 5, 10)},
             **{f"spy_hold{h}_pct": r.spy_labels.get(h, "") for h in (1, 3, 5, 10)},

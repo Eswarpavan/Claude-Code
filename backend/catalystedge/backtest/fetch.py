@@ -70,6 +70,34 @@ def run_meta(symbols: list[str]) -> None:
             print(f"{sym}: {ctx.http.redact(str(e))[:120]}", flush=True)
 
 
+def run_filings(symbols: list[str]) -> None:
+    """Every filing (form, dates, 8-K items) since START per company, for the offering/late-filing slice."""
+    import json
+
+    from catalystedge import jobs
+    from catalystedge.backtest.history import _submissions
+
+    ctx = jobs.build_context()
+    ua = ctx.settings.sec_user_agent
+    if not ua:
+        sys.exit("SEC_USER_AGENT not set")
+    universe = ctx.universe()
+    for sym in symbols:
+        path = cache_dir() / f"filings_{sym}.json"
+        c = universe.by_symbol.get(sym)
+        if path.exists() or c is None or not c.cik:
+            continue
+        try:
+            rows = _submissions(ctx.http, ua, c.cik, START)
+        except SourceError as e:
+            print(f"{sym}: {ctx.http.redact(str(e))[:120]}", flush=True)
+            continue
+        keep = [[r.get("form", ""), r.get("filingDate", ""), r.get("acceptanceDateTime", ""), r.get("items", "")]
+                for r in rows]
+        path.write_text(json.dumps(keep))
+        print(f"{sym}: {len(keep)} filings", flush=True)
+
+
 def run_prices(symbols: list[str]) -> None:
     from sqlalchemy import func, select
 
@@ -176,4 +204,5 @@ def run_fda(symbols: list[str]) -> None:
 if __name__ == "__main__":
     part = sys.argv[1] if len(sys.argv) > 1 else "sec"
     syms = sys.argv[2].split(",") if len(sys.argv) > 2 else list(DEFAULT_UNIVERSE)
-    {"sec": run_sec, "prices": run_prices, "earnings": run_earnings, "fda": run_fda, "meta": run_meta}[part](syms)
+    {"sec": run_sec, "prices": run_prices, "earnings": run_earnings, "fda": run_fda, "meta": run_meta,
+     "filings": run_filings}[part](syms)

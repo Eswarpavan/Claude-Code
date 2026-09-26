@@ -84,3 +84,30 @@ def test_closest_catalyst_and_trades_needed_are_reported():
     assert slices.trades_needed(0.5, 4.0, 0.05 / 12) > slices.trades_needed(1.0, 4.0, 0.05 / 12) > 0
     assert slices.trades_needed(-0.2, 4.0, 0.01) is None
 
+
+
+def test_filing_flag_is_point_in_time_and_uses_the_live_definition(tmp_path):
+    import json
+    from types import SimpleNamespace
+
+    (tmp_path / "filings_ACME.json").write_text(json.dumps([
+        ["424B2", "2025-10-09", "2025-10-09T15:00:00.000Z", ""],          # bank-style notes: not a share sale
+        ["424B5", "2025-10-10", "2025-10-10T21:30:00.000Z", ""],          # after the 10-10 close: not yet known
+    ]))
+    (tmp_path / "filings_WIDG.json").write_text(json.dumps([
+        ["8-K", "2025-10-01", "2025-10-01T12:00:00.000Z", "3.02,9.01"],   # private placement 9 days before
+    ]))
+    (tmp_path / "filings_OLDX.json").write_text(json.dumps([
+        ["NT 10-K", "2025-08-01", "2025-08-01T12:00:00.000Z", ""],        # more than 30 days before
+    ]))
+    filings = slices.load_filings(tmp_path)
+
+    def row(sym, day):
+        return SimpleNamespace(event=SimpleNamespace(symbol=sym), decision_date=day)
+
+    d = dt.date(2025, 10, 10)
+    assert slices.filing_flag(row("ACME", d), filings) == "no offering or late filing"
+    assert slices.filing_flag(row("ACME", d + dt.timedelta(days=3)), filings).startswith("offering or late filing")
+    assert slices.filing_flag(row("WIDG", d), filings).startswith("offering or late filing")
+    assert slices.filing_flag(row("OLDX", d), filings) == "no offering or late filing"
+    assert slices.filing_flag(row("NONE", d), filings) == "unknown"

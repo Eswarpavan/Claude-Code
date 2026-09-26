@@ -3,7 +3,7 @@
  "verdicts": {
   "fda_approval": {
    "status": "disabled",
-   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.510, 1.000 after correcting for 24 comparisons",
+   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.510, 1.000 after correcting for 26 comparisons",
    "n": 50,
    "p_value": 0.5100244987750613,
    "p_bonferroni": 1.0,
@@ -66,7 +66,7 @@
   },
   "earnings_beat": {
    "status": "disabled",
-   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.711, 1.000 after correcting for 24 comparisons",
+   "why": "failed the strict bar: did not beat the S&P 500 over the same days, not significant after correction; p = 0.711, 1.000 after correcting for 26 comparisons",
    "n": 173,
    "p_value": 0.7113644317784111,
    "p_bonferroni": 1.0,
@@ -87,7 +87,7 @@
   },
   "insider_buy_cluster": {
    "status": "disabled",
-   "why": "failed the strict bar: 32 trades (needs 50), not significant after correction; p = 0.240, 1.000 after correcting for 24 comparisons",
+   "why": "failed the strict bar: 32 trades (needs 50), not significant after correction; p = 0.240, 1.000 after correcting for 26 comparisons",
    "n": 32,
    "p_value": 0.23998800059997,
    "p_bonferroni": 1.0,
