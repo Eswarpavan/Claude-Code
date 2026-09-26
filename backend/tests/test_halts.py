@@ -41,3 +41,12 @@ def test_ingest_is_idempotent_and_flags_signals(db):
     assert "news pending" in note and "still halted" in note
     assert "limit up/limit down" in halt_note(halt_flags(db, "ACME", NOW))
     assert halt_flags(db, "ACME", NOW + dt.timedelta(days=5)) == []
+
+
+def test_a_web_page_instead_of_the_feed_is_an_error_not_zero_halts(db):
+    page = "<!DOCTYPE html><html><head><title>Page Not Available</title></head><body></body></html>"
+    clock = FrozenClock(NOW)
+    http = HttpClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, text=page)), kv=InMemoryKV(clock),
+                      clock=clock, sleep=lambda s: None)
+    rep = ingest_halts(db, http)
+    assert rep.status == "failed" and "web page, not an RSS/Atom feed" in rep.errors[0]

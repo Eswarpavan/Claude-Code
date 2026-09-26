@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from catalystedge.adapters.news.rss import parse_feed
+from catalystedge.adapters.news.rss import ensure_feed, parse_feed
 from catalystedge.core.http import HttpClient, SourceError
 from catalystedge.db.models import MacroRelease
 from catalystedge.events.common import IngestReport
@@ -25,7 +25,8 @@ from catalystedge.pipeline.window import cutoff
 ET = ZoneInfo("America/New_York")
 FED_FEEDS = {"press": "https://www.federalreserve.gov/feeds/press_all.xml",
              "speech": "https://www.federalreserve.gov/feeds/speeches.xml"}
-BLS_FEED = "https://www.bls.gov/feed/bls_latest.rss"
+# Per-release BLS feeds (checked live: 12 items each). The "bls_latest" feed only holds one summary item.
+BLS_FEEDS = {k: f"https://www.bls.gov/feed/{k}.rss" for k in ("cpi", "empsit", "ppi", "jolts")}
 FRED_DATES = "https://api.stlouisfed.org/fred/releases/dates"
 # FRED release ids of the market-moving U.S. releases.
 FRED_RELEASES = {10: "CPI", 50: "Jobs report (Employment Situation)", 53: "GDP",
@@ -43,10 +44,12 @@ def _store(session: Session, report: IngestReport, *, source: str, title: str, u
 
 def ingest_fed_bls(session: Session, http: HttpClient, now: dt.datetime) -> IngestReport:
     report = IngestReport("macro_feeds")
-    feeds = [("federal_reserve", kind, url) for kind, url in FED_FEEDS.items()] + [("bls", "release", BLS_FEED)]
+    feeds = [("federal_reserve", kind, url) for kind, url in FED_FEEDS.items()] + \
+        [("bls", f"release:{k}", url) for k, url in BLS_FEEDS.items()]
     for source, kind, url in feeds:
         try:
-            items = parse_feed(http.get_text(source, url, headers={"Accept": "application/rss+xml"}))
+            items = parse_feed(ensure_feed(http.get_text(source, url, headers={"Accept": "application/rss+xml"}),
+                                           source))
         except SourceError as e:
             report.status = "partial"
             report.errors.append(http.redact(str(e)))

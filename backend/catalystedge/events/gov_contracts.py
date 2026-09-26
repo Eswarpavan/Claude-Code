@@ -20,14 +20,15 @@ import xml.etree.ElementTree as ET
 from sqlalchemy.orm import Session
 
 from catalystedge.adapters.events.sec import _Text
-from catalystedge.adapters.news.rss import _date
+from catalystedge.adapters.news.rss import _date, ensure_feed
 from catalystedge.core.http import HttpClient, SourceError
 from catalystedge.db.models import Ticker
 from catalystedge.events.common import IngestReport, add_event
-from catalystedge.pipeline.ticker_link import Universe, clean_name, link_tickers
+from catalystedge.pipeline.ticker_link import Universe, clean_name
 from catalystedge.pipeline.window import cutoff
 
-DOD_FEED = "https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=400&Site=945&max=10"
+# The Defense Department site moved to war.gov (defense.gov redirects there, checked live 2026-09-26).
+DOD_FEED = "https://www.war.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=400&Site=945&max=10"
 USASPENDING = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
 SAM = "https://api.sam.gov/opportunities/v2/search"
 MIN_SHARE_OF_CAP = 0.01
@@ -75,7 +76,22 @@ def parse_dod_feed(xml_text: str) -> list[dict]:
 
 
 def company_symbol(name: str, universe: Universe) -> str | None:
-    return link_tickers(clean_name(name.upper()), {}, universe).primary
+    """Conservative contractor -> ticker link. The listed company's name must START the contractor's name, and a
+    one-word company name must BE the whole contractor name: "Duluth Travel Inc" is not Duluth Holdings (found
+    live), while "General Dynamics Information Technology" is General Dynamics. Some true links are missed
+    (e.g. "V2X Systems"), never invented."""
+    cleaned = clean_name(name.upper())
+    words = cleaned.lower().split()
+    for sym, start, _end, alias in universe.alias_matches(cleaned):
+        if start != 0:
+            continue
+        alias_words = alias.lower().split()
+        if len(alias_words) == 1 and words != alias_words:
+            continue
+        resolved = universe.resolve(sym)
+        if resolved:
+            return resolved
+    return None
 
 
 def _record(session: Session, universe: Universe, report: IngestReport, *, company: str, amount: float, url: str,
@@ -101,7 +117,8 @@ def _record(session: Session, universe: Universe, report: IngestReport, *, compa
 def ingest_dod(session: Session, http: HttpClient, universe: Universe, now: dt.datetime) -> IngestReport:
     report = IngestReport("dod_contracts")
     try:
-        awards = parse_dod_feed(http.get_text("dod_contracts", DOD_FEED, headers={"Accept": "application/rss+xml"}))
+        awards = parse_dod_feed(ensure_feed(http.get_text("dod_contracts", DOD_FEED,
+                                                          headers={"Accept": "application/rss+xml"}), "dod_contracts"))
     except SourceError as e:
         report.status, report.errors = "failed", [http.redact(str(e))]
         return report
@@ -122,8 +139,10 @@ def ingest_usaspending(session: Session, http: HttpClient, universe: Universe, n
     publication time is unknown and usually weeks after the award), so this never pretends to be early."""
     report = IngestReport("usaspending")
     body = {"filters": {"award_type_codes": ["A", "B", "C", "D"],
+                        # New awards only: an action-date search also returns old contracts that were merely
+                        # modified this week, with their lifetime totals (found live: a $43B lab contract).
                         "time_period": [{"start_date": (now.date() - dt.timedelta(days=days)).isoformat(),
-                                         "end_date": now.date().isoformat()}],
+                                         "end_date": now.date().isoformat(), "date_type": "new_awards_only"}],
                         "award_amounts": [{"lower_bound": MIN_AMOUNT}]},
             "fields": ["Award ID", "Recipient Name", "Award Amount", "Awarding Agency", "generated_internal_id"],
             "sort": "Award Amount", "order": "desc", "limit": 100, "page": 1}

@@ -18,7 +18,7 @@ import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import httpx
 
@@ -112,6 +112,11 @@ class HttpClient:
     def _get(self, source: str, url: str, params: Mapping[str, Any] | None, headers: Mapping[str, str] | None,
              ttl_s: int | None, *, as_json: bool, json_body: dict | None = None) -> Any:
         spec = self.specs[source]
+        # Keep a query string written in the URL itself: httpx replaces it whenever params are passed.
+        parts = urlsplit(url)
+        if parts.query:
+            params = {**dict(parse_qsl(parts.query, keep_blank_values=True)), **dict(params or {})}
+            url = urlunsplit(parts._replace(query=""))
         params = dict(params or {})
         for k in SECRET_PARAMS & params.keys():
             self.register_secret(str(params[k]))
@@ -136,7 +141,9 @@ class HttpClient:
                 if json_body is not None:
                     resp = self._client.post(url, json=json_body, headers=self._headers(headers))
                 else:
-                    resp = self._client.get(url, params=params, headers=self._headers(headers))
+                    # params=None, never {}: httpx drops a URL's own query string when given empty params
+                    # (".../rss.aspx?feed=tradehalts" became ".../rss.aspx").
+                    resp = self._client.get(url, params=params or None, headers=self._headers(headers))
             except httpx.HTTPError as e:
                 last_error = ProviderError(source, self.redact(f"network error: {type(e).__name__}: {e}"))
                 if not last_attempt:

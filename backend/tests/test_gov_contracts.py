@@ -83,3 +83,16 @@ def test_sam_needs_a_key_and_never_leaks_it(db):
     assert ingest_sam(db, client(lambda r: httpx.Response(500)), None, U, NOW).status == "disabled"
     rep = ingest_sam(db, client(lambda r: httpx.Response(403, text=f"bad key {r.url}")), "SAMKEY123", U, NOW)
     assert rep.status == "failed" and "SAMKEY123" not in " ".join(rep.errors)
+
+
+def test_contractor_linking_is_conservative():
+    """Found live: 'Duluth Travel Inc' (a travel agency) was linked to Duluth Holdings (a clothing retailer)."""
+    from catalystedge.events.gov_contracts import company_symbol
+    from catalystedge.pipeline.ticker_link import Universe
+
+    u = Universe.from_sec_company_tickers({
+        "0": {"cik_str": 1, "ticker": "DLTH", "title": "Duluth Holdings Inc."},
+        "1": {"cik_str": 2, "ticker": "GD", "title": "GENERAL DYNAMICS CORP"},
+    })
+    assert company_symbol("DULUTH TRAVEL INC", u) is None
+    assert company_symbol("GENERAL DYNAMICS INFORMATION TECHNOLOGY, INC.", u) == "GD"

@@ -374,3 +374,40 @@ def test_press_release_neutral_or_negative_wording(headline):
 
     [e] = classify(headline, [Mention("ADBE", "filing", 0.99, is_primary=True)], None)
     assert not e.is_signal_eligible, e.reasons
+
+
+# ----------------------------------------------------------------------------- law-firm solicitations (live 2026-09-26)
+
+LAW_FIRM_ADS = [
+    "HDFC Bank Limited Securities Fraud Class Action Result of Deceptive Practices: Investors Have Opportunity "
+    "to Lead",
+    "AEVEX Corp. Notice of October 20, 2026 Application Deadline for Class Action Lawsuit",
+    "Geron Investigation Initiated: Kahn Swick & Foti, LLC Investigates the Officers of Geron Corporation",
+    "Rosen Law Firm Encourages Putnam Investment Management, LLC Mutual Fund Investors to Inquire About a Class",
+    "HONA Stockholder Notice: Shareholder Rights Law Firm Robbins LLP Reminds Investors of the Lead Plaintiff "
+    "Deadline",
+    "Did Geron Corporation Insiders Breach their Fiduciary Duties to Shareholders?",
+    "Alibaba Deadline: BABA Investors Have Opportunity to Lead Alibaba Group Holding Limited Securities Lawsuit",
+    "BellRing Investor News: Rosen Law Firm Announces Investigation of Breaches of Fiduciary Duty",
+]
+REAL_LEGAL_NEWS = [
+    "Tesla agrees to settle shareholder class action for $50 million",
+    "Court dismisses securities class action against Acme Robotics",
+    "Acme Robotics wins patent lawsuit against rival",
+]
+
+
+@pytest.mark.parametrize("headline", LAW_FIRM_ADS)
+def test_law_firm_solicitations_are_not_events(headline):
+    from catalystedge.pipeline.noise import non_event_reason
+
+    v = non_event_reason(headline)
+    assert v is not None and v.reason == "law_firm_solicitation"
+
+
+@pytest.mark.parametrize("headline", REAL_LEGAL_NEWS)
+def test_real_legal_news_is_kept(headline):
+    from catalystedge.pipeline.noise import non_event_reason
+
+    v = non_event_reason(headline)
+    assert v is None or v.reason != "law_firm_solicitation"

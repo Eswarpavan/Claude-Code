@@ -71,6 +71,16 @@ def parse_feed(xml_text: str) -> list[FeedItem]:
     return [i for i in out if i.title and i.link and i.published]
 
 
+def ensure_feed(text: str, source: str) -> str:
+    """Refuse a web page served where a feed was expected (found live: an error page parsed as 'no items')."""
+    head = text[:2000].lstrip("\ufeff \r\n\t").lower()
+    if "<rss" not in head and "<feed" not in head and "<rdf:rdf" not in head:
+        from catalystedge.core.http import ProviderError
+
+        raise ProviderError(source, "returned a web page, not an RSS/Atom feed (the feed URL may have changed)")
+    return text
+
+
 def _tickers(text: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(m.upper() for m in TICKER_TAG.findall(text)))
 
@@ -84,7 +94,9 @@ class RssNews(NewsAdapter):
         self.disabled_reason = None if enabled else "switched off in settings"
 
     def _fetch(self, *, since: dt.datetime, now: dt.datetime, symbols: list[str]) -> list[RawNews]:
-        text = self.http.get_text(self.source_key, self.url, headers={"Accept": "application/rss+xml, application/xml"})
+        text = ensure_feed(self.http.get_text(self.source_key, self.url,
+                                              headers={"Accept": "application/rss+xml, application/xml"}),
+                           self.source_key)
         out = []
         for i in parse_feed(text):
             if since <= i.published <= now:

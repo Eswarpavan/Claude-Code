@@ -150,3 +150,12 @@ def test_hourly_quota_429_stops_immediately_and_blocks_the_rest_of_the_hour():
     with pytest.raises(BudgetExhausted):
         client.get_json("t", "https://api.example/z")           # a new hour is tried again (still 429 here)
     assert len(calls) == 2
+
+
+def test_query_string_in_the_url_is_kept():
+    """Regression (found live): feeds like rss.aspx?feed=tradehalts lost their query string."""
+    client, calls, _ = make(ok)
+    client.get_json("t", "https://api.example/rss.aspx?feed=tradehalts")
+    client.get_json("t", "https://api.example/x?a=1", {"b": 2})
+    assert str(calls[0].url) == "https://api.example/rss.aspx?feed=tradehalts"
+    assert "a=1" in str(calls[1].url) and "b=2" in str(calls[1].url)

@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from catalystedge.adapters.news.rss import ensure_feed
 from catalystedge.core.http import HttpClient, SourceError
 from catalystedge.db.models import TradingHalt
 from catalystedge.events.common import IngestReport
@@ -66,7 +67,8 @@ def parse_halts(xml_text: str) -> list[dict]:
 def ingest_halts(session: Session, http: HttpClient) -> IngestReport:
     report = IngestReport("nasdaq_halts")
     try:
-        rows = parse_halts(http.get_text("nasdaq_halts", FEED, headers={"Accept": "application/rss+xml"}))
+        rows = parse_halts(ensure_feed(http.get_text("nasdaq_halts", FEED, headers={"Accept": "application/rss+xml"}),
+                                       "nasdaq_halts"))
     except SourceError as e:
         report.status, report.errors = "failed", [http.redact(str(e))]
         return report

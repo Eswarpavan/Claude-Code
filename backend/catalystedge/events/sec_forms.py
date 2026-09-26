@@ -29,7 +29,7 @@ from catalystedge.pipeline.ticker_link import Universe
 from catalystedge.pipeline.window import cutoff
 
 # Feed "type" is a prefix match (checked live: "S-3" also returns S-3/A and S-3ASR).
-FEED_PREFIXES = ("SCHEDULE 13", "SC 13", "S-3", "424B", "10-Q", "10-K", "NT 10", "SC TO", "SC 14D9")
+FEED_PREFIXES = ("SCHEDULE 13", "SC 13", "S-1", "S-3", "424B", "10-Q", "10-K", "NT 10", "SC TO", "SC 14D9")
 MAX_PAGES = 6
 CLASSIFIER = "sec-forms-v1"
 
@@ -42,10 +42,20 @@ class FormKind:
     text: str
 
 
+EQUITY_TAKEDOWN = ("424B1", "424B4", "424B5", "424B7")
+
+
 def classify_form(form: str) -> FormKind | None:
     f = form.upper()
-    if f.startswith(("424B", "S-3")):
-        return FormKind("dilution", "negative", "shelf registration or prospectus for selling shares (dilution risk)")
+    # Found live: 424B2 is almost always a bank's structured-note / debt prospectus (Citigroup, RBC, TD, ...),
+    # not a share sale, and an S-3 shelf only registers POSSIBLE future sales. Only actual share-sale
+    # prospectuses and S-1/F-1 offerings count as dilution.
+    if f.startswith(EQUITY_TAKEDOWN) or f.startswith(("S-1", "F-1")):
+        return FormKind("dilution", "negative", "prospectus or registration for selling shares (dilution risk)")
+    if f.startswith("424B2"):
+        return FormKind("debt_notes", "neutral", "prospectus for notes/debt (not a share sale)")
+    if f.startswith(("S-3", "F-3", "424B3")):
+        return FormKind("shelf", "neutral", "shelf or resale registration (possible future share sales)")
     if f.startswith("NT 10"):
         return FormKind("late_filing", "negative", "notice of late annual/quarterly report")
     if f.startswith(("SCHEDULE 13D", "SC 13D")):

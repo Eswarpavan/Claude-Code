@@ -63,8 +63,13 @@ def ingest_short_interest(session: Session, http: HttpClient, symbols: Sequence[
         return report
     headers = {"Authorization": f"Bearer {tok}"} if tok else {}
     for sym in sorted(set(symbols))[:25]:
+        # FINRA refuses sortFields unless every partition key is fixed (found live): filter the last ~45 days by
+        # settlement date instead and keep the newest row here.
         body = {"compareFilters": [{"compareType": "equal", "fieldName": "symbolCode", "fieldValue": sym}],
-                "sortFields": ["-settlementDate"], "limit": 2}
+                "dateRangeFilters": [{"fieldName": "settlementDate",
+                                      "startDate": (dt.date.today() - dt.timedelta(days=45)).isoformat(),
+                                      "endDate": dt.date.today().isoformat()}],
+                "limit": 10}
         try:
             rows = parse_rows(http.post_json("finra", URL, body, headers=headers))
         except ProviderError as e:

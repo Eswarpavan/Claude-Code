@@ -4,6 +4,7 @@ Runs after dedupe and before classification. A filtered headline is still
 stored as news, but it never produces an event, so it can never become a
 signal. Filters, in the order they are checked:
 
+  law_firm_solicitation   "XYZ Investors Have Opportunity to Lead ... Class Action", "Rosen Law Firm Encourages ..."
   listicle                "2 Monster Dividend Stocks to ...", "Top 5 ...", "3 Reasons ..."
   stock_picking_advice    "stocks to buy", "Is X a Buy?", "I'd still buy", "32% overpriced", "buy signal"
   long_range_speculation  "Where Will X Be in 5 Years?", "Prediction: ...", "could be worth ... in a decade"
@@ -22,11 +23,31 @@ from dataclasses import dataclass
 
 from catalystedge.pipeline.classify import has_catalyst_phrase
 
-FILTER_VERSION = "noise-v1"
+FILTER_VERSION = "noise-v2"
 
 _NUM = r"(?:\d+|two|three|four|five|six|seven|eight|nine|ten|twelve|fifteen|twenty)"
 
+_LAW_FIRMS = (r"rosen\s+law|pomerantz|robbins\s+(?:llp|geller)|levi\s*&\s*korsinsky|kahn\s+swick|bragar\s+eagel|"
+              r"glancy\s+prongay|faruqi|bernstein\s+liebhard|schall\s+law|gross\s+law|portnoy\s+law|kessler\s+topaz|"
+              r"hagens\s+berman|bronstein,?\s+gewirtz|johnson\s+fistel|block\s*&\s*leviton|rigrodsky|halper\s+sadeh|"
+              r"ademi|monteverde|wolf\s+haldenstein|brodsky\s*&\s*smith|holzer\s*&\s*holzer|lowey\s+dannenberg|"
+              r"howard\s+g\.?\s+smith|frank\s+r\.?\s+cruz|thornton\s+law|kirby\s+mcinerney|scott\+scott")
+
 ALWAYS: dict[str, list[str]] = {
+    # Shareholder-lawsuit advertising by law firms (found live on the newswires and aggregators): recruiting
+    # plaintiffs about an old stock drop is not a new company event. Real legal news ("settles class action for
+    # $50 million", "court dismisses suit") does not match.
+    "law_firm_solicitation": [
+        rf"\b(?:{_LAW_FIRMS})\b",
+        r"\b(?:investors?|shareholders?|stockholders?)\s+(?:have|has)\s+(?:an\s+)?opportunity\s+to\s+lead\b",
+        r"\b(?:application|lead[- ]plaintiff)\s+deadline\b|\bdeadline\s+(?:reminder|alert)\b",
+        r"\b(?:investors?|shareholders?|stockholders?)\s+(?:who\s+(?:lost|purchased|bought|acquired)|with\s+losses|"
+        r"are\s+(?:encouraged|reminded|invited))\b",
+        r"\b(?:shareholder|stockholder|investor)\s+(?:alert|notice|news|rights\s+law\s+firm)\b",
+        r"\binsiders\s+breach\s+their\s+fiduciary\s+duties\b",
+        r"\binvestigation\s+(?:initiated|announced|on\s+behalf\s+of)\b|\binvestigates\s+the\s+officers\b",
+        r"\bencourages?\s+.{0,80}\binvestors?\s+to\s+(?:inquire|contact|join)\b",
+    ],
     "listicle": [
         rf"^{_NUM}\s+(?:[\w'’-]+\s+){{0,5}}(?:stocks?|shares|reasons?|things|ways|picks|companies|charts?|"
         r"etfs?|funds|names|winners|losers|lessons|mistakes|signs|moves|features)\b",

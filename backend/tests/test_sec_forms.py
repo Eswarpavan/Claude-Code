@@ -28,7 +28,8 @@ def test_parser_accepts_spaced_form_names_and_two_word_roles():
                    ("NT 10-K", "Filer", "0003333333"), ("SC TO-T", "Subject", "0002222222")]
 
 
-@pytest.mark.parametrize("form,kind", [("424B5", "dilution"), ("S-3ASR", "dilution"), ("NT 10-Q", "late_filing"),
+@pytest.mark.parametrize("form,kind", [("424B5", "dilution"), ("S-1", "dilution"), ("S-3ASR", "shelf"),
+                                       ("424B2", "debt_notes"), ("NT 10-Q", "late_filing"),
                                        ("SCHEDULE 13D", "activist_stake"), ("SC 13G/A", "passive_stake"),
                                        ("SC TO-T", "tender_offer"), ("SC TO-I", "issuer_tender"),
                                        ("10-K", "periodic_report"), ("8-K", None)])
