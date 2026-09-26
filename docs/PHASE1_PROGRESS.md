@@ -32,8 +32,23 @@ committed and pushed on `claude/adoring-dirac-ohiyp8`.
 | Macro context: Fed + BLS RSS, FRED release calendar (key) | `events/macro.py`, Signals page card | no: hosts blocked |
 | Source Health connector states + manual-only list | `connector_status.py`, Sources page | yes |
 
+### Live verification of the connectors (2026-09-26)
+| Connector | Result against real data |
+|---|---|
+| PR Newswire, Business Wire, GlobeNewswire | work (20-21 items each); ticker tags correct. Business Wire's 404 was an HttpClient bug (query string dropped), fixed |
+| FDA press releases | works (20 items; headlines rarely name a company, as expected) |
+| Nasdaq halts | works after the same query-string fix (19 real halts); a web page instead of RSS is now an error, not "0 halts" |
+| USAspending | works; switched to new awards only (the date search returned old contracts with lifetime totals); contractor linking made conservative after "Duluth Travel" was linked to Duluth Holdings |
+| FINRA short interest | works without credentials after replacing the refused sort with a settlement-date filter |
+| Federal Reserve, BLS | work; BLS switched to per-release feeds (CPI, jobs, PPI, JOLTS) |
+| Defense Department contracts | moved to www.war.gov: host not allowed yet |
+| SAM.gov, FRED | AUTH REQUIRED until keys are set (as intended) |
+Also found and fixed: law-firm class-action ads were becoming negative events (non-event filter), and 424B2
+bank notes / S-3 shelves were flagged as dilution. SEC filing flag backtested as a slice: only 10 flagged
+rules trades (needs 50), so it stays a flag.
+
 ### Waiting on the user
-- Allow these hosts in the cloud environment's network settings to live-check the new connectors here:
+- Allow `www.war.gov` (the Defense Department feed moved there). Earlier list, now allowed:
   `www.globenewswire.com`, `www.prnewswire.com`, `feed.businesswire.com`, `www.nasdaqtrader.com`,
   `www.defense.gov`, `api.usaspending.gov`, `api.sam.gov`, `www.fda.gov`, `api.finra.org`,
   `ews.fip.finra.org`, `www.federalreserve.gov`, `www.bls.gov`, `api.stlouisfed.org`. On your own computer
