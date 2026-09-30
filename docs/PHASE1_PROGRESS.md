@@ -1,22 +1,97 @@
 # CatalystEdge Phase 1: progress and next steps
 
-*Last updated 2026-09-24. Read this first when continuing in a new session.*
+*Last updated 2026-09-30. The "State of the project" section below is the current summary.*
 
-## Current status (session 018K, updated 2026-09-25 23:00 UTC)
+## State of the project (2026-09-30, session 018K): read this first
 
-Tests: 500+ backend (Postgres 16) and 20 frontend passing; CI green on the latest commits. Everything is
-committed and pushed on `claude/adoring-dirac-ohiyp8`.
+**In one paragraph:** CatalystEdge is finished for Phase 1 and paused (no new features until the user
+asks). It collects positive company news from official sources, turns it into swing-trade *ideas*, and
+tracks them in a $100 paper account. It does not trade real money. The honest backtest shows **no
+catalyst beats simply holding the S&P 500** after costs, so every catalyst is OFF or unproven and
+confidence is UNCALIBRATED. The app is safe to run locally or deploy; it is a research and paper-trading
+tool, not a proven edge.
+
+### Readiness checks (2026-09-30, head `0a63f61` before this doc edit)
+| Check | Result |
+|---|---|
+| Backend tests (Postgres 16) | 521 passed |
+| Backend lint (`ruff check catalystedge tests`, as in CI) | clean |
+| Frontend lint, typecheck, tests (20), production build | all pass |
+| Database migrations 0001 -> 0004 on a fresh empty database | pass |
+| GitHub CI on the latest commit | green |
+| Key scan (`scripts/check_secrets.py`: tracked files + full git history) | no keys found; `.env` is git-ignored |
+| Docker Compose | not runnable in this sandbox (no Docker daemon); verified in earlier sessions; no new Python packages since |
+
+### Safe defaults (what protects you)
+- **Auto-buy OFF** (`AUTO_BUY=false`); even if turned on it waits for 30 closed paper trades.
+- Paper money only; fills at the **next day's open**, never the same day.
+- `APP_PASSWORD` is **required** by the cloud profile (the deploy refuses to start without it); locally,
+  without a password the API trusts only this computer.
+- Keys load only from environment variables / `.env` (never committed); all output and errors redact keys.
+- Official APIs and feeds only: no scraping, CAPTCHA bypass, proxy rotation or browser impersonation.
+- Local AI explanations (Ollama) are OFF by default and can only add text; they never change scores.
+
+### What's built
+News + filings in, signals out, paper account, dashboard:
+- **Sources:** SEC EDGAR (8-K, Form 4, 13D/13G, S-1/S-3, 424B, 10-Q/10-K, late filings, tender offers),
+  newswires (PR Newswire, Business Wire, GlobeNewswire), FDA press releases, Nasdaq trading halts,
+  government contracts (DoD, USAspending, SAM.gov), FINRA short interest, Fed / BLS / FRED macro
+  calendar, Tiingo prices. Source Health page shows each one's state.
+- **Pipeline:** ticker linking, duplicate merging (primary source wins), non-event filter (incl.
+  law-firm ads), sentiment (FinBERT or word list), catalyst rules, verification status.
+- **Signals:** Top signals page with per-catalyst historical evidence; flags for filings, halts, move
+  since the news, short interest; next-open re-check that skips gap-ups (>5%) and over-extended moves.
+- **Paper account:** $100, costs included, outcomes vs the S&P 500 on the same days.
+- **Backtest:** walk-forward, out-of-sample, raw per-trade export (`docs/backtest/`, `docs/BACKTEST_RAW.md`).
+- **Ops:** scheduler with heartbeat, email alerts (Resend/SMTP) with a test button, `verify-deployment`.
+
+### Verified live against real data
+SEC filings, PR Newswire, Business Wire, GlobeNewswire, FDA press, Nasdaq halts, USAspending, FINRA
+(no credentials needed), Federal Reserve, BLS, Tiingo, cross-process SEC rate limit. Latest news run:
+24 primary and 899 unverified events. **Not yet verified:** DoD contracts (host `www.war.gov` not
+allowed here), FRED and SAM.gov (need keys; show AUTH REQUIRED as intended).
+
+### Off or unproven (and why)
+| Item | Status | Evidence |
+|---|---|---|
+| Insider buying, earnings beats, FDA approvals | **OFF** | tested on 30+ trades, failed the bar (insider: 32 trades, p = 0.24) |
+| All other catalysts | unproven | fewer than 30 trades; live test starts at 50 signals each |
+| Confidence score | UNCALIBRATED, not used to rank | 80+ won 50.0% vs 54.2% for 65-80 |
+| LightGBM model, TimesFM filter | off | did not beat the plain rules (see backtest table below) |
+| Filing flag, halts, verification, market check, short interest | flags only | untested (filing slice had only 10 trades; needs 50) |
+Backtest headline (274 rules trades): 51.8% wins, +0.47% per trade, Sharpe 0.42, vs S&P 500 on the same
+days +0.44%, Sharpe 1.03. No slice passes 26 Bonferroni-corrected comparisons.
+
+### Outstanding (nothing blocks running the app)
+1. User: allow `www.war.gov` (DoD feed) in this sandbox; not needed on your own computer or the VM.
+2. User: add `FRED_API_KEY` (free). `SAM_GOV_API_KEY` and FINRA credentials are optional; add only if
+   Source Health says AUTH REQUIRED and you want those sources.
+3. Later, once enough live outcomes exist: test whether verified catalysts beat unverified ones, on the
+   same strict bar (added to the Bonferroni count). Until then unverified ones stay visible with a flag.
+4. Let the paper account run; catalysts can only turn ON by passing the strict bar on live data.
+
+### How to run it
+- **Windows, locally:** `docs/WINDOWS_LOCAL.md` (Docker Desktop, copy `.env.example` to `.env`, add
+  `TIINGO_API_KEY` and `SEC_USER_AGENT`, `docker compose up`).
+- **Online (free tier):** `docs/DEPLOY_FREE.md` (Oracle VM + Neon + Upstash + Vercel; set `APP_PASSWORD`;
+  then run `verify-deployment`).
+- Tests: see "Running the tests" at the end of this file.
 
 ### Decisions in force
 - **Strict bar** for live catalysts: ON only with >= 50 trades that beat the S&P 500 over the same days
   (win rate, average return, Sharpe) and p < 0.05 after Bonferroni. Tested on >= 30 trades and failed = OFF;
-  fewer = unproven. Today: insider buying, earnings beats, FDA approvals OFF; the rest unproven; none ON.
-- Confidence stays UNCALIBRATED and does **not** rank trades (80+ did worse than 65-80); auto-buy OFF.
+  fewer = unproven.
+- Confidence stays UNCALIBRATED and does **not** rank trades; auto-buy OFF.
 - Nothing untested changes live scores: filing contradictions, halts, verification status, move since the
   catalyst and short interest are all **flags only**.
+- Unverified (aggregator-only) catalysts stay visible with the flag (user decision, 2026-09-26).
+- No new models to hunt for an edge; data-quality models only when proposed with their Bonferroni cost
+  and approved. Don't lower the bar or search rule combinations.
 - No scraping: official APIs/feeds only; the unofficial Yahoo price endpoint was removed.
 
-### Built in this round
+## History (older status notes, kept for the record)
+
+### Built in the connectors round (2026-09-25)
 | Part | Where | Live-checked here? |
 |---|---|---|
 | Strict bar, shipped baseline verdicts | `backtest/slices.py`, `signals/catalyst_status.py`, `signals/baseline_verdicts.json` | yes |
@@ -47,7 +122,7 @@ Also found and fixed: law-firm class-action ads were becoming negative events (n
 bank notes / S-3 shelves were flagged as dilution. SEC filing flag backtested as a slice: only 10 flagged
 rules trades (needs 50), so it stays a flag.
 
-### Waiting on the user
+### Waiting on the user (as of 2026-09-25; both decisions since made, see the top section)
 - Allow `www.war.gov` (the Defense Department feed moved there). Earlier list, now allowed:
   `www.globenewswire.com`, `www.prnewswire.com`, `feed.businesswire.com`, `www.nasdaqtrader.com`,
   `www.defense.gov`, `api.usaspending.gov`, `api.sam.gov`, `www.fda.gov`, `api.finra.org`,
