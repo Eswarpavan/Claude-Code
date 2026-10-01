@@ -118,7 +118,7 @@ HEARTBEAT_KEY = "scheduler:heartbeat"
 
 
 def record_heartbeat(kv: KV, task: str, now: dt.datetime, ok: bool = True) -> None:
-    """Written by the worker after every scheduled task (shared Redis/Upstash), read by /health."""
+    """Written by the worker after every scheduled task (shared Redis), read by /health."""
     kv.set(HEARTBEAT_KEY, json.dumps({"task": task, "at": now.isoformat(), "ok": ok}).encode(), 7 * 24 * 3600)
 
 

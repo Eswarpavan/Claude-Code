@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     database_url: str = Field(
         "postgresql+psycopg://catalystedge:catalystedge@localhost:5432/catalystedge", alias="DATABASE_URL"
     )
-    redis_url: str | None = Field(None, alias="REDIS_URL")               # cache, budgets, locks (Upstash in cloud)
+    redis_url: str | None = Field(None, alias="REDIS_URL")               # cache, budgets, locks (VM's Redis in cloud)
     celery_broker_url: str | None = Field(None, alias="CELERY_BROKER_URL")  # task queue; defaults to REDIS_URL
 
     # Provider keys (all optional; a missing key disables that adapter).

@@ -16,8 +16,8 @@ from celery.schedules import crontab
 from catalystedge.config import get_settings
 
 settings = get_settings()
-# The broker is kept separate from the cache so the cloud profile can use a local Redis for the queue
-# (broker polling would use up Upstash's free command quota) and Upstash for shared state.
+# The broker URL is separate from the cache URL; the cloud profile puts both on the VM's Redis (db 0 and 1).
+# Upstash was dropped: shared state alone measured ~775k commands a month, above its free 500k.
 broker = settings.celery_broker_url or settings.redis_url or "redis://localhost:6379/0"
 app = Celery("catalystedge", broker=broker, backend=None)
 app.conf.update(

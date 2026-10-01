@@ -70,7 +70,7 @@ def test_sec_sources_use_shared_slots_others_do_not(tmp_path):
 
 
 def test_redis_slots_share_spacing(tmp_path):
-    """Same guarantee through Redis (local Docker's redis, Upstash in the cloud)."""
+    """Same guarantee through Redis (local Docker's redis, the VM's redis in the cloud)."""
     import shutil
     import socket
     import subprocess

@@ -1,7 +1,7 @@
 """Small key-value store used for request budgets, TTL cache and circuit breakers.
 
-InMemoryKV is used in tests and single-process runs; RedisKV (local Redis or
-Upstash in the cloud profile) shares state between the API and the worker.
+InMemoryKV is used in tests and single-process runs; RedisKV (local Redis, or the
+VM's Redis in the cloud profile) shares state between the API and the worker.
 """
 
 from __future__ import annotations

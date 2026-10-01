@@ -1,10 +1,11 @@
-# CatalystEdge online for $0 (Oracle + Neon + Upstash + Vercel)
+# CatalystEdge online for $0 (Oracle + Neon + Vercel)
 
 This puts CatalystEdge on the internet so the scheduler, paper trades and email alerts keep
 running **while your own computer is off**. Everything here uses free plans.
 
 > To run it on your own Windows computer instead, see [WINDOWS_LOCAL.md](WINDOWS_LOCAL.md).
-> Free-plan limits were checked on 2026-09-24. Websites change their buttons from time to time:
+> Free-plan limits were checked on 2026-09-24; the guide was re-checked against the app on 2026-10-01
+> (Upstash is no longer needed: see "Free-tier budget notes"). Websites change their buttons from time to time:
 > if a button has a slightly different name, look for the closest match.
 
 **Time needed:** about 1.5–2 hours the first time, mostly waiting.
@@ -15,30 +16,37 @@ paste into the black server window).
 
 | Service | What it does for CatalystEdge | Free limit that matters |
 |---|---|---|
-| **Oracle Cloud** (a rented computer, the "VM") | runs the API, the scheduler (Celery beat), the worker and HTTPS | Always Free: 2 CPUs + 12 GB memory (ARM) |
+| **Oracle Cloud** (a rented computer, the "VM") | runs the API, the scheduler (Celery beat), the worker, its own Redis (shared memory for rate limits and the scheduler heartbeat) and HTTPS | Always Free: 2 CPUs + 12 GB memory (ARM) |
 | **Neon** | the database (signals, paper account, outcomes) | 0.5 GB storage, 100 compute-hours a month |
-| **Upstash** | shared memory for rate limits, the refresh cooldown and the scheduler heartbeat | 500,000 commands a month |
 | **Vercel** | the dashboard website | free "Hobby" plan, personal use only |
 | **DuckDNS** | a free web address for the VM, so it can have HTTPS | free |
 | **Resend** | sends the alert emails | 3,000 a month, 100 a day |
 
 The database lives on Neon, not on the VM, so if the VM is ever rebuilt your history is safe.
 The cloud schedule polls news every 15 minutes in market hours (every 5 minutes locally), which keeps
-Neon under its free 100 compute-hours: roughly 45–60 are used per month.
+Neon under its free 100 compute-hours: roughly 55–65 are used per month (see "Free-tier budget notes").
 
 ## What you must sign up for yourself
 
-I can't create accounts for you. You need these six (all free; Oracle asks for a card to prove
+I can't create accounts for you. You need these five (all free; Oracle asks for a card to prove
 you're a real person but does not charge for Always Free resources):
 
-1. Oracle Cloud: https://www.oracle.com/cloud/free/
-2. Neon: https://neon.com
-3. Upstash: https://upstash.com
-4. Vercel: https://vercel.com (sign in with your GitHub account)
-5. DuckDNS: https://www.duckdns.org (sign in with GitHub or Google)
-6. Resend: https://resend.com (for the emails)
+1. Neon: https://neon.com
+2. Resend: https://resend.com (for the emails)
+3. Oracle Cloud: https://www.oracle.com/cloud/free/
+4. DuckDNS: https://www.duckdns.org (sign in with GitHub or Google)
+5. Vercel: https://vercel.com (sign in with your GitHub account)
 
-You also need your existing Finnhub, Tiingo and SEC values. Keep a Notepad file open while you go,
+(Earlier versions of this guide also used Upstash. It is no longer needed: skip it.)
+
+**Have ready before you start:** a GitHub login (for Vercel, and optionally DuckDNS/Neon), the email
+address where you want alerts, a payment card (Oracle's identity check only), Windows PowerShell (built
+in), and your existing values: `FINNHUB_API_KEY`, `TIINGO_API_KEY` and `SEC_USER_AGENT` (your name and
+email). Optional free keys, any time later: `FRED_API_KEY` (economic release calendar),
+`SAM_GOV_API_KEY` (SAM.gov contract notices). Without them those two sources show AUTH REQUIRED on the
+Sources page; everything else works.
+
+Keep a Notepad file open while you go,
 **on your own computer only**, and paste each value into it as you collect it. Delete that file
 when you finish.
 
@@ -68,18 +76,7 @@ when you finish.
 **Problem?** If you don't see a Connect button, open the project, then **Dashboard → Connection
 details**.
 
-## Step 2: Upstash (shared memory), about 3 minutes
-
-1. Go to https://upstash.com → **Sign up** → open the **Console**.
-2. Click **Redis** → **Create database**.
-   - Name: `catalystedge`
-   - Primary region: **US-East-1 (N. Virginia)**
-   - Plan: **Free**
-   - Click **Create**.
-3. On the database page, find the **Connect** section, choose the **TCP / redis-cli** tab and copy the
-   address that starts with `rediss://default:` (two **s**'s). In Notepad: `REDIS_URL=` then paste.
-
-## Step 3: Resend (emails), about 3 minutes
+## Step 2: Resend (emails), about 3 minutes
 
 1. Go to https://resend.com → **Sign up** with the email address where you want alerts.
 2. Left menu **API Keys** → **Create API Key** → name `catalystedge`, permission **Sending access** →
@@ -89,9 +86,9 @@ details**.
    Without your own domain, Resend only delivers to that address, which is all you need.
    Leave `EMAIL_FROM` empty; the app then uses Resend's test sender.
 
-## Step 4: Oracle Cloud (the always-on computer), about 30–45 minutes
+## Step 3: Oracle Cloud (the always-on computer), about 30–45 minutes
 
-### 4a. Create the account
+### 3a. Create the account
 1. Go to https://www.oracle.com/cloud/free/ → **Start for free**.
 2. Fill in the form. For **Home Region**, choose **US East (Ashburn)**. This cannot be changed later.
 3. Add the card for verification and finish. Account setup can take up to 15 minutes; wait for
@@ -102,7 +99,7 @@ details**.
    capacity" errors rarer. Then set a safety alarm: ☰ → **Billing & Cost Management** → **Budgets** →
    **Create Budget**, amount `1`, alert at 100%, your email.
 
-### 4b. Create the server
+### 3b. Create the server
 1. ☰ menu → **Compute** → **Instances** → **Create instance**.
 2. Name: `catalystedge`.
 3. **Image and shape** → **Edit**:
@@ -119,9 +116,9 @@ details**.
 
 **Problem: "Out of capacity for shape VM.Standard.A1.Flex".** Oracle has run out of free ARM
 machines in that zone. Try a different **Availability domain** (AD-2 or AD-3) in the Placement
-section, or try again in a few hours. Upgrading to Pay As You Go (4a step 4) usually helps.
+section, or try again in a few hours. Upgrading to Pay As You Go (3a step 4) usually helps.
 
-### 4c. Open the web ports (80 and 443)
+### 3c. Open the web ports (80 and 443)
 1. On the instance page, click the **subnet** link (under Primary VNIC, or on the **Networking** tab).
 2. Click the **Security List** named "Default Security List for …".
 3. **Add Ingress Rules**:
@@ -130,14 +127,14 @@ section, or try again in a few hours. Upgrading to Pay As You Go (4a step 4) usu
    - Destination Port Range: `80,443`
    - Click **Add Ingress Rules**.
 
-### 4d. Give the server a web address (DuckDNS)
+### 3d. Give the server a web address (DuckDNS)
 1. Go to https://www.duckdns.org and sign in.
 2. Type a name in **sub domain** (for example `catalystedge-yourname`) → **add domain**.
 3. In the **current ip** box next to it, paste your server's Public IP → **update ip**.
 4. Your address is now `catalystedge-yourname.duckdns.org`. In Notepad:
    `PUBLIC_HOSTNAME=catalystedge-yourname.duckdns.org`.
 
-### 4e. Connect to the server from Windows
+### 3e. Connect to the server from Windows
 1. Press the Windows key, type **PowerShell**, and open **Windows PowerShell**.
 2. Type this, replacing the file name and IP with yours, then press Enter:
    ```powershell
@@ -155,7 +152,7 @@ icacls $HOME\Downloads\ssh-key-2026-09-25.key /remove "Authenticated Users" "BUI
 ```
 **Problem: "Connection timed out".** Check the IP address, and that the instance says Running.
 
-### 4f. Install Docker and download CatalystEdge (on the server)
+### 3f. Install Docker and download CatalystEdge (on the server)
 Paste these lines one at a time and press Enter after each. The first can take a few minutes.
 ```bash
 sudo apt-get update && sudo apt-get install -y iptables-persistent git
@@ -170,12 +167,12 @@ curl -fsSL https://get.docker.com | sudo sh && sudo usermod -aG docker ubuntu
 ```bash
 exit
 ```
-Connect again with the same `ssh …` line from 4e (this makes the Docker permission take effect), then:
+Connect again with the same `ssh …` line from 3e (this makes the Docker permission take effect), then:
 ```bash
 git clone -b claude/adoring-dirac-ohiyp8 https://github.com/Eswarpavan/Claude-Code.git catalystedge && cd catalystedge
 ```
 
-### 4g. Create the settings file on the server
+### 3g. Create the settings file on the server
 1. Make a long random password-signing secret and copy what it prints into Notepad as `APP_SECRET=`:
    ```bash
    openssl rand -hex 32
@@ -195,19 +192,19 @@ git clone -b claude/adoring-dirac-ohiyp8 https://github.com/Eswarpavan/Claude-Co
    | `FINNHUB_API_KEY=` | your Finnhub key |
    | `TIINGO_API_KEY=` | your Tiingo key |
    | `SEC_USER_AGENT=` | your name and email, e.g. `Jane Doe jane@example.com` |
-   | `ALERT_EMAIL_TO=` | your email (step 3) |
-   | `RESEND_API_KEY=` | the `re_…` key (step 3) |
+   | `ALERT_EMAIL_TO=` | your email (step 2) |
+   | `RESEND_API_KEY=` | the `re_…` key (step 2) |
    | `APP_PASSWORD=` | your dashboard password |
    | `APP_SECRET=` | the random secret |
    | `PUBLIC_HOSTNAME=` | `catalystedge-yourname.duckdns.org` |
    | `DATABASE_URL=` | the Neon **pooled** address (step 1) |
    | `DATABASE_URL_DIRECT=` | the Neon **direct** address (step 1) |
-   | `REDIS_URL=` | the Upstash `rediss://…` address (step 2) |
-   | `CORS_ORIGINS=` | leave it for now; you'll fill it in step 6 |
+      | `FRED_API_KEY=`, `SAM_GOV_API_KEY=` | optional; leave empty if you don't have them yet |
+   | `CORS_ORIGINS=` | leave it for now; you'll fill it in step 5 |
 
 5. Save and close: press **Ctrl+O**, then **Enter**, then **Ctrl+X**.
 
-### 4h. Start it
+### 3h. Start it
 ```bash
 docker compose -f docker-compose.cloud.yml up -d --build
 ```
@@ -226,13 +223,13 @@ starting with `{"status":"ok","profile":"cloud"` and `"database":"ok"`.
   `docker compose -f docker-compose.cloud.yml logs migrate`, fix `DATABASE_URL_DIRECT` with
   `nano .env`, then run the `up -d` line again.
 - `/health` doesn't load or shows a certificate warning: DuckDNS isn't pointing at the server yet
-  (check 4d), or ports 80/443 are closed (check 4c and the iptables line in 4f). Then run
+  (check 3d), or ports 80/443 are closed (check 3c and the iptables line in 3f). Then run
   `docker compose -f docker-compose.cloud.yml restart caddy` and wait 2 minutes.
 - `/health` says `"status":"degraded"`: the database can't be reached. Check `DATABASE_URL`.
 - The build stops with an error mentioning `timesfm`: add the line `INSTALL_TIMESFM=false` to `.env`
   and run the `up -d --build` line again. TimesFM is off by default anyway.
 
-## Step 5: Vercel (the dashboard website), about 10 minutes
+## Step 4: Vercel (the dashboard website), about 10 minutes
 
 1. Go to https://vercel.com → **Sign up** → **Continue with GitHub**.
 2. **Add New…** → **Project** → find **Claude-Code** → **Import**.
@@ -247,7 +244,7 @@ starting with `{"status":"ok","profile":"cloud"` and `"database":"ok"`.
    → **Redeploy**. (If the branch is later merged into `main`, you can switch this back.)
 5. Copy your site address, for example `https://claude-code-yourname.vercel.app`.
 
-## Step 6: Connect the two and restart, about 2 minutes
+## Step 5: Connect the two and restart, about 2 minutes
 
 Back in the server window (PowerShell):
 ```bash
@@ -259,7 +256,7 @@ Press **Ctrl+O**, **Enter**, **Ctrl+X**. Then:
 docker compose -f docker-compose.cloud.yml up -d
 ```
 
-## Step 7: Check that it really works on the live version
+## Step 6: Check that it really works on the live version
 
 Run this on the server (replace both addresses with yours). It reads your password from the server's
 `.env`, so you don't type it, and it never prints it:
@@ -271,7 +268,7 @@ It checks, one line each, `[PASS]`/`[FAIL]`/`[WAIT]`:
 | Check | What it proves |
 |---|---|
 | API reachable over HTTPS, Database (Neon), Cloud profile | the server, HTTPS and Neon work |
-| Scheduler running | the worker finished a scheduled task recently (heartbeat in Upstash) |
+| Scheduler running | the worker finished a scheduled task recently (heartbeat in the server's Redis) |
 | Login, Password required | your password works and visitors without it are refused |
 | Refresh | a full refresh (news → events → prices → signals → portfolio) ran on the worker |
 | Web app points at this API | Vercel is connected to your server |
@@ -293,9 +290,21 @@ button there repeats the email check any time.
 
 **Problem: the dashboard says "Failed to fetch" or keeps asking you to log in.** `CORS_ORIGINS` on
 the server doesn't exactly match the Vercel address (it needs `https://` and no `/` at the end).
-Fix it (step 6) and restart.
+Fix it (step 5) and restart.
 
 ---
+
+## What to expect once it's running
+
+- **Paper money only.** Auto-buy is OFF. Signals appear on the dashboard and in emails; nothing is bought
+  unless you click Buy in the paper account. Fills happen at the **next day's open**.
+- **Catalysts start OFF or "unproven"** (the backtest's verdicts are loaded into a fresh database). A
+  catalyst only turns ON after 50+ live signals beat the S&P 500 on the strict bar. That takes months.
+- **Confidence is UNCALIBRATED**: don't read 80 as "80% likely".
+- **Sources page:** expect ACTIVE for SEC, the newswires, FDA, halts, contracts, FINRA, Fed, BLS, Tiingo
+  and Finnhub. FRED and SAM.gov show AUTH REQUIRED until you add their optional keys.
+- **Outcomes** for a signal are filled in after its holding period (days), so the first real numbers
+  appear after a week or two.
 
 ## Keeping it running
 
@@ -316,9 +325,10 @@ Fix it (step 6) and restart.
 
 | Service | Limit | How CatalystEdge stays inside it |
 |---|---|---|
-| Neon | 100 compute-hours a month; sleeps after 5 idle minutes | short-lived connections; cloud polls every 15 min in market hours and hourly otherwise; email runs happen on those same minutes (alerts are sent straight after they are created). Roughly 45–60 compute-hours a month. |
-| Upstash | 500,000 commands a month | the task queue stays on the VM's own Redis; Upstash only stores budgets, cooldowns and the heartbeat |
-| Oracle | idle machines on free accounts may be reclaimed | upgrade to Pay As You Go (4a), which stays $0 |
+| Neon compute | 100 compute-hours a month; sleeps after 5 idle minutes | short-lived connections; cloud polls every 15 min in market hours and hourly otherwise; filings, email and other runs happen on those same minutes. Measured 2026-10-01: a news run takes ~2 min and a filings run under 1 min, so the database is awake ~7 min of every 15 in market hours: about 230 hours a month at the smallest size (0.25), i.e. **~55–65 compute-hours**. If Neon offers a compute-size setting, keep it at the smallest. |
+| Neon storage | 0.5 GB | news older than 48 hours is deleted daily; events, filings and outcomes are kept. Measured growth is about 1–1.5 MB a day, so **0.5 GB lasts roughly a year**. Neon's dashboard shows the size; when it passes ~400 MB, ask for a clean-up of old events. |
+| Upstash | not used | measured 2026-10-01: ~290 shared-memory commands per news run and ~390 per filings run, ~775,000 a month, more than Upstash's free 500,000. The VM's own Redis does this job instead (no limit, kept on disk across restarts). |
+| Oracle | idle machines on free accounts may be reclaimed | upgrade to Pay As You Go (3a), which stays $0 |
 | Vercel Hobby | personal, non-commercial use | the dashboard is a small site with no paid features |
 | Resend | 100 emails a day | the app caps itself at `EMAIL_DAILY_CAP=50` |
 

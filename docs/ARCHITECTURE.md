@@ -175,8 +175,8 @@ Full steps are in [DEPLOY_FREE.md](DEPLOY_FREE.md).
 | UI | Next.js container | **Vercel Hobby** |
 | API, worker, beat | containers on your PC | containers on an **Oracle Always Free** ARM VM behind Caddy (auto-TLS) |
 | Postgres | container | **Neon Free** (short-lived connections so it can scale to zero) |
-| Cache, budgets, cooldowns, SSE progress | local Redis | **Upstash Free** |
-| Celery broker | local Redis | local Redis container on the VM (**not** Upstash, whose 500k commands/month would be used up by broker polling) |
+| Cache, budgets, cooldowns, SSE progress | local Redis | the VM's Redis container (db 1, kept on disk). Upstash was dropped on 2026-10-01: measured ~775k commands/month vs its free 500k |
+| Celery broker | local Redis | the VM's Redis container (db 0) |
 | Backtest price archive | Parquet volume | Parquet volume on the VM disk (Neon's 0.5 GB can't hold it) |
 | News poll cadence | 5 min | 15 min in market hours, hourly otherwise, to stay under Neon's 100 CU-h/month |
 | Ollama | optional | off |
@@ -517,13 +517,13 @@ whose `fill_date <= paper_positions.entry_date`. A bug in Python cannot bypass r
 ```
 catalystedge/
 ├── docker-compose.yml            # LOCAL: web, api, worker, beat, postgres, redis (+ ollama profile)
-├── docker-compose.cloud.yml      # ORACLE VM: caddy, api, worker, beat, redis (broker); DB=Neon, cache=Upstash
+├── docker-compose.cloud.yml      # ORACLE VM: caddy, api, worker, beat, redis (broker); DB=Neon, cache=VM redis
 ├── .env.example  .env.cloud.example
 ├── Makefile                      # up, test, migrate, verify-sources, backtest, lint
 ├── README.md                     # setup guide
 ├── docs/
 │   ├── ARCHITECTURE.md           # this file
-│   ├── DEPLOY_FREE.md            # $0: local Docker → Oracle + Vercel + Neon + Upstash
+│   ├── DEPLOY_FREE.md            # $0: local Docker → Oracle + Vercel + Neon
 │   ├── SETUP.md  COSTS.md  SOURCES.md  MODELS.md  ROADMAP.md
 │   └── adr/                      # short decision records
 ├── backend/
@@ -811,7 +811,7 @@ Models download on first start into the `models` volume. `/health/models` report
 
 | Item | Choice | $/month |
 |---|---|---|
-| Hosting, **$0 path (default)** | local Docker, then Oracle Always Free + Vercel Hobby + Neon Free + Upstash Free ([DEPLOY_FREE.md](DEPLOY_FREE.md)) | **$0** |
+| Hosting, **$0 path (default)** | local Docker, then Oracle Always Free + Vercel Hobby + Neon Free ([DEPLOY_FREE.md](DEPLOY_FREE.md)) | **$0** |
 | Hosting, paid fallback | Hetzner CX33 (4 vCPU / 8 GB), ≈ €6.49 after June 2026 price changes **⚠ confirm at checkout**; only if Oracle capacity or reclamation becomes a problem | ≈ $8 (+ $1.5 backups) |
 | News / event / price APIs | all free tiers | $0 |
 | Email | Resend free (3,000/mo) | $0 |
@@ -859,7 +859,7 @@ Everything else I decided myself, with defaults shown above.
    Basic News API via AWS Marketplace is the only permitted route found).
 3. ~~Investing.com~~ **Answered:** disabled stub. Its terms forbid using or storing its
    data without written permission, and there will be no scraping.
-4. ~~Where it will run~~ **Answered:** local Docker first, then Oracle + Vercel + Neon + Upstash for $0.
+4. ~~Where it will run~~ **Answered:** local Docker first, then Oracle + Vercel + Neon for $0 (Upstash dropped 2026-10-01).
 
 ---
 

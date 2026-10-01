@@ -1,7 +1,7 @@
 """Request spacing shared by every process, for providers whose limit is per IP or per key (SEC: 10 req/s).
 
 Each call reserves the next free slot for its rate group and sleeps until it:
-  RedisSlots  one atomic Lua script on the shared Redis (local Docker's redis, Upstash in the cloud), so
+  RedisSlots  one atomic Lua script on the shared Redis (local Docker's redis, the VM's redis in the cloud), so
               the API, the worker, beat and any script on any container share one budget
   FileSlots   a lock file per group on this machine (no Redis, e.g. a standalone download script), so
               parallel processes on one computer still share it

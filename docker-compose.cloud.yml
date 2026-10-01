@@ -1,5 +1,5 @@
-# CatalystEdge, cloud profile ($0): runs on the Oracle Always Free VM. Database = Neon, shared cache =
-# Upstash, UI = Vercel. Only the API, worker, beat, a local Redis (task queue only) and Caddy (HTTPS) run here.
+# CatalystEdge, cloud profile ($0): runs on the Oracle Always Free VM. Database = Neon, UI = Vercel.
+# The API, worker, beat, Redis (task queue + shared state) and Caddy (HTTPS) run here.
 #   cp .env.cloud.example .env   # fill in, then:
 #   docker compose -f docker-compose.cloud.yml up -d --build
 # See docs/DEPLOY_FREE.md for the full walk-through.
@@ -11,21 +11,27 @@ x-backend: &backend
       INSTALL_ML: ${INSTALL_ML:-true}
       INSTALL_TIMESFM: ${INSTALL_TIMESFM:-true}
   image: catalystedge-backend:cloud
-  env_file: .env                      # must exist: DATABASE_URL (Neon), REDIS_URL (Upstash), APP_PASSWORD, keys
+  env_file: .env                      # must exist: DATABASE_URL (Neon), APP_PASSWORD, keys
   environment:
     CATALYSTEDGE_PROFILE: cloud
     # The dashboard login. `docker compose up` refuses to start the cloud stack without it.
     APP_PASSWORD: ${APP_PASSWORD:?set APP_PASSWORD in .env before deploying}
     CELERY_BROKER_URL: redis://redis:6379/0
+    # Shared state (HTTP cache, budgets, SEC spacing, locks, heartbeat) on the VM's own Redis. Measured
+    # 2026-10-01: ~290 commands per news run and ~390 per events run, ~775k a month on the cloud schedule,
+    # more than Upstash's free 500k. Every process runs on this VM, so a local Redis serves them all.
+    REDIS_URL: redis://redis:6379/1
     MODELS_DIR: /models
   volumes:
     - models:/models
   restart: unless-stopped
 
 services:
-  redis:                              # Celery queue only (Upstash's free command quota is kept for shared state)
+  redis:                              # db 0: Celery queue; db 1: shared state (kept on disk across restarts)
     image: redis:7-alpine
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    command: ["redis-server", "--save", "", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -40,6 +46,8 @@ services:
   api:
     <<: *backend
     depends_on:
+      redis:
+        condition: service_healthy
       migrate:
         condition: service_completed_successfully
 
@@ -77,3 +85,4 @@ services:
 volumes:
   models:
   caddydata:
+  redisdata:
