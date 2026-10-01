@@ -199,7 +199,7 @@ git clone -b claude/adoring-dirac-ohiyp8 https://github.com/Eswarpavan/Claude-Co
    | `PUBLIC_HOSTNAME=` | `catalystedge-yourname.duckdns.org` |
    | `DATABASE_URL=` | the Neon **pooled** address (step 1) |
    | `DATABASE_URL_DIRECT=` | the Neon **direct** address (step 1) |
-      | `FRED_API_KEY=`, `SAM_GOV_API_KEY=` | optional; leave empty if you don't have them yet |
+   | `FRED_API_KEY=`, `SAM_GOV_API_KEY=` | optional; leave empty if you don't have them yet |
    | `CORS_ORIGINS=` | leave it for now; you'll fill it in step 5 |
 
 5. Save and close: press **Ctrl+O**, then **Enter**, then **Ctrl+X**.
